@@ -1,0 +1,526 @@
+.hero {
+  position: relative;
+  width: 100%;
+  min-height: 720px;
+  background-color: var(--cream);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  padding: 3rem 0;
+}
+
+/* Background Image Container */
+.imageContainer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.heroImage {
+  object-fit: cover;
+  object-position: center 38%;
+  transform: scale(1.08);
+  width: 100%;
+  height: 100%;
+}
+
+/* Editorial Gradient Overlay */
+.imageOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    var(--cream) 0%,
+    rgba(248, 243, 236, 0.95) 32%,
+    rgba(248, 243, 236, 0.35) 55%,
+    rgba(248, 243, 236, 0.92) 80%,
+    var(--cream) 100%
+  );
+  pointer-events: none;
+}
+
+/* Content Container */
+.container {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3rem;
+}
+
+/* Left Marketing Copy Column */
+.leftColumn {
+  flex: 1;
+  max-width: 520px;
+}
+
+.eyebrow {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 1rem;
+}
+
+.title {
+  font-family: var(--font-playfair), serif;
+  font-size: clamp(2.5rem, 4vw, 3.5rem);
+  font-weight: 700;
+  color: var(--foreground);
+  line-height: 1.15;
+  margin-bottom: 1.25rem;
+  letter-spacing: -0.01em;
+}
+
+.titleSpan {
+  display: block;
+}
+
+.description {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: #4a3b32;
+  margin-bottom: 2.25rem;
+  max-width: 480px;
+}
+
+.ctaGroup {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.primaryCta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--primary);
+  color: var(--cream-light);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.85rem 1.75rem;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.primaryCta:hover {
+  background-color: var(--primary-dark);
+}
+
+.secondaryCta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  color: var(--foreground);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.85rem 1.75rem;
+  border-radius: 4px;
+  text-decoration: none;
+  border: 1px solid var(--border);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.secondaryCta:hover {
+  background-color: var(--cream-light);
+  border-color: var(--gold);
+}
+
+/* Right Column: Integrated Form Card */
+.rightColumn {
+  flex: 0 0 500px;
+  max-width: 520px;
+}
+
+.card {
+  background-color: var(--cream-light);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2rem 1.75rem;
+  box-shadow: 0 12px 32px rgba(43, 33, 29, 0.06);
+}
+
+.cardHeader {
+  margin-bottom: 1.25rem;
+}
+
+.cardBrand {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.5rem;
+}
+
+.cardBrandName {
+  font-family: var(--font-playfair), serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--foreground);
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+}
+
+.cardBrandTagline {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.5rem;
+  font-weight: 600;
+  color: var(--gold);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-top: 0.15rem;
+}
+
+.cardDivider {
+  height: 1px;
+  background-color: var(--border);
+  margin-bottom: 0.85rem;
+  opacity: 0.7;
+}
+
+.titleRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.cardTitle {
+  font-family: var(--font-playfair), serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--foreground);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.cardSubtitle {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: var(--primary);
+  letter-spacing: 0.02em;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+/* 2-Column Row for Form Fields */
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.fieldLabel {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.select,
+.input {
+  width: 100%;
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.85rem;
+  color: var(--foreground);
+  background-color: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.55rem 0.75rem;
+  outline: none;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+  appearance: none;
+}
+
+.selectWrapper {
+  position: relative;
+}
+
+.selectWrapper::after {
+  content: "";
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 4px solid var(--foreground);
+  pointer-events: none;
+}
+
+.select:focus,
+.input:focus {
+  border-color: var(--gold);
+  background-color: var(--cream-light);
+}
+
+/* Services Grid (Compact selectable boxes) */
+.servicesGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.45rem;
+}
+
+.serviceBox {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background-color: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.45rem 0.55rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  user-select: none;
+}
+
+.serviceBox:hover {
+  border-color: var(--gold);
+  background-color: var(--cream-light);
+}
+
+.serviceBoxSelected {
+  border-color: var(--primary);
+  background-color: rgba(127, 16, 16, 0.05);
+}
+
+.checkbox {
+  width: 13px;
+  height: 13px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.serviceName {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.errorText {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.8rem;
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.cardButton {
+  width: 100%;
+  margin-top: 0.35rem;
+  background-color: var(--primary);
+  color: var(--cream-light);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.8rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.cardButton:hover {
+  background-color: var(--primary-dark);
+}
+
+/* Result Summary Panel */
+.resultsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.resultsTitle {
+  font-family: var(--font-playfair), serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin-bottom: 0.25rem;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+  background-color: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1.1rem;
+}
+
+.summaryItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.summaryKey {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.summaryVal {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.resultsActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.resultsCta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  background-color: var(--primary);
+  color: var(--cream-light);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.8rem;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+  text-align: center;
+}
+
+.resultsCta:hover {
+  background-color: var(--primary-dark);
+}
+
+.resetBtn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.825rem;
+  font-weight: 600;
+  padding: 0.65rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.resetBtn:hover {
+  background-color: var(--cream);
+  border-color: var(--gold);
+}
+
+/* Tablet Responsiveness */
+@media (max-width: 1024px) {
+  .hero {
+    height: auto;
+    padding: 3rem 0;
+  }
+
+  .container {
+    gap: 2rem;
+    padding: 0 1.5rem;
+  }
+
+  .leftColumn {
+    max-width: 440px;
+  }
+
+  .rightColumn {
+    flex: 0 0 440px;
+    max-width: 460px;
+  }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .hero {
+    height: auto;
+    padding: 2.5rem 0 3rem 0;
+    flex-direction: column;
+  }
+
+  .imageContainer {
+    position: relative;
+    height: 280px;
+    margin: 1.5rem 0;
+    border-radius: 6px;
+    width: calc(100% - 3rem);
+    left: 1.5rem;
+    right: 1.5rem;
+  }
+
+  .imageOverlay {
+    background: linear-gradient(
+      180deg,
+      transparent 60%,
+      var(--cream) 100%
+    );
+  }
+
+  .container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2rem;
+    padding: 0 1.5rem;
+  }
+
+  .leftColumn {
+    max-width: 100%;
+  }
+
+  .rightColumn {
+    flex: none;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+
+  .servicesGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .card {
+    padding: 1.5rem 1.25rem;
+  }
+}

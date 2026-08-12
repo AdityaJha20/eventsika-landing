@@ -1,0 +1,185 @@
+.section {
+  width: 100%;
+  background-color: var(--cream-light);
+  border-bottom: 1px solid var(--border);
+  padding: 6rem 1.5rem;
+}
+
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Section Header */
+.header {
+  text-align: center;
+  max-width: 680px;
+  margin-bottom: 4.5rem;
+}
+
+.eyebrow {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 1rem;
+}
+
+.title {
+  font-family: var(--font-playfair), serif;
+  font-size: clamp(2rem, 3.5vw, 2.75rem);
+  font-weight: 700;
+  color: var(--foreground);
+  line-height: 1.2;
+  margin-bottom: 1rem;
+  letter-spacing: -0.01em;
+}
+
+.description {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: #4a3b32;
+  margin: 0 auto;
+}
+
+/* Steps Grid */
+.stepsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  width: 100%;
+  margin-bottom: 4.5rem;
+  position: relative;
+}
+
+.stepItem {
+  padding: 0 2.5rem;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.stepItem:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 10%;
+  height: 80%;
+  width: 1px;
+  background-color: var(--border);
+  opacity: 0.7;
+}
+
+.stepItem:first-child {
+  padding-left: 0;
+}
+
+.stepItem:last-child {
+  padding-right: 0;
+}
+
+.stepNumber {
+  font-family: var(--font-playfair), serif;
+  font-size: 2.75rem;
+  font-weight: 700;
+  color: var(--gold);
+  line-height: 1;
+  margin-bottom: 1rem;
+  opacity: 0.9;
+}
+
+.stepTitle {
+  font-family: var(--font-playfair), serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--foreground);
+  margin-bottom: 0.85rem;
+}
+
+.stepDescription {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: #4a3b32;
+}
+
+/* CTA Footer */
+.ctaContainer {
+  display: flex;
+  justify-content: center;
+}
+
+.ctaButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--primary);
+  color: var(--cream-light);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.85rem 2rem;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.ctaButton:hover {
+  background-color: var(--primary-dark);
+}
+
+/* Tablet Responsiveness */
+@media (max-width: 1024px) {
+  .section {
+    padding: 4.5rem 1.5rem;
+  }
+
+  .stepsGrid {
+    margin-bottom: 3.5rem;
+  }
+
+  .stepItem {
+    padding: 0 1.5rem;
+  }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .section {
+    padding: 3.5rem 1.5rem;
+  }
+
+  .header {
+    margin-bottom: 3rem;
+  }
+
+  .stepsGrid {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+    margin-bottom: 3rem;
+  }
+
+  .stepItem {
+    padding: 0 0 2.5rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .stepItem:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .stepItem:not(:last-child)::after {
+    display: none;
+  }
+}

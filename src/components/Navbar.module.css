@@ -1,0 +1,231 @@
+.header {
+  width: 100%;
+  background-color: var(--cream-light);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  z-index: 50;
+}
+
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+/* Brand / Logo Styling */
+.brand {
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+}
+
+.brandName {
+  font-family: var(--font-playfair), serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--foreground);
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+}
+
+.brandTagline {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.58rem;
+  font-weight: 600;
+  color: var(--gold);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-top: 0.2rem;
+}
+
+/* Center Navigation (Desktop) */
+.nav {
+  display: flex;
+  align-items: center;
+}
+
+.navList {
+  display: flex;
+  align-items: center;
+  gap: 1.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.navLink {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--foreground);
+  text-decoration: none;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+}
+
+.navLink:hover {
+  color: var(--primary);
+}
+
+/* Right Section (Desktop) */
+.rightSection {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.phoneLink {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
+  text-decoration: none;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+}
+
+.phoneLink:hover {
+  color: var(--primary);
+}
+
+.phoneIcon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  stroke: currentColor;
+}
+
+.loginLink {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--foreground);
+  text-decoration: none;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+}
+
+.loginLink:hover {
+  color: var(--primary);
+}
+
+.primaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--primary);
+  color: var(--cream-light);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.65rem 1.25rem;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+}
+
+.primaryButton:hover {
+  background-color: var(--primary-dark);
+}
+
+/* Mobile Controls & Hamburger */
+.mobileControls {
+  display: none;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.mobileMenuButton {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--foreground);
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.mobileMenuButton:hover {
+  background-color: var(--cream);
+  border-color: var(--gold);
+}
+
+.icon {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+}
+
+/* Mobile Dropdown Menu */
+.mobileMenu {
+  display: none;
+  background-color: var(--cream-light);
+  border-bottom: 1px solid var(--border);
+  padding: 1rem 1.5rem 1.5rem 1.5rem;
+}
+
+.mobileNavList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.mobileNavLink {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--foreground);
+  text-decoration: none;
+  display: block;
+  padding: 0.35rem 0;
+  transition: color 0.2s ease;
+}
+
+.mobileNavLink:hover {
+  color: var(--primary);
+}
+
+.mobileDivider {
+  height: 1px;
+  background-color: var(--border);
+  margin: 0.75rem 0;
+}
+
+.mobileActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+/* Responsive Media Query */
+@media (max-width: 1080px) {
+
+  .nav,
+  .rightSection {
+    display: none;
+  }
+
+  .mobileControls {
+    display: flex;
+  }
+
+  .mobileMenuOpen {
+    display: block;
+  }
+}

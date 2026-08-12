@@ -1,0 +1,232 @@
+.section {
+  width: 100%;
+  background-color: var(--cream-light);
+  border-bottom: 1px solid var(--border);
+  padding: 6rem 1.5rem;
+}
+
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 2-Column Editorial Split Layout */
+.contentGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+}
+
+/* Left Column: Image Display */
+.imageFrame {
+  position: relative;
+  width: 100%;
+  height: 580px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 32px rgba(43, 33, 29, 0.05);
+}
+
+.image {
+  object-fit: cover;
+  object-position: center;
+}
+
+.imageOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(43, 33, 29, 0.35) 0%,
+    transparent 60%
+  );
+  pointer-events: none;
+}
+
+/* Right Column: Copy & Benefits */
+.rightColumn {
+  display: flex;
+  flex-direction: column;
+}
+
+.eyebrow {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 1rem;
+}
+
+.title {
+  font-family: var(--font-playfair), serif;
+  font-size: clamp(2rem, 3.5vw, 2.75rem);
+  font-weight: 700;
+  color: var(--foreground);
+  line-height: 1.2;
+  margin-bottom: 1rem;
+  letter-spacing: -0.01em;
+}
+
+.description {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: #4a3b32;
+  margin-bottom: 2.25rem;
+}
+
+/* Vertical Editorial Benefits List */
+.benefitsList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2.5rem 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.benefitItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+  padding: 1.25rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.benefitItem:last-child {
+  border-bottom: 1px solid var(--border);
+}
+
+.benefitNumber {
+  font-family: var(--font-playfair), serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--gold);
+  min-width: 2rem;
+  line-height: 1.2;
+}
+
+.benefitContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.benefitTitle {
+  font-family: var(--font-playfair), serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.benefitDescription {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #4a3b32;
+  margin: 0;
+}
+
+/* Actions Group */
+.actionGroup {
+  display: flex;
+  align-items: center;
+  gap: 1.75rem;
+  flex-wrap: wrap;
+}
+
+.ctaButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--primary);
+  color: var(--cream-light);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.85rem 2rem;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.ctaButton:hover {
+  background-color: var(--primary-dark);
+}
+
+.secondaryLink {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--foreground);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.secondaryLink:hover {
+  color: var(--primary);
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .ctaButton,
+  .secondaryLink {
+    transition: none !important;
+  }
+}
+
+/* Tablet Responsiveness */
+@media (max-width: 1024px) {
+  .section {
+    padding: 4.5rem 1.5rem;
+  }
+
+  .contentGrid {
+    gap: 2.5rem;
+  }
+
+  .imageFrame {
+    height: 480px;
+  }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .section {
+    padding: 3.5rem 1.5rem;
+  }
+
+  .contentGrid {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+
+  .imageFrame {
+    height: 320px;
+  }
+
+  .actionGroup {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .ctaButton {
+    width: 100%;
+    text-align: center;
+  }
+
+  .secondaryLink {
+    text-align: center;
+  }
+}
