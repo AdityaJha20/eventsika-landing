@@ -63,13 +63,10 @@ const SERVICES = [
 ];
 
 export default function Services() {
-  const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
+  const [activeCard, setActiveCard] = useState<string | null>(null);
 
   const toggleCard = (number: string) => {
-    setFlippedCards((prev) => ({
-      ...prev,
-      [number]: !prev[number],
-    }));
+    setActiveCard((prev) => (prev === number ? null : number));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent, number: string) => {
@@ -98,54 +95,49 @@ export default function Services() {
           </p>
         </div>
 
-        {/* 6 Interactive 3D Flip Service Cards */}
+        {/* 6 Editorial Service Cards with Overlay Interaction */}
         <ul className={styles.grid}>
           {SERVICES.map((service) => {
-            const isFlipped = Boolean(flippedCards[service.number]);
+            const isRevealed = activeCard === service.number;
             return (
-              <li key={service.number} className={styles.card}>
+              <li key={service.number}>
                 <div
                   tabIndex={0}
                   role="button"
-                  aria-expanded={isFlipped}
-                  aria-label={`${service.title} service details. Press Enter, Space or tap to flip card.`}
-                  className={`${styles.cardInner} ${
-                    isFlipped ? styles.cardInnerFlipped : ""
+                  aria-expanded={isRevealed}
+                  aria-label={`${service.title} service details. Press Enter, Space or tap to view details.`}
+                  className={`${styles.card} ${
+                    isRevealed ? styles.cardRevealed : ""
                   }`}
                   onClick={() => toggleCard(service.number)}
                   onKeyDown={(e) => handleKeyDown(e, service.number)}
                 >
-                  {/* FRONT FACE: Editorial Photography */}
-                  <div className={styles.cardFront}>
-                    <Image
-                      src={service.image}
-                      alt={service.alt}
-                      fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className={styles.image}
-                    />
-                    <div className={styles.frontOverlay} />
-                    <div className={styles.frontContent}>
-                      <div className={styles.frontHeader}>
-                        <span className={styles.numberFront}>
-                          {service.number}
-                        </span>
-                        <span className={styles.flipHint}>Details</span>
-                      </div>
-                      <h3 className={styles.titleFront}>{service.title}</h3>
-                    </div>
+                  {/* Background Photography */}
+                  <Image
+                    src={service.image}
+                    alt={service.alt}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className={styles.image}
+                  />
+                  <div className={styles.defaultOverlay} />
+
+                  {/* Default Front Content */}
+                  <div className={styles.frontContent}>
+                    <span className={styles.numberFront}>{service.number}</span>
+                    <h3 className={styles.titleFront}>{service.title}</h3>
                   </div>
 
-                  {/* BACK FACE: Detailed Information */}
-                  <div className={styles.cardBack}>
-                    <div className={styles.backMain}>
-                      <div className={styles.backHeader}>
-                        <span className={styles.numberBack}>
+                  {/* Revealed Editorial Detail Overlay */}
+                  <div className={styles.detailOverlay}>
+                    <div className={styles.detailContent}>
+                      <div className={styles.detailHeader}>
+                        <span className={styles.numberDetail}>
                           {service.number}
                         </span>
                       </div>
-                      <h3 className={styles.titleBack}>{service.title}</h3>
-                      <p className={styles.descriptionBack}>
+                      <h3 className={styles.titleDetail}>{service.title}</h3>
+                      <p className={styles.descriptionDetail}>
                         {service.description}
                       </p>
                     </div>
