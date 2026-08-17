@@ -1,0 +1,247 @@
+.section {
+  width: 100%;
+  background-color: var(--cream-light);
+  border-bottom: 1px solid var(--border);
+  padding: 6.5rem 1.5rem 7.5rem 1.5rem;
+}
+
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header Area */
+.header {
+  text-align: center;
+  max-width: 760px;
+  margin: 0 auto 4rem auto;
+}
+
+.eyebrow {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 1rem;
+}
+
+.title {
+  font-family: var(--font-playfair), serif;
+  font-size: clamp(2rem, 3.5vw, 2.75rem);
+  font-weight: 700;
+  color: var(--foreground);
+  line-height: 1.2;
+  margin-bottom: 1rem;
+  letter-spacing: -0.01em;
+}
+
+.description {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: #4a3b32;
+  margin: 0 auto;
+}
+
+/* Scrollable Container for Controlled Responsiveness */
+.tableScrollContainer {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background-color: #ffffff;
+  box-shadow: 0 8px 24px rgba(43, 33, 29, 0.04);
+}
+
+.tableScrollContainer:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* Comparison Table */
+.comparisonTable {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 780px;
+  text-align: left;
+}
+
+/* Table Headers */
+.featureColHeader {
+  width: 28%;
+  padding: 2rem 1.75rem 1.5rem 1.75rem;
+  vertical-align: bottom;
+  border-bottom: 2px solid var(--border);
+  background-color: var(--cream);
+}
+
+.headerColTitle {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #6b5b52;
+}
+
+.packageColHeader {
+  width: 24%;
+  padding: 2rem 1.5rem 1.5rem 1.5rem;
+  vertical-align: bottom;
+  border-bottom: 2px solid var(--border);
+  background-color: var(--cream);
+  text-align: center;
+}
+
+.popularColHeader {
+  background-color: #fdfaf5;
+  border-left: 1px solid rgba(185, 154, 103, 0.25);
+  border-right: 1px solid rgba(185, 154, 103, 0.25);
+}
+
+.packageHeaderBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.popularBadge {
+  background-color: var(--primary);
+  color: var(--cream-light);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.65rem;
+  border-radius: 10px;
+  margin-bottom: 0.25rem;
+}
+
+.packageName {
+  font-family: var(--font-playfair), serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--foreground);
+  letter-spacing: -0.01em;
+}
+
+.packagePrice {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* Category Subheaders */
+.categoryRow {
+  background-color: var(--cream);
+}
+
+.categoryHeader {
+  padding: 1rem 1.75rem;
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Data Rows */
+.dataRow {
+  transition: background-color 0.15s ease;
+}
+
+.dataRow:hover {
+  background-color: #faf6ef;
+}
+
+.featureCell {
+  padding: 1.25rem 1.75rem;
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--foreground);
+  border-bottom: 1px solid rgba(223, 210, 195, 0.6);
+  vertical-align: middle;
+}
+
+.dataCell {
+  padding: 1.25rem 1.5rem;
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #4a3b32;
+  border-bottom: 1px solid rgba(223, 210, 195, 0.6);
+  text-align: center;
+  vertical-align: middle;
+}
+
+.popularDataCell {
+  background-color: rgba(253, 250, 245, 0.6);
+  border-left: 1px solid rgba(185, 154, 103, 0.15);
+  border-right: 1px solid rgba(185, 154, 103, 0.15);
+  font-weight: 500;
+}
+
+.checkValue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  color: #4a3b32;
+  font-weight: 600;
+}
+
+.checkIcon {
+  width: 16px;
+  height: 16px;
+  stroke: var(--gold);
+}
+
+.dashValue {
+  color: #a8988e;
+  font-weight: 400;
+  font-size: 1.1rem;
+}
+
+/* Tablet Responsiveness */
+@media (max-width: 1024px) {
+  .section {
+    padding: 5rem 1.5rem 6rem 1.5rem;
+  }
+
+  .header {
+    margin-bottom: 3rem;
+  }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 640px) {
+  .section {
+    padding: 4rem 1.25rem 5rem 1.25rem;
+  }
+
+  .header {
+    margin-bottom: 2.5rem;
+  }
+
+  .featureCell {
+    padding: 1rem 1.25rem;
+    font-size: 0.85rem;
+  }
+
+  .dataCell {
+    padding: 1rem 1.25rem;
+    font-size: 0.825rem;
+  }
+}

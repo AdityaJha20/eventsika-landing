@@ -255,16 +255,17 @@ export default function ServicesPage() {
           className={styles.consultationSection}
           aria-labelledby="consultation-heading"
         >
-          <div className={styles.consultationContainer}>
+          <div className={styles.consultationCard}>
             <p className={styles.consultationEyebrow}>
               READY TO DESIGN YOUR DREAM EVENT?
             </p>
             <h2 id="consultation-heading" className={styles.consultationTitle}>
-              Speak with our celebration designer today.
+              Ready to Design Your Dream Event?
             </h2>
             <p className={styles.consultationDescription}>
-              We will craft a customized moodboard, curated menu, and timeline
-              tailored to your family&apos;s taste.
+              Speak with our celebration designer today. We will craft a
+              customized moodboard, curated menu, and timeline tailored to your
+              family&apos;s taste.
             </p>
             <Link href="/#plan-event" className={styles.consultationCta}>
               Book a Free Consultation

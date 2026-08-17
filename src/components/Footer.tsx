@@ -7,7 +7,7 @@ const EXPLORE_LINKS = [
   { label: "How It Works", href: "#how-it-works" },
   { label: "Services", href: "/services" },
   { label: "Events", href: "#events" },
-  { label: "Packages", href: "#packages" },
+  { label: "Packages", href: "/packages" },
 ];
 
 const SERVICE_LINKS = [

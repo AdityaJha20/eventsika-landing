@@ -235,16 +235,20 @@
 .consultationSection {
   width: 100%;
   background-color: var(--cream);
-  padding: 6.5rem 1.5rem;
+  padding: 6rem 1.5rem;
 }
 
-.consultationContainer {
-  max-width: 720px;
+.consultationCard {
+  max-width: 1080px;
   margin: 0 auto;
+  background-color: var(--primary);
+  border-radius: 8px;
+  padding: 5rem 3rem;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
+  box-shadow: 0 16px 44px rgba(43, 33, 29, 0.08);
 }
 
 .consultationEyebrow {
@@ -259,9 +263,9 @@
 
 .consultationTitle {
   font-family: var(--font-playfair), serif;
-  font-size: clamp(2rem, 3.5vw, 2.75rem);
+  font-size: clamp(2.15rem, 3.75vw, 3rem);
   font-weight: 700;
-  color: var(--foreground);
+  color: var(--cream-light);
   line-height: 1.2;
   letter-spacing: -0.01em;
   margin-bottom: 1.25rem;
@@ -271,8 +275,9 @@
   font-family: var(--font-inter), sans-serif;
   font-size: 1.05rem;
   line-height: 1.7;
-  color: #4a3b32;
-  margin-bottom: 2.25rem;
+  color: var(--cream);
+  opacity: 0.95;
+  margin-bottom: 2.5rem;
   max-width: 620px;
 }
 
@@ -280,25 +285,27 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--primary);
-  color: var(--cream-light);
+  background-color: var(--gold);
+  color: var(--foreground);
   font-family: var(--font-inter), sans-serif;
   font-size: 0.95rem;
-  font-weight: 600;
-  padding: 0.9rem 2.25rem;
+  font-weight: 700;
+  padding: 0.95rem 2.5rem;
   border-radius: 4px;
   text-decoration: none;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.2s ease;
   border: none;
   cursor: pointer;
+  letter-spacing: 0.01em;
 }
 
 .consultationCta:hover {
-  background-color: var(--primary-dark);
+  background-color: #cbb082;
+  transform: translateY(-2px);
 }
 
 .consultationCta:focus-visible {
-  outline: 2px solid var(--gold);
+  outline: 2px solid var(--cream-light);
   outline-offset: 3px;
 }
 
@@ -307,6 +314,7 @@
   .bookButton,
   .consultationCta {
     transition: none !important;
+    transform: none !important;
   }
 }
 
@@ -349,7 +357,11 @@
   }
 
   .consultationSection {
-    padding: 5rem 1.5rem;
+    padding: 4.5rem 1.5rem;
+  }
+
+  .consultationCard {
+    padding: 4rem 2.5rem;
   }
 }
 
@@ -393,7 +405,12 @@
   }
 
   .consultationSection {
-    padding: 4rem 1.25rem;
+    padding: 3.5rem 1rem;
+  }
+
+  .consultationCard {
+    padding: 3rem 1.5rem;
+    border-radius: 6px;
   }
 
   .consultationTitle {
@@ -402,7 +419,7 @@
 
   .consultationDescription {
     font-size: 0.95rem;
-    margin-bottom: 1.75rem;
+    margin-bottom: 2rem;
   }
 
   .consultationCta {

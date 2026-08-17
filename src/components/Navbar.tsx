@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import styles from "./Navbar.module.css";
 
 const NAV_LINKS = [
@@ -10,13 +11,14 @@ const NAV_LINKS = [
   { label: "How It Works", href: "#how-it-works" },
   { label: "Events", href: "#events" },
   { label: "Services", href: "/services" },
-  { label: "Packages", href: "#packages" },
+  { label: "Packages", href: "/packages" },
   { label: "For Vendors", href: "#for-vendors" },
   { label: "Contact", href: "#contact" },
 ];
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen((prev) => !prev);
@@ -44,13 +46,22 @@ export default function Navbar() {
         {/* Center Desktop Navigation */}
         <nav className={styles.nav} aria-label="Main Navigation">
           <ul className={styles.navList}>
-            {NAV_LINKS.map((link) => (
-              <li key={link.label}>
-                <Link href={link.href} className={styles.navLink}>
-                  {link.label}
-                </Link>
-              </li>
-            ))}
+            {NAV_LINKS.map((link) => {
+              const isActive =
+                link.href.startsWith("/") && pathname === link.href;
+              return (
+                <li key={link.label}>
+                  <Link
+                    href={link.href}
+                    className={`${styles.navLink} ${
+                      isActive ? styles.navLinkActive : ""
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </nav>
 
@@ -146,17 +157,23 @@ export default function Navbar() {
       >
         <nav aria-label="Mobile Navigation">
           <ul className={styles.mobileNavList}>
-            {NAV_LINKS.map((link) => (
-              <li key={link.label}>
-                <Link
-                  href={link.href}
-                  className={styles.mobileNavLink}
-                  onClick={closeMobileMenu}
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
+            {NAV_LINKS.map((link) => {
+              const isActive =
+                link.href.startsWith("/") && pathname === link.href;
+              return (
+                <li key={link.label}>
+                  <Link
+                    href={link.href}
+                    className={`${styles.mobileNavLink} ${
+                      isActive ? styles.mobileNavLinkActive : ""
+                    }`}
+                    onClick={closeMobileMenu}
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </nav>
 

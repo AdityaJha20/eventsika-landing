@@ -60,6 +60,16 @@
   color: var(--primary);
 }
 
+.navLinkActive {
+  color: var(--gold);
+  font-weight: 600;
+  text-shadow: 0 0 12px rgba(185, 154, 103, 0.35);
+}
+
+.navLinkActive:hover {
+  color: var(--gold);
+}
+
 /* Right Section (Desktop) */
 .rightSection {
   display: flex;
@@ -188,6 +198,16 @@
 
 .mobileNavLink:hover {
   color: var(--primary);
+}
+
+.mobileNavLinkActive {
+  color: var(--gold);
+  font-weight: 600;
+  text-shadow: 0 0 12px rgba(185, 154, 103, 0.35);
+}
+
+.mobileNavLinkActive:hover {
+  color: var(--gold);
 }
 
 .mobileDivider {
