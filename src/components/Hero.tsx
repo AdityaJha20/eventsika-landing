@@ -167,8 +167,14 @@ export default function Hero() {
           <div className={styles.card}>
             <div className={styles.cardHeader}>
               <div className={styles.cardBrand}>
-                <span className={styles.cardBrandName}>EVENTSIKA</span>
-                <span className={styles.cardBrandTagline}>CELEBRATE SEAMLESSLY</span>
+                <Image
+                  src="/images/eventsika-official-logo.png"
+                  alt="Eventsika - Celebrate Seamlessly"
+                  width={147}
+                  height={100}
+                  priority
+                  className={styles.cardBrandLogo}
+                />
               </div>
               <div className={styles.cardDivider} />
               <div className={styles.titleRow}>

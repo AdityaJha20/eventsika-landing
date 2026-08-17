@@ -164,27 +164,15 @@
 
 .cardBrand {
   display: flex;
-  flex-direction: column;
-  margin-bottom: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.65rem;
 }
 
-.cardBrandName {
-  font-family: var(--font-playfair), serif;
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--foreground);
-  letter-spacing: 0.06em;
-  line-height: 1.1;
-}
-
-.cardBrandTagline {
-  font-family: var(--font-inter), sans-serif;
-  font-size: 0.5rem;
-  font-weight: 600;
-  color: var(--gold);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  margin-top: 0.15rem;
+.cardBrandLogo {
+  height: 48px;
+  width: auto;
+  object-fit: contain;
+  display: block;
 }
 
 .cardDivider {
