@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import styles from "./Navbar.module.css";
 
@@ -30,8 +31,14 @@ export default function Navbar() {
       <div className={styles.container}>
         {/* Brand / Logo Area */}
         <Link href="/" className={styles.brand} onClick={closeMobileMenu}>
-          <span className={styles.brandName}>EVENTSIKA</span>
-          <span className={styles.brandTagline}>CELEBRATE SEAMLESSLY</span>
+          <Image
+            src="/images/eventsika-official-logo.png"
+            alt="Eventsika - Celebrate Seamlessly"
+            width={147}
+            height={100}
+            priority
+            className={styles.brandLogo}
+          />
         </Link>
 
         {/* Center Desktop Navigation */}

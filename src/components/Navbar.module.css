@@ -9,7 +9,7 @@
 .container {
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: 1rem 1.5rem;
+  padding: 0.65rem 1.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -18,28 +18,17 @@
 
 /* Brand / Logo Styling */
 .brand {
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
+  align-items: center;
   text-decoration: none;
+  line-height: 0;
 }
 
-.brandName {
-  font-family: var(--font-playfair), serif;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--foreground);
-  letter-spacing: 0.06em;
-  line-height: 1.1;
-}
-
-.brandTagline {
-  font-family: var(--font-inter), sans-serif;
-  font-size: 0.58rem;
-  font-weight: 600;
-  color: var(--gold);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  margin-top: 0.2rem;
+.brandLogo {
+  height: 66px;
+  width: auto;
+  object-fit: contain;
+  display: block;
 }
 
 /* Center Navigation (Desktop) */
@@ -215,6 +204,9 @@
 
 /* Responsive Media Query */
 @media (max-width: 1080px) {
+  .brandLogo {
+    height: 57px;
+  }
 
   .nav,
   .rightSection {
