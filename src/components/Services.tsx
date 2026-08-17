@@ -13,7 +13,7 @@ const SERVICES = [
       "Beautiful spaces, considered styling, and details that make the setting feel unmistakably yours.",
     image: "/images/service-venue-decor.png",
     alt: "Elegant event venue with floral arrangements and ambient candlelight",
-    href: "#services",
+    href: "/services",
   },
   {
     number: "02",
@@ -22,7 +22,7 @@ const SERVICES = [
       "Thoughtful menus and seamless service designed around your occasion and your guests.",
     image: "/images/service-catering.png",
     alt: "Gourmet celebration dining and elegant food presentation",
-    href: "#services",
+    href: "/services",
   },
   {
     number: "03",
@@ -31,7 +31,7 @@ const SERVICES = [
       "Capture the atmosphere, emotions, and moments you'll want to remember long after the celebration.",
     image: "/images/service-photography.png",
     alt: "Professional event photographer capturing candid celebration moments",
-    href: "#services",
+    href: "/services",
   },
   {
     number: "04",
@@ -40,7 +40,7 @@ const SERVICES = [
       "Music, performances, and experiences that give your celebration its own energy and character.",
     image: "/images/service-entertainment.png",
     alt: "Live acoustic musical performance at an elegant celebration",
-    href: "#services",
+    href: "/services",
   },
   {
     number: "05",
@@ -49,7 +49,7 @@ const SERVICES = [
       "Careful coordination from planning through execution, so every detail comes together smoothly.",
     image: "/images/service-event-management.png",
     alt: "Professional event coordinator managing venue setup details",
-    href: "#services",
+    href: "/services",
   },
   {
     number: "06",
@@ -58,15 +58,18 @@ const SERVICES = [
       "Beautiful stationery, guest communication, and finishing touches that complete the experience.",
     image: "/images/service-invitations-details.png",
     alt: "Luxury event stationery, wedding invitations, and gold foil details",
-    href: "#services",
+    href: "/services",
   },
 ];
 
 export default function Services() {
-  const [activeCard, setActiveCard] = useState<string | null>(null);
+  const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
 
   const toggleCard = (number: string) => {
-    setActiveCard((prev) => (prev === number ? null : number));
+    setFlippedCards((prev) => ({
+      ...prev,
+      [number]: !prev[number],
+    }));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent, number: string) => {
@@ -95,53 +98,58 @@ export default function Services() {
           </p>
         </div>
 
-        {/* 6 Editorial Service Cards with Overlay Interaction */}
+        {/* 6 Interactive 3D Flip Service Cards */}
         <ul className={styles.grid}>
           {SERVICES.map((service) => {
-            const isRevealed = activeCard === service.number;
+            const isFlipped = Boolean(flippedCards[service.number]);
             return (
-              <li key={service.number}>
+              <li key={service.number} className={styles.card}>
                 <div
                   tabIndex={0}
                   role="button"
-                  aria-expanded={isRevealed}
-                  aria-label={`${service.title} service details. Press Enter, Space or tap to view details.`}
-                  className={`${styles.card} ${
-                    isRevealed ? styles.cardRevealed : ""
+                  aria-expanded={isFlipped}
+                  aria-label={`${service.title} service details. Press Enter, Space or tap to flip card.`}
+                  className={`${styles.cardInner} ${
+                    isFlipped ? styles.cardInnerFlipped : ""
                   }`}
                   onClick={() => toggleCard(service.number)}
                   onKeyDown={(e) => handleKeyDown(e, service.number)}
                 >
-                  {/* Background Photography */}
-                  <Image
-                    src={service.image}
-                    alt={service.alt}
-                    fill
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                    className={styles.image}
-                  />
-                  <div className={styles.defaultOverlay} />
-
-                  {/* Default Front Content */}
-                  <div className={styles.frontContent}>
-                    <span className={styles.numberFront}>{service.number}</span>
-                    <h3 className={styles.titleFront}>{service.title}</h3>
+                  {/* FRONT FACE: Editorial Photography */}
+                  <div className={styles.cardFront}>
+                    <Image
+                      src={service.image}
+                      alt={service.alt}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className={styles.image}
+                    />
+                    <div className={styles.frontOverlay} />
+                    <div className={styles.frontContent}>
+                      <div className={styles.frontHeader}>
+                        <span className={styles.numberFront}>
+                          {service.number}
+                        </span>
+                        <span className={styles.flipHint}>Details</span>
+                      </div>
+                      <h3 className={styles.titleFront}>{service.title}</h3>
+                    </div>
                   </div>
 
-                  {/* Revealed Editorial Detail Overlay */}
-                  <div className={styles.detailOverlay}>
-                    <div className={styles.detailContent}>
-                      <div className={styles.detailHeader}>
-                        <span className={styles.numberDetail}>
+                  {/* BACK FACE: Detailed Information */}
+                  <div className={styles.cardBack}>
+                    <div className={styles.backMain}>
+                      <div className={styles.backHeader}>
+                        <span className={styles.numberBack}>
                           {service.number}
                         </span>
                       </div>
-                      <h3 className={styles.titleDetail}>{service.title}</h3>
-                      <p className={styles.descriptionDetail}>
+                      <h3 className={styles.titleBack}>{service.title}</h3>
+                      <p className={styles.descriptionBack}>
                         {service.description}
                       </p>
                     </div>
-                    <div className={styles.exploreLink}>
+                    <Link href={service.href} className={styles.exploreLink}>
                       <span>Explore service</span>
                       <svg
                         className={styles.arrowIcon}
@@ -156,7 +164,7 @@ export default function Services() {
                         <line x1="5" y1="12" x2="19" y2="12" />
                         <polyline points="12 5 19 12 12 19" />
                       </svg>
-                    </div>
+                    </Link>
                   </div>
                 </div>
               </li>
