@@ -237,12 +237,38 @@
   color: var(--cream-light);
 }
 
+/* Secondary Comparison CTA */
+.secondaryCtaContainer {
+  display: flex;
+  justify-content: center;
+  margin-top: 3.25rem;
+}
+
+.secondaryCta {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+  transition: color 0.2s ease, transform 0.2s ease;
+  letter-spacing: 0.02em;
+}
+
+.secondaryCta:hover {
+  color: var(--primary-dark);
+  transform: translateX(4px);
+}
+
 /* Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
-  .card {
+  .card,
+  .secondaryCta {
     transition: none !important;
   }
-  .card:hover {
+  .card:hover,
+  .secondaryCta:hover {
     transform: none !important;
   }
 }
@@ -265,6 +291,10 @@
 
   .signatureCard:hover {
     transform: translateY(-4px);
+  }
+
+  .secondaryCtaContainer {
+    margin-top: 2.75rem;
   }
 }
 
@@ -289,5 +319,9 @@
 
   .card {
     padding: 2.25rem 1.5rem;
+  }
+
+  .secondaryCtaContainer {
+    margin-top: 2.25rem;
   }
 }

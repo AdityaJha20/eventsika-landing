@@ -227,9 +227,10 @@
 
 .fieldLabel {
   font-family: var(--font-inter), sans-serif;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
-  color: var(--foreground);
+  color: #3b2d26;
+  letter-spacing: 0.01em;
 }
 
 .select,
@@ -241,10 +242,27 @@
   background-color: var(--cream);
   border: 1px solid var(--border);
   border-radius: 4px;
-  padding: 0.55rem 0.75rem;
+  padding: 0.6rem 0.8rem;
   outline: none;
-  transition: border-color 0.2s ease, background-color 0.2s ease;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
   appearance: none;
+  color-scheme: light;
+}
+
+.input::placeholder {
+  color: #8c7b70;
+  opacity: 1;
+  font-weight: 400;
+}
+
+.input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.65;
+  transition: opacity 0.2s ease;
+}
+
+.input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
 }
 
 .selectWrapper {
@@ -254,7 +272,7 @@
 .selectWrapper::after {
   content: "";
   position: absolute;
-  right: 0.75rem;
+  right: 0.8rem;
   top: 50%;
   transform: translateY(-50%);
   width: 0;
@@ -268,7 +286,8 @@
 .select:focus,
 .input:focus {
   border-color: var(--gold);
-  background-color: var(--cream-light);
+  background-color: #fff;
+  box-shadow: 0 0 0 2px rgba(185, 154, 103, 0.18);
 }
 
 /* Services Grid (Compact selectable boxes) */
@@ -281,24 +300,25 @@
 .serviceBox {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
   background-color: var(--cream);
   border: 1px solid var(--border);
   border-radius: 4px;
-  padding: 0.45rem 0.55rem;
+  padding: 0.48rem 0.6rem;
   cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   user-select: none;
 }
 
 .serviceBox:hover {
   border-color: var(--gold);
-  background-color: var(--cream-light);
+  background-color: #fff;
 }
 
 .serviceBoxSelected {
   border-color: var(--primary);
   background-color: rgba(127, 16, 16, 0.05);
+  box-shadow: 0 0 0 1px var(--primary);
 }
 
 .checkbox {

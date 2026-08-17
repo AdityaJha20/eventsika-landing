@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import styles from "./Footer.module.css";
 
@@ -25,9 +26,18 @@ export default function Footer() {
         <div className={styles.mainGrid}>
           {/* Brand Area */}
           <div className={styles.brandCol}>
-            <Link href="/" className={styles.brandLink}>
-              <span className={styles.brandName}>EVENTSIKA</span>
-              <span className={styles.brandTagline}>CELEBRATE SEAMLESSLY</span>
+            <Link
+              href="/"
+              className={styles.brandLink}
+              aria-label="Eventsika Homepage"
+            >
+              <Image
+                src="/images/eventsika-official-logo.png"
+                alt="Eventsika - Celebrate Seamlessly"
+                width={132}
+                height={90}
+                className={styles.brandLogo}
+              />
             </Link>
             <p className={styles.brandDescription}>
               Thoughtfully planned celebrations, beautifully delivered.

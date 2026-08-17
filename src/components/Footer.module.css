@@ -27,29 +27,17 @@
 }
 
 .brandLink {
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
+  align-items: flex-start;
   text-decoration: none;
   margin-bottom: 1.25rem;
 }
 
-.brandName {
-  font-family: var(--font-playfair), serif;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--foreground);
-  letter-spacing: 0.06em;
-  line-height: 1.1;
-}
-
-.brandTagline {
-  font-family: var(--font-inter), sans-serif;
-  font-size: 0.58rem;
-  font-weight: 600;
-  color: var(--gold);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  margin-top: 0.2rem;
+.brandLogo {
+  height: 52px;
+  width: auto;
+  object-fit: contain;
+  display: block;
 }
 
 .brandDescription {
@@ -183,6 +171,10 @@
 @media (max-width: 640px) {
   .footer {
     padding: 3.5rem 1.5rem 2rem 1.5rem;
+  }
+
+  .brandLogo {
+    height: 46px;
   }
 
   .mainGrid {

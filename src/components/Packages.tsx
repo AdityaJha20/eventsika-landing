@@ -138,6 +138,13 @@ export default function Packages() {
             </li>
           ))}
         </ul>
+
+        {/* Secondary Comparison CTA */}
+        <div className={styles.secondaryCtaContainer}>
+          <Link href="#packages" className={styles.secondaryCta}>
+            Compare All Packages &amp; Customizer →
+          </Link>
+        </div>
       </div>
     </section>
   );

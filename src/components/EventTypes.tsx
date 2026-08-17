@@ -98,15 +98,22 @@ export default function EventTypes() {
         <div className={styles.contentGrid}>
           {/* Left Column: Featured Event Image Display */}
           <div className={styles.imageFrame}>
-            <Image
-              key={activeEvent.number}
-              src={activeEvent.image}
-              alt={activeEvent.alt}
-              fill
-              priority
-              sizes="(max-width: 1024px) 100vw, 50vw"
-              className={styles.featuredImage}
-            />
+            {EVENT_TYPES.map((event, index) => {
+              const isActive = index === activeIndex;
+              return (
+                <Image
+                  key={event.number}
+                  src={event.image}
+                  alt={event.alt}
+                  fill
+                  priority={index === 0}
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className={`${styles.featuredImage} ${
+                    isActive ? styles.featuredImageActive : ""
+                  }`}
+                />
+              );
+            })}
             <div className={styles.imageOverlay} />
             <div className={styles.imageCaption}>
               <span className={styles.captionBadge}>
