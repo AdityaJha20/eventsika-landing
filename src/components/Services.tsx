@@ -11,7 +11,7 @@ const SERVICES = [
     title: "VENUE & DECOR",
     description:
       "Beautiful spaces, considered styling, and details that make the setting feel unmistakably yours.",
-    image: "/images/service-venue-decor.png",
+    image: "/images/service-venue-decor.webp",
     alt: "Elegant event venue with floral arrangements and ambient candlelight",
     href: "/services",
   },
@@ -20,7 +20,7 @@ const SERVICES = [
     title: "CATERING",
     description:
       "Thoughtful menus and seamless service designed around your occasion and your guests.",
-    image: "/images/service-catering.png",
+    image: "/images/service-catering.webp",
     alt: "Gourmet celebration dining and elegant food presentation",
     href: "/services",
   },
@@ -29,7 +29,7 @@ const SERVICES = [
     title: "PHOTOGRAPHY & FILMS",
     description:
       "Capture the atmosphere, emotions, and moments you'll want to remember long after the celebration.",
-    image: "/images/service-photography.png",
+    image: "/images/service-photography.webp",
     alt: "Professional event photographer capturing candid celebration moments",
     href: "/services",
   },
@@ -38,7 +38,7 @@ const SERVICES = [
     title: "ENTERTAINMENT",
     description:
       "Music, performances, and experiences that give your celebration its own energy and character.",
-    image: "/images/service-entertainment.png",
+    image: "/images/service-entertainment.webp",
     alt: "Live acoustic musical performance at an elegant celebration",
     href: "/services",
   },
@@ -47,7 +47,7 @@ const SERVICES = [
     title: "EVENT MANAGEMENT",
     description:
       "Careful coordination from planning through execution, so every detail comes together smoothly.",
-    image: "/images/service-event-management.png",
+    image: "/images/service-event-management.webp",
     alt: "Professional event coordinator managing venue setup details",
     href: "/services",
   },
@@ -56,7 +56,7 @@ const SERVICES = [
     title: "INVITATIONS & DETAILS",
     description:
       "Beautiful stationery, guest communication, and finishing touches that complete the experience.",
-    image: "/images/service-invitations-details.png",
+    image: "/images/service-invitations-details.webp",
     alt: "Luxury event stationery, wedding invitations, and gold foil details",
     href: "/services",
   },

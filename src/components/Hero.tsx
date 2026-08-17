@@ -130,7 +130,7 @@ export default function Hero() {
       {/* Background Image Container */}
       <div className={styles.imageContainer}>
         <Image
-          src="/images/Gemini_Generated_Image_jn6i99jn6i99jn6i.png"
+          src="/images/Gemini_Generated_Image_jn6i99jn6i99jn6i.webp"
           alt="Warm Indian celebration decor with floral arrangement and candle lighting"
           fill
           priority

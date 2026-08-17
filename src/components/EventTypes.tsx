@@ -10,7 +10,7 @@ const EVENT_TYPES = [
     title: "Birthday",
     description:
       "Make every birthday feel personal, joyful, and beautifully planned.",
-    image: "/images/event-birthday.png",
+    image: "/images/event-birthday.webp",
     alt: "Warm birthday celebration with sophisticated decor and ambient cake candles",
   },
   {
@@ -18,7 +18,7 @@ const EVENT_TYPES = [
     title: "Anniversary",
     description:
       "Celebrate your story with an intimate experience designed around you.",
-    image: "/images/event-anniversary.png",
+    image: "/images/event-anniversary.webp",
     alt: "Intimate anniversary candlelit dining setup at home",
   },
   {
@@ -26,7 +26,7 @@ const EVENT_TYPES = [
     title: "Housewarming",
     description:
       "Welcome loved ones into your new space with warmth and thoughtful details.",
-    image: "/images/event-housewarming.png",
+    image: "/images/event-housewarming.webp",
     alt: "Happy family standing and celebrating housewarming griha pravesh at home",
   },
   {
@@ -34,7 +34,7 @@ const EVENT_TYPES = [
     title: "Baby Shower",
     description:
       "Create a beautiful, memorable celebration for a very special new beginning.",
-    image: "/images/event-baby-shower.png",
+    image: "/images/event-baby-shower.webp",
     alt: "Delicate floral backdrop and ambient decor for baby shower godh bharai",
   },
   {
@@ -42,7 +42,7 @@ const EVENT_TYPES = [
     title: "Satsang & Puja",
     description:
       "Bring family and loved ones together for meaningful spiritual occasions.",
-    image: "/images/event-satsang-puja.png",
+    image: "/images/event-satsang-puja.webp",
     alt: "Traditional Indian puja satsang gathering with marigold florals and oil lamps",
   },
   {
@@ -50,7 +50,7 @@ const EVENT_TYPES = [
     title: "Festive Party",
     description:
       "Celebrate the season with thoughtful décor, food, music, and atmosphere.",
-    image: "/images/event-festive-party.png",
+    image: "/images/event-festive-party.webp",
     alt: "Warm Diwali festive celebration with fairy lights and traditional decor",
   },
   {
@@ -58,7 +58,7 @@ const EVENT_TYPES = [
     title: "Terrace Party",
     description:
       "Turn an open-air setting into a relaxed and unforgettable celebration.",
-    image: "/images/event-terrace-party.png",
+    image: "/images/event-terrace-party.webp",
     alt: "Open-air evening terrace celebration with warm fairy lighting",
   },
   {
@@ -66,7 +66,7 @@ const EVENT_TYPES = [
     title: "Family Dinner",
     description:
       "Create an intimate dining experience where good food and great company come together.",
-    image: "/images/event-family-dinner.png",
+    image: "/images/event-family-dinner.webp",
     alt: "Intimate family dining setup with elegant food presentation",
   },
 ];

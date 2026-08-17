@@ -35,7 +35,7 @@ export default function ForVendors() {
           {/* Left Column: Editorial Photograph */}
           <div className={styles.imageFrame}>
             <Image
-              src="/images/vendor-network-final.png"
+              src="/images/vendor-network-final.webp"
               alt="Professional event coordinator managing an elegant celebration setup"
               fill
               priority
@@ -73,7 +73,7 @@ export default function ForVendors() {
 
             {/* Action Buttons */}
             <div className={styles.actionGroup}>
-              <Link href="#contact" className={styles.ctaButton}>
+              <Link href="/for-vendors" className={styles.ctaButton}>
                 Become a Vendor
               </Link>
               <a
