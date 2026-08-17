@@ -166,8 +166,8 @@ export default function Services() {
 
         {/* Section Bottom CTA */}
         <div className={styles.ctaContainer}>
-          <Link href="#services" className={styles.ctaButton}>
-            Explore Our Services
+          <Link href="/services" className={styles.ctaButton}>
+            Explore All Services &amp; Pricing
           </Link>
         </div>
       </div>

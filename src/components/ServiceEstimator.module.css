@@ -1,0 +1,323 @@
+.section {
+  width: 100%;
+  background-color: var(--cream);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 6rem 1.5rem;
+}
+
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header Area */
+.header {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto 4rem auto;
+}
+
+.eyebrow {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 1rem;
+}
+
+.title {
+  font-family: var(--font-playfair), serif;
+  font-size: clamp(2rem, 3.5vw, 2.75rem);
+  font-weight: 700;
+  color: var(--foreground);
+  line-height: 1.2;
+  margin-bottom: 1rem;
+  letter-spacing: -0.01em;
+}
+
+.description {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: #4a3b32;
+  margin: 0 auto;
+}
+
+/* 2-Column Split Layout */
+.grid {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 3.5rem;
+  align-items: start;
+}
+
+/* Options List Grid */
+.optionsList {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+}
+
+.optionCard {
+  background-color: var(--cream-light);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.35rem 1.25rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+  user-select: none;
+}
+
+.optionCard:hover {
+  border-color: var(--gold);
+  box-shadow: 0 6px 18px rgba(43, 33, 29, 0.04);
+}
+
+.optionCardSelected {
+  border-color: var(--gold);
+  background-color: #fffdf9;
+  box-shadow: 0 6px 20px rgba(185, 154, 103, 0.12);
+}
+
+.checkboxContainer {
+  position: relative;
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+}
+
+.checkbox {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.customCheck {
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--border);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--cream);
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.optionCard:hover .customCheck {
+  border-color: var(--gold);
+}
+
+.checkbox:focus-visible + .customCheck {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.customCheckActive {
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+.checkIcon {
+  width: 13px;
+  height: 13px;
+  stroke: var(--cream-light);
+}
+
+.optionContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.optionName {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--foreground);
+  line-height: 1.35;
+}
+
+.optionPrice {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: var(--gold);
+  letter-spacing: 0.01em;
+}
+
+/* Quotation Summary Card */
+.summaryCard {
+  background-color: var(--cream-light);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 32px rgba(43, 33, 29, 0.05);
+}
+
+.summaryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.summaryEyebrow {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.725rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.badge {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--foreground);
+  background-color: var(--cream);
+  border: 1px solid var(--border);
+  padding: 0.25rem 0.65rem;
+  border-radius: 12px;
+}
+
+.totalDisplay {
+  margin-bottom: 1rem;
+}
+
+.totalLabel {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #4a3b32;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.totalAmount {
+  font-family: var(--font-playfair), serif;
+  font-size: clamp(2.25rem, 3.25vw, 3rem);
+  font-weight: 700;
+  color: var(--primary);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.emptyNote {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.875rem;
+  color: #8c7b70;
+  font-style: italic;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+
+.activeNote {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.875rem;
+  color: #4a3b32;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+
+.divider {
+  height: 1px;
+  background-color: var(--border);
+  margin-bottom: 1.75rem;
+}
+
+.ctaButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  background-color: var(--primary);
+  color: var(--cream-light);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.9rem;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+  border: none;
+  cursor: pointer;
+  margin-bottom: 1.25rem;
+}
+
+.ctaButton:hover {
+  background-color: var(--primary-dark);
+}
+
+.ctaButton:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.disclaimer {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.775rem;
+  line-height: 1.55;
+  color: #8c7b70;
+  margin: 0;
+}
+
+/* Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  .optionCard,
+  .customCheck,
+  .ctaButton {
+    transition: none !important;
+  }
+}
+
+/* Tablet Responsiveness */
+@media (max-width: 1024px) {
+  .section {
+    padding: 4.5rem 1.5rem;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+
+  .summaryCard {
+    max-width: 580px;
+    margin: 0 auto;
+    width: 100%;
+  }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 640px) {
+  .section {
+    padding: 3.5rem 1.25rem;
+  }
+
+  .header {
+    margin-bottom: 3rem;
+  }
+
+  .optionsList {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .summaryCard {
+    padding: 2rem 1.5rem;
+  }
+}

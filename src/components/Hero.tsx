@@ -156,7 +156,7 @@ export default function Hero() {
             <Link href="#plan-event" className={styles.primaryCta}>
               Plan Your Event
             </Link>
-            <Link href="#services" className={styles.secondaryCta}>
+            <Link href="/services" className={styles.secondaryCta}>
               Explore Services
             </Link>
           </div>

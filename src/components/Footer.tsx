@@ -5,17 +5,17 @@ import styles from "./Footer.module.css";
 const EXPLORE_LINKS = [
   { label: "Home", href: "#" },
   { label: "How It Works", href: "#how-it-works" },
-  { label: "Services", href: "#services" },
+  { label: "Services", href: "/services" },
   { label: "Events", href: "#events" },
   { label: "Packages", href: "#packages" },
 ];
 
 const SERVICE_LINKS = [
-  { label: "Venue & Decor", href: "#services" },
-  { label: "Catering", href: "#services" },
-  { label: "Photography & Films", href: "#services" },
-  { label: "Entertainment", href: "#services" },
-  { label: "Event Management", href: "#services" },
+  { label: "Venue & Decor", href: "/services" },
+  { label: "Catering", href: "/services" },
+  { label: "Photography & Films", href: "/services" },
+  { label: "Entertainment", href: "/services" },
+  { label: "Event Management", href: "/services" },
 ];
 
 export default function Footer() {
