@@ -38,7 +38,6 @@ export default function ForVendors() {
               src="/images/vendor-network-final.webp"
               alt="Professional event coordinator managing an elegant celebration setup"
               fill
-              priority
               sizes="(max-width: 768px) 100vw, 50vw"
               className={styles.image}
             />
