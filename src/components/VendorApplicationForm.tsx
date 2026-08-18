@@ -47,6 +47,9 @@ const INITIAL_FORM_DATA: FormData = {
 export default function VendorApplicationForm() {
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [honeypot, setHoneypot] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const toggleCategory = (category: string) => {
@@ -68,6 +71,9 @@ export default function VendorApplicationForm() {
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name as keyof FormErrors]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+    if (serverError) {
+      setServerError(null);
     }
   };
 
@@ -108,16 +114,52 @@ export default function VendorApplicationForm() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validate()) {
+    if (!validate()) {
+      return;
+    }
+
+    setServerError(null);
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch("/api/vendor-applications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          honeypot,
+        }),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.success) {
+        setServerError(
+          data?.message ||
+            "Unable to submit partner application. Please verify your details or contact care@eventsika.in."
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
       setIsSubmitted(true);
+    } catch (err) {
+      console.error("Vendor application submission error:", err);
+      setServerError(
+        "Network connection error. Please check your connection or contact care@eventsika.in directly."
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleReset = () => {
     setFormData(INITIAL_FORM_DATA);
     setErrors({});
+    setHoneypot("");
+    setServerError(null);
     setIsSubmitted(false);
   };
 
@@ -430,8 +472,61 @@ export default function VendorApplicationForm() {
                 )}
               </fieldset>
 
-              <button type="submit" className={styles.submitButton}>
-                Submit Partner Application
+              {/* Honeypot field for bot protection */}
+              <div
+                style={{
+                  position: "absolute",
+                  left: "-9999px",
+                  opacity: 0,
+                  height: 0,
+                  width: 0,
+                  pointerEvents: "none",
+                }}
+                aria-hidden="true"
+              >
+                <label htmlFor="vendor-website-url">Leave this field blank</label>
+                <input
+                  type="text"
+                  id="vendor-website-url"
+                  name="website_url"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
+                  tabIndex={-1}
+                  autoComplete="off"
+                />
+              </div>
+
+              {serverError && (
+                <div
+                  role="alert"
+                  aria-live="polite"
+                  className={styles.errorText}
+                  style={{
+                    padding: "0.85rem 1rem",
+                    backgroundColor: "#fff5f5",
+                    border: "1px solid var(--primary)",
+                    borderRadius: "4px",
+                    fontSize: "0.875rem",
+                    lineHeight: "1.4",
+                  }}
+                >
+                  {serverError}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className={styles.submitButton}
+                style={
+                  isSubmitting
+                    ? { opacity: 0.75, cursor: "not-allowed" }
+                    : undefined
+                }
+              >
+                {isSubmitting
+                  ? "Submitting Application..."
+                  : "Submit Partner Application"}
               </button>
 
               <p className={styles.formNote}>

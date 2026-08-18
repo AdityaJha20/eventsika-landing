@@ -63,6 +63,8 @@ export default function Hero() {
   const [venueType, setVenueType] = useState("");
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [budgetRange, setBudgetRange] = useState("");
+  const [honeypot, setHoneypot] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,7 +76,7 @@ export default function Hero() {
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!userName.trim()) {
@@ -115,7 +117,46 @@ export default function Hero() {
     }
 
     setError(null);
-    setIsSubmitted(true);
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userName,
+          userPhone,
+          city,
+          eventType,
+          eventDate,
+          guestCount,
+          venueType,
+          selectedServices,
+          budgetRange,
+          honeypot,
+        }),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.success) {
+        setError(
+          data?.message ||
+            "Unable to submit your celebration plan. Please verify your details or reach out to care@eventsika.in."
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
+      setIsSubmitted(true);
+    } catch (err) {
+      console.error("Submission error:", err);
+      setError(
+        "Network connection error. Please check your connection or contact care@eventsika.in directly."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleReset = () => {
@@ -382,12 +423,45 @@ export default function Hero() {
                   </div>
                 </div>
 
+                {/* Honeypot field for bot protection */}
+                <div
+                  style={{
+                    position: "absolute",
+                    left: "-9999px",
+                    opacity: 0,
+                    height: 0,
+                    width: 0,
+                    pointerEvents: "none",
+                  }}
+                  aria-hidden="true"
+                >
+                  <label htmlFor="hero-website-url">Leave this field blank</label>
+                  <input
+                    type="text"
+                    id="hero-website-url"
+                    name="website_url"
+                    value={honeypot}
+                    onChange={(e) => setHoneypot(e.target.value)}
+                    tabIndex={-1}
+                    autoComplete="off"
+                  />
+                </div>
+
                 {/* Error Message */}
-                {error && <p className={styles.errorText}>{error}</p>}
+                {error && <p className={styles.errorText} role="alert">{error}</p>}
 
                 {/* Submit Button */}
-                <button type="submit" className={styles.cardButton}>
-                  Get My Celebration Plan
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className={styles.cardButton}
+                  style={
+                    isSubmitting
+                      ? { opacity: 0.75, cursor: "not-allowed" }
+                      : undefined
+                  }
+                >
+                  {isSubmitting ? "Submitting Plan..." : "Get My Celebration Plan"}
                 </button>
               </form>
             ) : (
