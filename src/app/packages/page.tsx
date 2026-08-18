@@ -7,9 +7,12 @@ import Footer from "@/components/Footer";
 import styles from "./packages.module.css";
 
 export const metadata: Metadata = {
-  title: "Packages | Eventsika - Transparent Celebration Pricing",
+  title: "Packages | Transparent Celebration Pricing",
   description:
     "Explore thoughtfully structured celebration tiers designed for transparent budgeting. Select a curated foundation or customize every detail to match your vision.",
+  alternates: {
+    canonical: "/packages",
+  },
 };
 
 interface PackageTier {
@@ -89,9 +92,110 @@ const PACKAGE_TIERS: PackageTier[] = [
   },
 ];
 
+const packagesJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "OfferCatalog",
+  name: "Eventsika Celebration Packages",
+  description:
+    "Thoughtfully structured celebration tiers designed for transparent budgeting for Indian celebrations at home.",
+  itemListElement: [
+    {
+      "@type": "Offer",
+      name: "Intimate Soirée",
+      description:
+        "Designed for cozy apartment living rooms, terraces, and intimate family milestone dinners. (10 to 35 guests).",
+      price: 45000,
+      priceCurrency: "INR",
+      url: "https://eventsika.in/packages#intimate-soiree",
+      itemOffered: {
+        "@type": "Service",
+        name: "Intimate Soirée Celebration Package",
+        description:
+          "Includes signature floral styling, ambient fairy lights, candid photography coverage (3 hours), sound system, on-site coordinator, and WhatsApp invitation design.",
+        provider: {
+          "@type": "Organization",
+          name: "Eventsika",
+          url: "https://eventsika.in",
+        },
+      },
+    },
+    {
+      "@type": "Offer",
+      name: "Grand Utsav",
+      description:
+        "Our most popular all-in-one celebration package with signature decor, catering, DJ, and full management. (50 to 120 guests).",
+      price: 125000,
+      priceCurrency: "INR",
+      url: "https://eventsika.in/packages#grand-utsav",
+      itemOffered: {
+        "@type": "Service",
+        name: "Grand Utsav Celebration Package",
+        description:
+          "Includes entrance toran, themed floral & fabric stage, multi-course buffet catering for 50 guests, live chaat/mocktail corner, candid photography & 4K video, DJ & lighting rig, and floor management.",
+        provider: {
+          "@type": "Organization",
+          name: "Eventsika",
+          url: "https://eventsika.in",
+        },
+      },
+    },
+    {
+      "@type": "Offer",
+      name: "Royal Bespoke",
+      description:
+        "Luxury full-scale transformation for milestone anniversaries, grand housewarmings, and pre-wedding soirees. (120+ guests).",
+      price: 325000,
+      priceCurrency: "INR",
+      url: "https://eventsika.in/packages#royal-bespoke",
+      itemOffered: {
+        "@type": "Service",
+        name: "Royal Bespoke Celebration Package",
+        description:
+          "Includes custom architectural fabrication, live gourmet counter showcase, full cinematography team with drone, live fusion band & celebrity anchor, valet & guest concierge, and keepsake invitations.",
+        provider: {
+          "@type": "Organization",
+          name: "Eventsika",
+          url: "https://eventsika.in",
+        },
+      },
+    },
+  ],
+};
+
+const breadcrumbJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Home",
+      item: "https://eventsika.in/",
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "Packages",
+      item: "https://eventsika.in/packages",
+    },
+  ],
+};
+
 export default function PackagesPage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(packagesJsonLd),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbJsonLd),
+        }}
+      />
       <Navbar />
       <main id="main-content">
         {/* Packages Hero Section */}

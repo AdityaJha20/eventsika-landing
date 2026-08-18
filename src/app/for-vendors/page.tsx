@@ -7,9 +7,31 @@ import Footer from "@/components/Footer";
 import styles from "./for-vendors.module.css";
 
 export const metadata: Metadata = {
-  title: "For Vendors | Eventsika Partner Network",
+  title: "For Vendors | Partner Network",
   description:
     "Grow your event business with Eventsika. Join our curated network of event professionals and access confirmed bookings, guaranteed payouts, and on-site support.",
+  alternates: {
+    canonical: "/for-vendors",
+  },
+};
+
+const breadcrumbJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Home",
+      item: "https://eventsika.in/",
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "For Vendors",
+      item: "https://eventsika.in/for-vendors",
+    },
+  ],
 };
 
 const VENDOR_BENEFITS = [
@@ -87,6 +109,12 @@ const PARTNER_CATEGORIES = [
 export default function ForVendorsPage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbJsonLd),
+        }}
+      />
       <Navbar />
       <main id="main-content">
         {/* For Vendors Hero Section */}

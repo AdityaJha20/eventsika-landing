@@ -8,9 +8,31 @@ import Footer from "@/components/Footer";
 import styles from "./services.module.css";
 
 export const metadata: Metadata = {
-  title: "Services | Eventsika - Bespoke Celebration Services",
+  title: "Services | Bespoke Celebration Services",
   description:
     "From intimate home gatherings to grand festive galas, explore our full spectrum of curated services crafted to make your special moments effortless and memorable.",
+  alternates: {
+    canonical: "/services",
+  },
+};
+
+const breadcrumbJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Home",
+      item: "https://eventsika.in/",
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "Services",
+      item: "https://eventsika.in/services",
+    },
+  ],
 };
 
 const SERVICES_DATA = [
@@ -133,6 +155,12 @@ const SERVICES_DATA = [
 export default function ServicesPage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbJsonLd),
+        }}
+      />
       <Navbar />
       <main id="main-content">
         {/* Services Page Hero */}
