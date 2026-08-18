@@ -140,12 +140,12 @@ export default function ForVendorsPage() {
                 <Link href="#apply" className={styles.primaryCta}>
                   Become a Partner
                 </Link>
-                <a
-                  href="mailto:care@eventsika.in"
+                <Link
+                  href="/login"
                   className={styles.secondaryLink}
                 >
                   Already a partner? Sign In →
-                </a>
+                </Link>
               </div>
             </div>
 

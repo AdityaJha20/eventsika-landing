@@ -87,13 +87,13 @@ export default function Navbar() {
             <span>+91 78766 66056</span>
           </a>
 
-          <a
-            href="mailto:care@eventsika.in"
+          <Link
+            href="/login"
             className={styles.loginLink}
-            aria-label="Partner Log In via email"
+            aria-label="Client and partner log in"
           >
             Log In
-          </a>
+          </Link>
 
           <Link href="/#plan-event" className={styles.primaryButton}>
             Plan Your Event
@@ -206,14 +206,14 @@ export default function Navbar() {
             <span>+91 78766 66056</span>
           </a>
 
-          <a
-            href="mailto:care@eventsika.in"
+          <Link
+            href="/login"
             className={styles.loginLink}
             onClick={closeMobileMenu}
-            aria-label="Partner Log In via email"
+            aria-label="Client and partner log in"
           >
             Log In
-          </a>
+          </Link>
         </div>
       </div>
     </header>
