@@ -77,7 +77,7 @@ export default function ForVendors() {
                 Become a Vendor
               </Link>
               <a
-                href="mailto:hello@eventsika.in"
+                href="mailto:care@eventsika.in"
                 className={styles.secondaryLink}
               >
                 Already a vendor? Get in touch.

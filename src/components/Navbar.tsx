@@ -7,13 +7,13 @@ import { usePathname } from "next/navigation";
 import styles from "./Navbar.module.css";
 
 const NAV_LINKS = [
-  { label: "Home", href: "#" },
-  { label: "How It Works", href: "#how-it-works" },
-  { label: "Events", href: "#events" },
+  { label: "Home", href: "/" },
+  { label: "How It Works", href: "/#how-it-works" },
+  { label: "Events", href: "/#events" },
   { label: "Services", href: "/services" },
   { label: "Packages", href: "/packages" },
   { label: "For Vendors", href: "/for-vendors" },
-  { label: "Contact", href: "#contact" },
+  { label: "Contact", href: "/#contact" },
 ];
 
 export default function Navbar() {
@@ -68,9 +68,9 @@ export default function Navbar() {
         {/* Right Desktop Actions */}
         <div className={styles.rightSection}>
           <a
-            href="tel:+919876543210"
+            href="tel:+917876666056"
             className={styles.phoneLink}
-            aria-label="Call +91 98765 43210"
+            aria-label="Call +91 78766 66056"
           >
             <svg
               className={styles.phoneIcon}
@@ -84,14 +84,18 @@ export default function Navbar() {
             >
               <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
             </svg>
-            <span>+91 98765 43210</span>
+            <span>+91 78766 66056</span>
           </a>
 
-          <Link href="#login" className={styles.loginLink}>
+          <a
+            href="mailto:care@eventsika.in"
+            className={styles.loginLink}
+            aria-label="Partner Log In via email"
+          >
             Log In
-          </Link>
+          </a>
 
-          <Link href="#plan-event" className={styles.primaryButton}>
+          <Link href="/#plan-event" className={styles.primaryButton}>
             Plan Your Event
           </Link>
         </div>
@@ -99,7 +103,7 @@ export default function Navbar() {
         {/* Mobile Controls (Primary CTA + Hamburger) */}
         <div className={styles.mobileControls}>
           <Link
-            href="#plan-event"
+            href="/#plan-event"
             className={styles.primaryButton}
             style={{ padding: "0.5rem 0.9rem", fontSize: "0.8rem" }}
           >
@@ -152,8 +156,9 @@ export default function Navbar() {
       {/* Mobile Menu Dropdown */}
       <div
         id="mobile-menu"
-        className={`${styles.mobileMenu} ${isMobileMenuOpen ? styles.mobileMenuOpen : ""
-          }`}
+        className={`${styles.mobileMenu} ${
+          isMobileMenuOpen ? styles.mobileMenuOpen : ""
+        }`}
       >
         <nav aria-label="Mobile Navigation">
           <ul className={styles.mobileNavList}>
@@ -181,10 +186,10 @@ export default function Navbar() {
 
         <div className={styles.mobileActions}>
           <a
-            href="tel:+919876543210"
+            href="tel:+917876666056"
             className={styles.phoneLink}
             onClick={closeMobileMenu}
-            aria-label="Call +91 98765 43210"
+            aria-label="Call +91 78766 66056"
           >
             <svg
               className={styles.phoneIcon}
@@ -198,16 +203,17 @@ export default function Navbar() {
             >
               <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
             </svg>
-            <span>+91 98765 43210</span>
+            <span>+91 78766 66056</span>
           </a>
 
-          <Link
-            href="#login"
+          <a
+            href="mailto:care@eventsika.in"
             className={styles.loginLink}
             onClick={closeMobileMenu}
+            aria-label="Partner Log In via email"
           >
             Log In
-          </Link>
+          </a>
         </div>
       </div>
     </header>

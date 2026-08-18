@@ -3,10 +3,10 @@ import Link from "next/link";
 import styles from "./Footer.module.css";
 
 const EXPLORE_LINKS = [
-  { label: "Home", href: "#" },
-  { label: "How It Works", href: "#how-it-works" },
+  { label: "Home", href: "/" },
+  { label: "How It Works", href: "/#how-it-works" },
   { label: "Services", href: "/services" },
-  { label: "Events", href: "#events" },
+  { label: "Events", href: "/#events" },
   { label: "Packages", href: "/packages" },
   { label: "For Vendors", href: "/for-vendors" },
 ];
@@ -78,20 +78,20 @@ export default function Footer() {
             <h3 className={styles.colHeading}>Get in touch</h3>
             <p className={styles.contactText}>Plan your celebration with us.</p>
             <a
-              href="tel:+919876543210"
+              href="tel:+917876666056"
               className={styles.contactLink}
-              aria-label="Call +91 98765 43210"
+              aria-label="Call +91 78766 66056"
             >
-              +91 98765 43210
+              +91 78766 66056
             </a>
             <a
-              href="mailto:hello@eventsika.in"
+              href="mailto:care@eventsika.in"
               className={styles.contactLink}
-              aria-label="Email hello@eventsika.in"
+              aria-label="Email care@eventsika.in"
             >
-              hello@eventsika.in
+              care@eventsika.in
             </a>
-            <Link href="#plan-event" className={styles.ctaButton}>
+            <Link href="/#plan-event" className={styles.ctaButton}>
               Plan Your Event
             </Link>
           </div>

@@ -113,7 +113,7 @@ export default function ForVendorsPage() {
                   Become a Partner
                 </Link>
                 <a
-                  href="mailto:partners@eventsika.in"
+                  href="mailto:care@eventsika.in"
                   className={styles.secondaryLink}
                 >
                   Already a partner? Sign In →
