@@ -34,7 +34,7 @@ export default function Navbar() {
         {/* Brand / Logo Area */}
         <Link href="/" className={styles.brand} onClick={closeMobileMenu}>
           <Image
-            src="/images/eventsika-official-logo.png"
+            src="/images/eventsika-official-logo.webp"
             alt="Eventsika - Celebrate Seamlessly"
             width={147}
             height={100}

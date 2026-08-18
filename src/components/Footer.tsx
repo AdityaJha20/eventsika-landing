@@ -33,7 +33,7 @@ export default function Footer() {
               aria-label="Eventsika Homepage"
             >
               <Image
-                src="/images/eventsika-official-logo.png"
+                src="/images/eventsika-official-logo.webp"
                 alt="Eventsika - Celebrate Seamlessly"
                 width={132}
                 height={90}

@@ -175,7 +175,7 @@ export default function Hero() {
           alt="Warm Indian celebration decor with floral arrangement and candle lighting"
           fill
           priority
-          sizes="100vw"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 100vw"
           className={styles.heroImage}
         />
         <div className={styles.imageOverlay} />
@@ -209,7 +209,7 @@ export default function Hero() {
             <div className={styles.cardHeader}>
               <div className={styles.cardBrand}>
                 <Image
-                  src="/images/eventsika-official-logo.png"
+                  src="/images/eventsika-official-logo.webp"
                   alt="Eventsika - Celebrate Seamlessly"
                   width={147}
                   height={100}
