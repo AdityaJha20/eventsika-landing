@@ -142,7 +142,7 @@ export default function Hero() {
       if (!res.ok || !data?.success) {
         setError(
           data?.message ||
-            "Unable to submit your celebration plan. Please verify your details or reach out to care@eventsika.in."
+          "Unable to submit your celebration plan. Please verify your details or reach out to care@eventsika.in."
         );
         setIsSubmitting(false);
         return;
@@ -209,10 +209,10 @@ export default function Hero() {
             <div className={styles.cardHeader}>
               <div className={styles.cardBrand}>
                 <Image
-                  src="/images/eventsika-official-logo.webp"
+                  src="/images/eventsika-official-logo.png"
                   alt="Eventsika - Celebrate Seamlessly"
-                  width={147}
-                  height={100}
+                  width={148}
+                  height={48}
                   priority
                   className={styles.cardBrandLogo}
                 />
@@ -406,9 +406,8 @@ export default function Hero() {
                       return (
                         <label
                           key={service}
-                          className={`${styles.serviceBox} ${
-                            isSelected ? styles.serviceBoxSelected : ""
-                          }`}
+                          className={`${styles.serviceBox} ${isSelected ? styles.serviceBoxSelected : ""
+                            }`}
                         >
                           <input
                             type="checkbox"

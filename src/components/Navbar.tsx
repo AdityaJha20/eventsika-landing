@@ -34,10 +34,10 @@ export default function Navbar() {
         {/* Brand / Logo Area */}
         <Link href="/" className={styles.brand} onClick={closeMobileMenu}>
           <Image
-            src="/images/eventsika-official-logo.webp"
+            src="/images/eventsika-official-logo.png"
             alt="Eventsika - Celebrate Seamlessly"
-            width={147}
-            height={100}
+            width={186}
+            height={60}
             priority
             className={styles.brandLogo}
           />
@@ -53,9 +53,8 @@ export default function Navbar() {
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    className={`${styles.navLink} ${
-                      isActive ? styles.navLinkActive : ""
-                    }`}
+                    className={`${styles.navLink} ${isActive ? styles.navLinkActive : ""
+                      }`}
                   >
                     {link.label}
                   </Link>
@@ -156,9 +155,8 @@ export default function Navbar() {
       {/* Mobile Menu Dropdown */}
       <div
         id="mobile-menu"
-        className={`${styles.mobileMenu} ${
-          isMobileMenuOpen ? styles.mobileMenuOpen : ""
-        }`}
+        className={`${styles.mobileMenu} ${isMobileMenuOpen ? styles.mobileMenuOpen : ""
+          }`}
       >
         <nav aria-label="Mobile Navigation">
           <ul className={styles.mobileNavList}>
@@ -169,9 +167,8 @@ export default function Navbar() {
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    className={`${styles.mobileNavLink} ${
-                      isActive ? styles.mobileNavLinkActive : ""
-                    }`}
+                    className={`${styles.mobileNavLink} ${isActive ? styles.mobileNavLinkActive : ""
+                      }`}
                     onClick={closeMobileMenu}
                   >
                     {link.label}

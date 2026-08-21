@@ -51,7 +51,7 @@ const jsonLd = {
       "@type": "Organization",
       name: "Eventsika",
       url: "https://eventsika.in",
-      logo: "https://eventsika.in/images/eventsika-official-logo.webp",
+      logo: "https://eventsika.in/images/eventsika-official-logo.png",
       telephone: "+917876666056",
       email: "care@eventsika.in",
       areaServed: {

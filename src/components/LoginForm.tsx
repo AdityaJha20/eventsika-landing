@@ -80,9 +80,9 @@ export default function LoginForm() {
       <div className={styles.brandHeader}>
         <Link href="/" className={styles.logoWrapper} aria-label="Return to Eventsika Homepage">
           <Image
-            src="/images/eventsika-official-logo.webp"
+            src="/images/eventsika-official-logo.png"
             alt="Eventsika - Celebrate Seamlessly"
-            width={140}
+            width={148}
             height={48}
             priority
             className={styles.logo}
@@ -149,9 +149,8 @@ export default function LoginForm() {
               placeholder="Enter your password"
               aria-invalid={Boolean(errors.password)}
               aria-describedby={errors.password ? "password-error" : undefined}
-              className={`${styles.input} ${styles.inputWithToggle} ${
-                errors.password ? styles.inputError : ""
-              }`}
+              className={`${styles.input} ${styles.inputWithToggle} ${errors.password ? styles.inputError : ""
+                }`}
             />
             <button
               type="button"
