@@ -7,13 +7,11 @@
 }
 
 .container {
-  max-width: var(--max-width);
-  margin: 0 auto;
-  padding: 0.65rem 1.5rem;
+  width: 100%;
+  padding: 0.65rem clamp(2rem, 5vw, 6.5rem);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem;
+  gap: 2rem;
 }
 
 /* Brand / Logo Styling */
@@ -22,6 +20,7 @@
   align-items: center;
   text-decoration: none;
   line-height: 0;
+  flex-shrink: 0;
 }
 
 .brandLogo {
@@ -72,9 +71,31 @@
 
 /* Right Section (Desktop) */
 .rightSection {
+  margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1.15rem;
+  flex-shrink: 0;
+}
+
+.socialLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--foreground);
+  transition: color 0.2s ease;
+  padding: 0.2rem;
+  border-radius: 4px;
+}
+
+.socialLink:hover {
+  color: var(--primary);
+}
+
+.socialIcon {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
 }
 
 .phoneLink {
@@ -224,6 +245,10 @@
 
 /* Responsive Media Query */
 @media (max-width: 1080px) {
+  .container {
+    padding: 0.65rem 1.5rem;
+  }
+
   .brandLogo {
     height: 57px;
   }
@@ -235,6 +260,7 @@
 
   .mobileControls {
     display: flex;
+    margin-left: auto;
   }
 
   .mobileMenuOpen {
