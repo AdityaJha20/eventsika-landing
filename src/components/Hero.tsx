@@ -5,21 +5,30 @@ import Image from "next/image";
 import Link from "next/link";
 import styles from "./Hero.module.css";
 
-const CITY_OPTIONS = ["Kolkata", "Delhi", "Mumbai", "Bangalore", "Other"];
+const CITY_OPTIONS = [
+  "Delhi",
+  "Gurgaon",
+  "Noida",
+  "Mumbai",
+  "Kolkata",
+  "Other",
+];
 
 const EVENT_TYPE_OPTIONS = [
+  "Diwali Special",
+  "House Party",
   "Birthday",
   "Anniversary",
   "Housewarming",
   "Baby Shower",
   "Satsang & Puja",
   "Festive Party",
-  "Terrace Party",
   "Family Dinner",
   "Other Celebration",
 ];
 
 const GUEST_COUNT_OPTIONS = [
+  "2–10 guests",
   "10–30 guests",
   "30–50 guests",
   "50–100 guests",
@@ -28,12 +37,8 @@ const GUEST_COUNT_OPTIONS = [
 ];
 
 const VENUE_TYPE_OPTIONS = [
-  "Home",
-  "Banquet Hall",
-  "Hotel",
+  "Indoor",
   "Outdoor",
-  "Terrace",
-  "Other",
 ];
 
 const SERVICE_OPTIONS = [
@@ -46,12 +51,31 @@ const SERVICE_OPTIONS = [
 ];
 
 const BUDGET_OPTIONS = [
-  "Under ₹50,000",
-  "₹50,000–₹1,00,000",
-  "₹1,00,000–₹2,00,000",
-  "₹2,00,000+",
-  "Prefer to discuss",
+  "₹25,000 – ₹50,000",
+  "₹50,000 – ₹1,00,000",
+  "₹1,00,000 – ₹2,00,000",
+  "₹2,00,000 – ₹3,00,000",
+  "₹3,00,000 – ₹5,00,000",
+  "₹5,00,000+",
 ];
+
+function isValidPhoneNumber(phone: string): boolean {
+  const trimmed = phone.trim();
+  if (!trimmed) return false;
+
+  // Reject any string containing letters or invalid characters (only digits, spaces, dashes, parens, and leading plus allowed)
+  if (!/^\+?[\d\s\-()]+$/.test(trimmed)) return false;
+
+  const cleanDigits = trimmed.replace(/\D/g, "");
+
+  // 10-digit standard Indian mobile format (starts with 6, 7, 8, or 9)
+  if (/^[6-9]\d{9}$/.test(cleanDigits)) return true;
+
+  // 11-12 digit format with country code / zero prefix (e.g. +91 9876543210 or 09876543210)
+  if (/^(91|0)[6-9]\d{9}$/.test(cleanDigits)) return true;
+
+  return false;
+}
 
 export default function Hero() {
   const [userName, setUserName] = useState("");
@@ -63,6 +87,7 @@ export default function Hero() {
   const [venueType, setVenueType] = useState("");
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [budgetRange, setBudgetRange] = useState("");
+  const [whatsappConsent, setWhatsappConsent] = useState(false);
   const [honeypot, setHoneypot] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -83,7 +108,11 @@ export default function Hero() {
       setError("Please enter your name.");
       return;
     }
-    if (!userPhone.trim() || userPhone.replace(/\D/g, "").length < 10) {
+    if (!userPhone.trim()) {
+      setError("Please enter your phone number.");
+      return;
+    }
+    if (!isValidPhoneNumber(userPhone)) {
       setError("Please enter a valid 10-digit phone number.");
       return;
     }
@@ -115,6 +144,10 @@ export default function Hero() {
       setError("Please select a budget range.");
       return;
     }
+    if (!whatsappConsent) {
+      setError("Please agree to be contacted on WhatsApp to proceed.");
+      return;
+    }
 
     setError(null);
     setIsSubmitting(true);
@@ -133,6 +166,7 @@ export default function Hero() {
           venueType,
           selectedServices,
           budgetRange,
+          whatsappConsent,
           honeypot,
         }),
       });
@@ -296,11 +330,18 @@ export default function Hero() {
                         <option value="" disabled>
                           Event Type
                         </option>
-                        {EVENT_TYPE_OPTIONS.map((type) => (
-                          <option key={type} value={type}>
-                            {type}
-                          </option>
-                        ))}
+                        {EVENT_TYPE_OPTIONS.map((type) => {
+                          const isDiwali = type === "Diwali Special";
+                          return (
+                            <option
+                              key={type}
+                              value={type}
+                              className={isDiwali ? styles.highlightedOption : undefined}
+                            >
+                              {isDiwali ? "✨ Diwali Special" : type}
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
                   </div>
@@ -421,6 +462,22 @@ export default function Hero() {
                     })}
                   </div>
                 </div>
+
+                {/* WhatsApp Consent Checkbox */}
+                <label className={styles.consentRow}>
+                  <input
+                    type="checkbox"
+                    checked={whatsappConsent}
+                    onChange={(e) => {
+                      setWhatsappConsent(e.target.checked);
+                      if (error) setError(null);
+                    }}
+                    className={styles.consentCheckbox}
+                  />
+                  <span className={styles.consentText}>
+                    I agree to be contacted by Eventsika on WhatsApp regarding my event enquiry.
+                  </span>
+                </label>
 
                 {/* Honeypot field for bot protection */}
                 <div

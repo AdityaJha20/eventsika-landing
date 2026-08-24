@@ -14,6 +14,7 @@ interface LeadRequestBody {
   venueType?: string;
   selectedServices?: string[];
   budgetRange?: string;
+  whatsappConsent?: boolean;
   honeypot?: string;
 }
 
@@ -96,7 +97,12 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!cleanPhone || cleanPhone.length < 10 || cleanPhone.length > 15) {
+    const hasValidChars = /^\+?[\d\s\-()]+$/.test(userPhone);
+    const isValidPhone =
+      hasValidChars &&
+      (/^[6-9]\d{9}$/.test(cleanPhone) || /^(91|0)[6-9]\d{9}$/.test(cleanPhone));
+
+    if (!cleanPhone || !isValidPhone) {
       return NextResponse.json(
         { success: false, message: "Please provide a valid 10-digit phone number." },
         { status: 400 }
@@ -145,9 +151,18 @@ export async function POST(request: Request) {
       );
     }
 
+    const whatsappConsent = Boolean(body.whatsappConsent);
+
     if (!budgetRange || budgetRange.length > 100) {
       return NextResponse.json(
         { success: false, message: "Please select your planned budget range." },
+        { status: 400 }
+      );
+    }
+
+    if (!whatsappConsent) {
+      return NextResponse.json(
+        { success: false, message: "Please agree to be contacted on WhatsApp." },
         { status: 400 }
       );
     }
@@ -166,6 +181,7 @@ export async function POST(request: Request) {
         "Venue Type": venueType,
         "Selected Services": selectedServices,
         "Budget Range": budgetRange,
+        "WhatsApp Consent": "Yes",
       },
     });
 

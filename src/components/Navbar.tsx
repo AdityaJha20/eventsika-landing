@@ -85,7 +85,7 @@ export default function Navbar() {
           </a>
 
           <a
-            href="https://www.instagram.com/eventsika/"
+            href="https://www.instagram.com/eventsika.in?igsi=MXFvc3FvdXNpbHhveA=="
             target="_blank"
             rel="noopener noreferrer"
             className={styles.socialLink}
