@@ -7,22 +7,30 @@ import styles from "./EventTypes.module.css";
 const EVENT_TYPES = [
   {
     number: "01",
-    title: "Birthday",
+    title: "Diwali",
     description:
-      "Make every birthday feel personal, joyful, and beautifully planned.",
-    image: "/images/event-birthday.webp",
-    alt: "Warm birthday celebration with sophisticated decor and ambient cake candles",
+      "Illuminate your celebration with traditional brass diyas, fragrant floral rangoli, and warm festive joy.",
+    image: "/images/event-diwali.webp",
+    alt: "Traditional Indian family celebrating Diwali with brass oil diyas and vibrant floral rangoli",
   },
   {
     number: "02",
-    title: "Anniversary",
+    title: "Birthday",
     description:
-      "Celebrate your story with an intimate experience designed around you.",
-    image: "/images/event-anniversary.webp",
-    alt: "Intimate anniversary candlelit dining setup at home",
+      "Make every birthday feel personal, joyful, and beautifully planned.",
+    image: "/images/event-birthday.webp.png",
+    alt: "Warm birthday celebration with sophisticated decor and ambient cake candles",
   },
   {
     number: "03",
+    title: "Anniversary",
+    description:
+      "Celebrate your story with an intimate experience designed around you.",
+    image: "/images/event-anniversary.webp.png",
+    alt: "Intimate anniversary candlelit dining setup at home",
+  },
+  {
+    number: "04",
     title: "Housewarming",
     description:
       "Welcome loved ones into your new space with warmth and thoughtful details.",
@@ -30,7 +38,7 @@ const EVENT_TYPES = [
     alt: "Happy family standing and celebrating housewarming griha pravesh at home",
   },
   {
-    number: "04",
+    number: "05",
     title: "Baby Shower",
     description:
       "Create a beautiful, memorable celebration for a very special new beginning.",
@@ -38,7 +46,7 @@ const EVENT_TYPES = [
     alt: "Delicate floral backdrop and ambient decor for baby shower godh bharai",
   },
   {
-    number: "05",
+    number: "06",
     title: "Satsang & Puja",
     description:
       "Bring family and loved ones together for meaningful spiritual occasions.",
@@ -46,20 +54,12 @@ const EVENT_TYPES = [
     alt: "Traditional Indian puja satsang gathering with marigold florals and oil lamps",
   },
   {
-    number: "06",
+    number: "07",
     title: "Festive Party",
     description:
       "Celebrate the season with thoughtful décor, food, music, and atmosphere.",
     image: "/images/event-festive-party.webp",
     alt: "Warm Diwali festive celebration with fairy lights and traditional decor",
-  },
-  {
-    number: "07",
-    title: "Terrace Party",
-    description:
-      "Turn an open-air setting into a relaxed and unforgettable celebration.",
-    image: "/images/event-terrace-party.webp",
-    alt: "Open-air evening terrace celebration with warm fairy lighting",
   },
   {
     number: "08",
@@ -107,9 +107,8 @@ export default function EventTypes() {
                   alt={event.alt}
                   fill
                   sizes="(max-width: 1024px) 100vw, 50vw"
-                  className={`${styles.featuredImage} ${
-                    isActive ? styles.featuredImageActive : ""
-                  }`}
+                  className={`${styles.featuredImage} ${isActive ? styles.featuredImageActive : ""
+                    }`}
                 />
               );
             })}
@@ -134,9 +133,8 @@ export default function EventTypes() {
                     id={`tab-${event.number}`}
                     aria-selected={isActive}
                     aria-controls={`panel-${event.number}`}
-                    className={`${styles.eventItem} ${
-                      isActive ? styles.eventItemActive : ""
-                    }`}
+                    className={`${styles.eventItem} ${isActive ? styles.eventItemActive : ""
+                      }`}
                     onMouseEnter={() => setActiveIndex(index)}
                     onClick={() => setActiveIndex(index)}
                   >

@@ -108,6 +108,21 @@
   white-space: nowrap;
 }
 
+/* Package Image */
+.imageWrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  background-color: var(--cream);
+}
+
+.cardImage {
+  object-fit: cover;
+}
+
 /* Card Content Header */
 .cardHeader {
   margin-bottom: 1.5rem;

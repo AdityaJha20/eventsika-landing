@@ -1,13 +1,28 @@
+import Image from "next/image";
 import Link from "next/link";
 import styles from "./Packages.module.css";
 
-const PACKAGES = [
+interface PackageItem {
+  number: string;
+  name: string;
+  badge?: string;
+  tagline: string;
+  description: string;
+  features: string[];
+  ctaText: string;
+  ctaHref: string;
+  isSignature: boolean;
+  image?: string;
+}
+
+const PACKAGES: PackageItem[] = [
   {
     number: "01",
     name: "ESSENTIAL",
     tagline: "Simple celebrations, thoughtfully arranged.",
     description:
       "For intimate gatherings where you need the important details brought together beautifully.",
+    image: "/images/packages/living-room-dinner.jpg",
     features: [
       "Event planning consultation",
       "Venue & decor coordination",
@@ -25,6 +40,7 @@ const PACKAGES = [
     tagline: "Everything comes together beautifully.",
     description:
       "For celebrations where every detail matters and you want a dedicated team bringing the entire experience together.",
+    image: "/images/packages/driveway-lawns.jpg",
     features: [
       "Complete event planning",
       "Venue & decor coordination",
@@ -43,6 +59,7 @@ const PACKAGES = [
     tagline: "Complete planning, from idea to celebration.",
     description:
       "For larger or more elaborate occasions that need complete planning, coordination, and execution.",
+    image: "/images/packages/grand-celebration.jpg",
     features: [
       "Full event management",
       "Premium venue & decor planning",
@@ -92,6 +109,18 @@ export default function Packages() {
               )}
 
               <div>
+                {pkg.image && (
+                  <div className={styles.imageWrapper}>
+                    <Image
+                      src={pkg.image}
+                      alt={pkg.name}
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      className={styles.cardImage}
+                    />
+                  </div>
+                )}
+
                 <div className={styles.cardHeader}>
                   <span className={styles.packageNumber}>{pkg.number}</span>
                   <h3 className={styles.packageName}>{pkg.name}</h3>

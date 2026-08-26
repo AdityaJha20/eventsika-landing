@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import PackageCustomizer from "@/components/PackageCustomizer";
@@ -26,35 +27,38 @@ interface PackageTier {
   ctaText: string;
   ctaHref: string;
   isPopular?: boolean;
+  image?: string;
 }
 
 const PACKAGE_TIERS: PackageTier[] = [
   {
-    id: "intimate-soiree",
-    name: "Intimate Soirée",
-    guestRange: "10 TO 35 GUESTS",
-    price: "Starting at ₹45,000",
+    id: "balcony-terrace",
+    name: "Balcony / Terrace",
+    guestRange: "10 TO 30 GUESTS",
+    price: "Starting at ₹35,000",
+    image: "/images/packages/balcony-terrace.jpg",
     description:
-      "Designed for cozy apartment living rooms, terraces, and intimate family milestone dinners.",
+      "Open-air ambient styling with warm fairy lighting, cozy floor cushions, and intimate terrace decor.",
     features: [
-      "Signature Floral Backdrop or Mandap Styling",
-      "Ambient Fairy Lights & Diwan Floor Cushions",
-      "Candid Photography Coverage (3 Hours)",
-      "High-Fidelity Bluetooth Sound System & Curated Playlist",
+      "Signature Floral Canopy & Fairy Light Mesh",
+      "Low Diwan Seating & Floor Cushions Setup",
+      "High-Fidelity Bluetooth Sound System & Playlist",
+      "Ambient Brass Lanterns & Marigold Accents",
       "1 Dedicated On-Site Event Coordinator",
       "Digital WhatsApp Invitation Design",
       "Complete Setup & Post-Event Dismantling",
     ],
-    ctaText: "Select Intimate Soirée",
+    ctaText: "Select Balcony / Terrace",
     ctaHref: "/#plan-event",
     isPopular: false,
   },
   {
-    id: "grand-utsav",
-    name: "Grand Utsav",
+    id: "driveway-lawns",
+    name: "Driveway / Lawns",
     guestRange: "50 TO 120 GUESTS",
     price: "Starting at ₹1,25,000",
     badge: "MOST POPULAR",
+    image: "/images/packages/driveway-lawns.jpg",
     description:
       "Our most popular all-in-one celebration package with signature decor, catering, DJ, and full management.",
     features: [
@@ -65,15 +69,57 @@ const PACKAGE_TIERS: PackageTier[] = [
       "Professional DJ, Party Sound & Intelligent Lighting Rig",
       "Lead Floor Manager + 2 On-Ground Operations Staff",
     ],
-    ctaText: "Select Grand Utsav",
+    ctaText: "Select Driveway / Lawns",
     ctaHref: "/#plan-event",
     isPopular: true,
   },
   {
-    id: "royal-bespoke",
-    name: "Royal Bespoke",
+    id: "living-rooms-dinner",
+    name: "Living Rooms / Family Dinner",
+    guestRange: "10 TO 35 GUESTS",
+    price: "Starting at ₹45,000",
+    image: "/images/packages/living-room-dinner.jpg",
+    description:
+      "Designed for cozy apartment living rooms, family dinners, and intimate milestone gatherings at home.",
+    features: [
+      "Signature Floral Backdrop or Mandap Styling",
+      "Ambient Fairy Lights & Dining Table Centerpieces",
+      "Candid Photography Coverage (3 Hours)",
+      "High-Fidelity Bluetooth Sound System & Playlist",
+      "1 Dedicated On-Site Event Coordinator",
+      "Digital WhatsApp Invitation Design",
+      "Complete Setup & Post-Event Dismantling",
+    ],
+    ctaText: "Select Living Rooms / Dinner",
+    ctaHref: "/#plan-event",
+    isPopular: false,
+  },
+  {
+    id: "showrooms-offices",
+    name: "Showrooms / Offices",
+    guestRange: "25 TO 100+ GUESTS",
+    price: "Starting at ₹65,000",
+    image: "/images/packages/showroom-office.jpg",
+    description:
+      "Sophisticated corporate celebrations, brand launches, or office milestone events with sleek modern decor.",
+    features: [
+      "Modern Corporate Stage & Backdrop Branding",
+      "Artisanal High-Tea & Finger Food Catering",
+      "Professional AV, Microphones & Ambient Lighting",
+      "Corporate Event Photography & Highlight Reel",
+      "Dedicated On-Site Floor Management Team",
+      "Welcome Desk & Registration Setup Assistance",
+    ],
+    ctaText: "Select Showrooms / Offices",
+    ctaHref: "/#plan-event",
+    isPopular: false,
+  },
+  {
+    id: "grand-celebrations",
+    name: "Grand Celebrations",
     guestRange: "120+ GUESTS",
     price: "Starting at ₹3,25,000",
+    image: "/images/packages/grand-celebration.jpg",
     description:
       "Luxury full-scale transformation for milestone anniversaries, grand housewarmings, and pre-wedding soirees.",
     features: [
@@ -86,7 +132,28 @@ const PACKAGE_TIERS: PackageTier[] = [
       "Comprehensive End-to-End Execution Team",
       "Animated Video WhatsApp Invitation & RSVP Microsite",
     ],
-    ctaText: "Select Royal Bespoke",
+    ctaText: "Select Grand Celebrations",
+    ctaHref: "/#plan-event",
+    isPopular: false,
+  },
+  {
+    id: "small-budget-wedding",
+    name: "Small Budget Wedding",
+    guestRange: "30 TO 80 GUESTS",
+    price: "Starting at ₹85,000",
+    image: "/images/packages/small-budget-wedding.jpg",
+    description:
+      "Tasteful intimate Indian wedding, roka, or engagement setup with beautiful economical decor and full coordination.",
+    features: [
+      "Traditional Floral Mandap / Roka Ceremony Backdrop",
+      "Brass Urlis with Floating Florals & Ambient Diyas",
+      "Candid Wedding Photography (Full Ceremony Coverage)",
+      "Traditional Welcome Drinks & Refreshment Catering Setup",
+      "1 Dedicated Wedding Day Coordinator on Site",
+      "Digital Animated Invitation & RSVP Coordination",
+      "Complete Setup & Post-Event Dismantling",
+    ],
+    ctaText: "Select Small Budget Wedding",
     ctaHref: "/#plan-event",
     isPopular: false,
   },
@@ -101,17 +168,17 @@ const packagesJsonLd = {
   itemListElement: [
     {
       "@type": "Offer",
-      name: "Intimate Soirée",
+      name: "Balcony / Terrace",
       description:
-        "Designed for cozy apartment living rooms, terraces, and intimate family milestone dinners. (10 to 35 guests).",
-      price: 45000,
+        "Open-air ambient styling with warm fairy lighting, cozy floor cushions, and intimate terrace decor. (10 to 30 guests).",
+      price: 35000,
       priceCurrency: "INR",
-      url: "https://eventsika.in/packages#intimate-soiree",
+      url: "https://eventsika.in/packages#balcony-terrace",
       itemOffered: {
         "@type": "Service",
-        name: "Intimate Soirée Celebration Package",
+        name: "Balcony / Terrace Celebration Package",
         description:
-          "Includes signature floral styling, ambient fairy lights, candid photography coverage (3 hours), sound system, on-site coordinator, and WhatsApp invitation design.",
+          "Includes signature floral canopy, fairy light mesh, low diwan seating, bluetooth sound system, and on-site coordinator.",
         provider: {
           "@type": "Organization",
           name: "Eventsika",
@@ -121,15 +188,15 @@ const packagesJsonLd = {
     },
     {
       "@type": "Offer",
-      name: "Grand Utsav",
+      name: "Driveway / Lawns",
       description:
         "Our most popular all-in-one celebration package with signature decor, catering, DJ, and full management. (50 to 120 guests).",
       price: 125000,
       priceCurrency: "INR",
-      url: "https://eventsika.in/packages#grand-utsav",
+      url: "https://eventsika.in/packages#driveway-lawns",
       itemOffered: {
         "@type": "Service",
-        name: "Grand Utsav Celebration Package",
+        name: "Driveway / Lawns Celebration Package",
         description:
           "Includes entrance toran, themed floral & fabric stage, multi-course buffet catering for 50 guests, live chaat/mocktail corner, candid photography & 4K video, DJ & lighting rig, and floor management.",
         provider: {
@@ -141,17 +208,77 @@ const packagesJsonLd = {
     },
     {
       "@type": "Offer",
-      name: "Royal Bespoke",
+      name: "Living Rooms / Family Dinner",
+      description:
+        "Designed for cozy apartment living rooms, family dinners, and intimate milestone gatherings at home. (10 to 35 guests).",
+      price: 45000,
+      priceCurrency: "INR",
+      url: "https://eventsika.in/packages#living-rooms-dinner",
+      itemOffered: {
+        "@type": "Service",
+        name: "Living Rooms / Family Dinner Celebration Package",
+        description:
+          "Includes signature floral styling, ambient fairy lights, candid photography coverage (3 hours), sound system, on-site coordinator, and WhatsApp invitation design.",
+        provider: {
+          "@type": "Organization",
+          name: "Eventsika",
+          url: "https://eventsika.in",
+        },
+      },
+    },
+    {
+      "@type": "Offer",
+      name: "Showrooms / Offices",
+      description:
+        "Sophisticated corporate celebrations, brand launches, or office milestone events with sleek modern decor. (25 to 100+ guests).",
+      price: 65000,
+      priceCurrency: "INR",
+      url: "https://eventsika.in/packages#showrooms-offices",
+      itemOffered: {
+        "@type": "Service",
+        name: "Showrooms / Offices Celebration Package",
+        description:
+          "Includes modern corporate stage & backdrop branding, artisanal high-tea catering, AV & lighting, photography, and floor management.",
+        provider: {
+          "@type": "Organization",
+          name: "Eventsika",
+          url: "https://eventsika.in",
+        },
+      },
+    },
+    {
+      "@type": "Offer",
+      name: "Grand Celebrations",
       description:
         "Luxury full-scale transformation for milestone anniversaries, grand housewarmings, and pre-wedding soirees. (120+ guests).",
       price: 325000,
       priceCurrency: "INR",
-      url: "https://eventsika.in/packages#royal-bespoke",
+      url: "https://eventsika.in/packages#grand-celebrations",
       itemOffered: {
         "@type": "Service",
-        name: "Royal Bespoke Celebration Package",
+        name: "Grand Celebrations Package",
         description:
           "Includes custom architectural fabrication, live gourmet counter showcase, full cinematography team with drone, live fusion band & celebrity anchor, valet & guest concierge, and keepsake invitations.",
+        provider: {
+          "@type": "Organization",
+          name: "Eventsika",
+          url: "https://eventsika.in",
+        },
+      },
+    },
+    {
+      "@type": "Offer",
+      name: "Small Budget Wedding",
+      description:
+        "Tasteful intimate Indian wedding, roka, or engagement setup with beautiful economical decor and full coordination. (30 to 80 guests).",
+      price: 85000,
+      priceCurrency: "INR",
+      url: "https://eventsika.in/packages#small-budget-wedding",
+      itemOffered: {
+        "@type": "Service",
+        name: "Small Budget Wedding Package",
+        description:
+          "Includes traditional floral mandap/roka backdrop, brass urlis with floating florals, wedding photography, welcome drinks & catering coordination, and dedicated wedding day coordinator.",
         provider: {
           "@type": "Organization",
           name: "Eventsika",
@@ -236,6 +363,18 @@ export default function PackagesPage() {
                   {pkg.badge && (
                     <div className={styles.badgeWrapper}>
                       <span className={styles.popularBadge}>{pkg.badge}</span>
+                    </div>
+                  )}
+
+                  {pkg.image && (
+                    <div className={styles.imageWrapper}>
+                      <Image
+                        src={pkg.image}
+                        alt={pkg.name}
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className={styles.cardImage}
+                      />
                     </div>
                   )}
 
