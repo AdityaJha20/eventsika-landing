@@ -8,54 +8,54 @@ import styles from "./Services.module.css";
 const SERVICES = [
   {
     number: "01",
-    title: "VENUE & DECOR",
+    title: "Decor & Styling",
     description:
-      "Beautiful spaces, considered styling, and details that make the setting feel unmistakably yours.",
+      "Bespoke venue aesthetics, floral design, ambient lighting, and artful tablescapes tailored to your celebration.",
     image: "/images/service-venue-decor.webp",
     alt: "Elegant event venue with floral arrangements and ambient candlelight",
     href: "/services",
   },
   {
     number: "02",
-    title: "CATERING",
+    title: "Catering & Cuisine",
     description:
-      "Thoughtful menus and seamless service designed around your occasion and your guests.",
+      "Curated multi-course menus, gourmet catering, and refined dining experiences crafted for your guests.",
     image: "/images/service-catering.webp",
     alt: "Gourmet celebration dining and elegant food presentation",
     href: "/services",
   },
   {
     number: "03",
-    title: "PHOTOGRAPHY & FILMS",
+    title: "Rituals & Blessings",
     description:
-      "Capture the atmosphere, emotions, and moments you'll want to remember long after the celebration.",
+      "Traditional ceremonies, sacred rituals, and cultural blessings orchestrated with reverence and grace.",
     image: "/images/service-photography.webp",
     alt: "Professional event photographer capturing candid celebration moments",
     href: "/services",
   },
   {
     number: "04",
-    title: "ENTERTAINMENT",
+    title: "Entertainment & Performers",
     description:
-      "Music, performances, and experiences that give your celebration its own energy and character.",
+      "Live musicians, captivating artists, DJs, and cultural performers that bring energy and memorable flair.",
     image: "/images/service-entertainment.webp",
     alt: "Live acoustic musical performance at an elegant celebration",
     href: "/services",
   },
   {
     number: "05",
-    title: "EVENT MANAGEMENT",
+    title: "Photography & Films",
     description:
-      "Careful coordination from planning through execution, so every detail comes together smoothly.",
+      "Cinematic films, editorial photography, and candid visual storytelling to preserve every cherished memory.",
     image: "/images/service-event-management.webp",
     alt: "Professional event coordinator managing venue setup details",
     href: "/services",
   },
   {
     number: "06",
-    title: "INVITATIONS & DETAILS",
+    title: "Invitations & Favours",
     description:
-      "Beautiful stationery, guest communication, and finishing touches that complete the experience.",
+      "Custom stationery, bespoke invitations, thoughtful guest gifts, and keepsake favours crafted with care.",
     image: "/images/service-invitations-details.webp",
     alt: "Luxury event stationery, wedding invitations, and gold foil details",
     href: "/services",
