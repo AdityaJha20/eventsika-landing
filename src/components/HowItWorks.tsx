@@ -55,7 +55,7 @@ export default function HowItWorks() {
 
         {/* Section CTA */}
         <div className={styles.ctaContainer}>
-          <Link href="#plan-event" className={styles.ctaButton}>
+          <Link href="/diwali-consultation" className={styles.ctaButton}>
             Start Planning
           </Link>
         </div>

@@ -1,0 +1,1119 @@
+/* ==========================================================================
+   Eventsika — Diwali Consultation Offer Landing Page Styles
+   Scoped CSS Module for /diwali-consultation
+   ========================================================================== */
+
+.pageWrapper {
+  width: 100%;
+  min-height: 100vh;
+  background-color: var(--background, #f8f3ec);
+  color: var(--foreground, #2b211d);
+  overflow-x: hidden;
+}
+
+.container {
+  width: 100%;
+  max-width: var(--max-width, 1400px);
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding: 0 3rem;
+  }
+}
+
+@media (min-width: 1200px) {
+  .container {
+    padding: 0 4rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Section Common Utilities
+   -------------------------------------------------------------------------- */
+.sectionHeader {
+  text-align: center;
+  max-width: 780px;
+  margin: 0 auto 3.5rem auto;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--primary, #7f1010);
+  background: rgba(127, 16, 16, 0.06);
+  border: 1px solid rgba(185, 154, 103, 0.35);
+  padding: 0.35rem 1rem;
+  border-radius: 9999px;
+  margin-bottom: 1.25rem;
+}
+
+.sectionTitle {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: clamp(2rem, 3.5vw, 2.75rem);
+  font-weight: 600;
+  line-height: 1.2;
+  color: #1e1916;
+  margin-bottom: 1rem;
+  letter-spacing: -0.01em;
+}
+
+.sectionSubtitle {
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: #5c4e46;
+  font-weight: 400;
+}
+
+/* --------------------------------------------------------------------------
+   1. Hero Section
+   -------------------------------------------------------------------------- */
+.heroSection {
+  position: relative;
+  padding: 3.5rem 0 5rem 0;
+  background: radial-gradient(circle at 50% 20%,
+      rgba(255, 250, 244, 0.9) 0%,
+      rgba(248, 243, 236, 0.95) 70%);
+  border-bottom: 1px solid var(--border, #dfd2c3);
+  overflow: hidden;
+}
+
+.heroGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3rem;
+  align-items: center;
+}
+
+@media (min-width: 1024px) {
+  .heroGrid {
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 3.5rem;
+    align-items: center;
+  }
+}
+
+.heroContent {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* Diwali Special Offer Badge with Symmetrical Framing Lines & Diyas */
+.heroBadgeWrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
+  max-width: 540px;
+}
+
+.badgeLine {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(185, 154, 103, 0.6) 25%,
+      rgba(185, 154, 103, 0.6) 75%,
+      transparent);
+}
+
+.badgeDiya {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(185, 154, 103, 0.35));
+}
+
+.heroEyebrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--primary, #7f1010);
+  background: linear-gradient(135deg,
+      rgba(255, 250, 244, 0.98),
+      rgba(247, 237, 226, 0.95));
+  border: 1px solid rgba(185, 154, 103, 0.45);
+  padding: 0.4rem 1.15rem;
+  border-radius: 9999px;
+  box-shadow: 0 2px 8px rgba(185, 154, 103, 0.12);
+  white-space: nowrap;
+}
+
+.heroTitle {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: clamp(2.35rem, 4.2vw, 3.4rem);
+  font-weight: 600;
+  line-height: 1.16;
+  color: #1a1412;
+  margin-bottom: 1.25rem;
+  letter-spacing: -0.02em;
+}
+
+.heroTitleHighlight {
+  color: var(--primary, #7f1010);
+  font-style: italic;
+  font-weight: 600;
+}
+
+.heroDescription {
+  font-size: 1.0625rem;
+  line-height: 1.68;
+  color: #554740;
+  margin-bottom: 1.85rem;
+  max-width: 580px;
+}
+
+/* Pricing Card inside Hero */
+.heroPricingBox {
+  width: 100%;
+  max-width: 540px;
+  background: #ffffff;
+  border: 1px solid rgba(185, 154, 103, 0.35);
+  border-radius: 12px;
+  padding: 1.4rem 1.65rem;
+  box-shadow: 0 8px 24px rgba(43, 33, 29, 0.05);
+  margin-bottom: 1.75rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.heroPricingBox::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3.5px;
+  background: linear-gradient(90deg,
+      var(--gold, #b99a67),
+      var(--primary, #7f1010),
+      var(--gold, #b99a67));
+}
+
+.pricingHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.pricingBadge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #ffffff;
+  background: var(--primary, #7f1010);
+  padding: 0.25rem 0.65rem;
+  border-radius: 4px;
+}
+
+.urgencyTag {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #8c6d3b;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.priceDisplayGroup {
+  display: flex;
+  align-items: baseline;
+  gap: 1.25rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.originalPriceWrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.originalPriceLabel {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8a7c73;
+  font-weight: 600;
+}
+
+.originalPrice {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: #94867d;
+  text-decoration: line-through;
+  text-decoration-color: rgba(127, 16, 16, 0.7);
+  text-decoration-thickness: 2px;
+}
+
+.offerPriceWrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.offerPriceLabel {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--primary, #7f1010);
+  font-weight: 700;
+}
+
+.offerPrice {
+  font-size: clamp(2.5rem, 4vw, 3.25rem);
+  font-weight: 700;
+  color: var(--primary, #7f1010);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.pricingTerms {
+  font-size: 0.875rem;
+  color: #6e5d54;
+  line-height: 1.5;
+  border-top: 1px dashed rgba(223, 210, 195, 0.8);
+  padding-top: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+/* Hero CTA Area */
+.heroCtaWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.paymentTrustIndicator {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.paymentTrustLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8c6d3b;
+}
+
+.paymentLogosRow {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.paymentLogoUpi {
+  height: 22px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+}
+
+.paymentLogoGpay {
+  width: 80px;
+  height: 32px;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+}
+
+.paymentLogoPhonepe {
+  height: 28px;
+  width: 28px;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+}
+
+.paymentLogoPaytm {
+  height: 20px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+}
+
+.paymentLogoAmazon {
+  width: 64px;
+  height: 22px;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+}
+
+.paymentLogoCred {
+  height: 28px;
+  width: 28px;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+}
+
+.primaryCtaBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background: var(--primary, #7f1010);
+  color: #ffffff;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  padding: 1.05rem 2.25rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 24px rgba(127, 16, 16, 0.28);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.primaryCtaBtn:hover {
+  background: var(--primary-dark, #5f0808);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(127, 16, 16, 0.38);
+}
+
+.primaryCtaBtn:focus-visible {
+  outline: 3px solid var(--gold, #b99a67);
+  outline-offset: 3px;
+}
+
+.ctaTrustNote {
+  font-size: 0.8125rem;
+  color: #706056;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Hero Image Column */
+.heroImageColumn {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.heroImageFrame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1.2 / 1;
+  max-width: 600px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(185, 154, 103, 0.4);
+  box-shadow: 0 20px 48px rgba(43, 33, 29, 0.12);
+}
+
+.heroImage {
+  object-fit: cover;
+  transition: transform 0.6s ease;
+}
+
+.heroImageFrame:hover .heroImage {
+  transform: scale(1.025);
+}
+
+.heroImageOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg,
+      rgba(0, 0, 0, 0) 60%,
+      rgba(30, 20, 15, 0.6) 100%);
+  pointer-events: none;
+}
+
+.heroImageBadge {
+  position: absolute;
+  bottom: 1.25rem;
+  left: 1.25rem;
+  right: 1.25rem;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(185, 154, 103, 0.35);
+  border-radius: 8px;
+  padding: 0.85rem 1.15rem;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+.badgeIconWrapper {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(127, 16, 16, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary, #7f1010);
+  flex-shrink: 0;
+}
+
+.badgeTextGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.badgeTextMain {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1e1916;
+}
+
+.badgeTextSub {
+  font-size: 0.75rem;
+  color: #695a51;
+}
+
+/* --------------------------------------------------------------------------
+   2. Benefits Strip Section
+   -------------------------------------------------------------------------- */
+.benefitsSection {
+  padding: 3.5rem 0;
+  background: #ffffff;
+  border-bottom: 1px solid var(--border, #dfd2c3);
+}
+
+.benefitsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  list-style: none;
+}
+
+@media (min-width: 640px) {
+  .benefitsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .benefitsGrid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2rem;
+  }
+}
+
+.benefitCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 1.5rem;
+  background: var(--cream-light, #fffaf4);
+  border: 1px solid rgba(223, 210, 195, 0.7);
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.benefitCard:hover {
+  transform: translateY(-3px);
+  border-color: rgba(185, 154, 103, 0.5);
+  box-shadow: 0 10px 24px rgba(43, 33, 29, 0.06);
+}
+
+.benefitIconContainer {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: rgba(127, 16, 16, 0.08);
+  border: 1px solid rgba(185, 154, 103, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary, #7f1010);
+  margin-bottom: 1.15rem;
+}
+
+.benefitTitle {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #241c18;
+  margin-bottom: 0.4rem;
+}
+
+.benefitText {
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: #63544c;
+}
+
+/* --------------------------------------------------------------------------
+   3. Why Book a Consultation Section (Editorial 2-Col)
+   -------------------------------------------------------------------------- */
+.whySection {
+  padding: 5.5rem 0;
+  background: var(--background, #f8f3ec);
+  border-bottom: 1px solid var(--border, #dfd2c3);
+}
+
+.whyGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3.5rem;
+  align-items: center;
+}
+
+@media (min-width: 1024px) {
+  .whyGrid {
+    grid-template-columns: 1fr 1fr;
+    gap: 4.5rem;
+  }
+}
+
+.whyContent {
+  display: flex;
+  flex-direction: column;
+}
+
+.whyParagraph {
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  color: #554740;
+  margin-bottom: 1.75rem;
+}
+
+.whyChecklist {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
+  list-style: none;
+  margin-bottom: 2rem;
+}
+
+@media (min-width: 640px) {
+  .whyChecklist {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.checklistItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #2b211d;
+  line-height: 1.45;
+}
+
+.checkIcon {
+  width: 20px;
+  height: 20px;
+  color: var(--primary, #7f1010);
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.whyImageFrame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(185, 154, 103, 0.4);
+  box-shadow: 0 16px 40px rgba(43, 33, 29, 0.12);
+  background: #1a1412;
+}
+
+.whyVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.videoBrandBug {
+  position: absolute;
+  bottom: 2.25rem;
+  right: 0.85rem;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(185, 154, 103, 0.35);
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.videoBrandLogo {
+  width: auto;
+  height: 22px;
+  object-fit: contain;
+  display: block;
+}
+
+/* --------------------------------------------------------------------------
+   4. How It Works Section
+   -------------------------------------------------------------------------- */
+.howSection {
+  padding: 5.5rem 0;
+  background: #ffffff;
+  border-bottom: 1px solid var(--border, #dfd2c3);
+}
+
+.stepsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  list-style: none;
+}
+
+@media (min-width: 768px) {
+  .stepsGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.stepCard {
+  position: relative;
+  background: var(--cream-light, #fffaf4);
+  border: 1px solid rgba(223, 210, 195, 0.8);
+  border-radius: 12px;
+  padding: 2.25rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  transition: all 0.3s ease;
+}
+
+.stepCard:hover {
+  transform: translateY(-4px);
+  border-color: rgba(185, 154, 103, 0.55);
+  box-shadow: 0 12px 28px rgba(43, 33, 29, 0.08);
+}
+
+.stepNumber {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: rgba(185, 154, 103, 0.4);
+  line-height: 1;
+  margin-bottom: 1rem;
+}
+
+.stepTitle {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f1916;
+  margin-bottom: 0.6rem;
+}
+
+.stepDescription {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: #615249;
+}
+
+/* --------------------------------------------------------------------------
+   5. Promotional Pricing Card Section
+   -------------------------------------------------------------------------- */
+.pricingSection {
+  padding: 5.5rem 0;
+  background: radial-gradient(circle at 50% 30%,
+      rgba(255, 250, 244, 0.95) 0%,
+      rgba(244, 236, 225, 0.9) 100%);
+  border-bottom: 1px solid var(--border, #dfd2c3);
+}
+
+.pricingCardWrapper {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.pricingMasterCard {
+  background: #ffffff;
+  border: 2px solid rgba(185, 154, 103, 0.5);
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  box-shadow: 0 16px 44px rgba(43, 33, 29, 0.1);
+  position: relative;
+  text-align: center;
+}
+
+@media (min-width: 640px) {
+  .pricingMasterCard {
+    padding: 3.25rem 3rem;
+  }
+}
+
+.pricingMasterCard::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(90deg,
+      var(--gold, #b99a67),
+      var(--primary, #7f1010),
+      var(--gold, #b99a67));
+  border-radius: 16px 16px 0 0;
+}
+
+.promoBadgeFloating {
+  display: inline-block;
+  background: var(--primary, #7f1010);
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  padding: 0.4rem 1.25rem;
+  border-radius: 9999px;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 4px 12px rgba(127, 16, 16, 0.25);
+}
+
+.cardTitle {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: clamp(1.65rem, 3vw, 2.15rem);
+  font-weight: 600;
+  color: #1a1412;
+  margin-bottom: 0.5rem;
+}
+
+.cardSubtitle {
+  font-size: 0.9375rem;
+  color: #695950;
+  margin-bottom: 2rem;
+}
+
+.priceBlockCenter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--cream-light, #fffaf4);
+  border: 1px solid rgba(223, 210, 195, 0.7);
+  border-radius: 12px;
+  padding: 1.75rem 1.5rem;
+  margin-bottom: 2.25rem;
+}
+
+.strikethroughOriginal {
+  font-size: 1.35rem;
+  font-weight: 500;
+  color: #8c7d74;
+  text-decoration: line-through;
+  text-decoration-color: rgba(127, 16, 16, 0.7);
+  text-decoration-thickness: 2px;
+  margin-bottom: 0.25rem;
+}
+
+.originalLabelText {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8c7d74;
+  margin-bottom: 0.5rem;
+}
+
+.dominantOfferPrice {
+  font-size: clamp(3.25rem, 6vw, 4.25rem);
+  font-weight: 700;
+  color: var(--primary, #7f1010);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.4rem;
+}
+
+.oneTimeFeeLabel {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #735e3b;
+}
+
+.inclusionsList {
+  text-align: left;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 2.25rem;
+  border-top: 1px solid var(--border, #dfd2c3);
+  padding-top: 1.75rem;
+}
+
+.inclusionItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-size: 0.9375rem;
+  color: #2b211d;
+  line-height: 1.45;
+}
+
+.inclusionIcon {
+  width: 18px;
+  height: 18px;
+  color: var(--gold, #b99a67);
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+.cardCtaBtn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background: var(--primary, #7f1010);
+  color: #ffffff;
+  font-size: 1.125rem;
+  font-weight: 600;
+  padding: 1.15rem 2rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 10px 30px rgba(127, 16, 16, 0.32);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  margin-bottom: 0.85rem;
+}
+
+.cardCtaBtn:hover {
+  background: var(--primary-dark, #5f0808);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 36px rgba(127, 16, 16, 0.42);
+}
+
+.cardCtaBtn:focus-visible {
+  outline: 3px solid var(--gold, #b99a67);
+  outline-offset: 3px;
+}
+
+.cardDisclaimer {
+  font-size: 0.8125rem;
+  color: #786960;
+}
+
+/* --------------------------------------------------------------------------
+   6. Testimonials Section
+   -------------------------------------------------------------------------- */
+.testimonialsSection {
+  padding: 5.5rem 0;
+  background: #ffffff;
+  border-bottom: 1px solid var(--border, #dfd2c3);
+}
+
+.testimonialsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  list-style: none;
+}
+
+@media (min-width: 768px) {
+  .testimonialsGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.testimonialCard {
+  background: var(--cream-light, #fffaf4);
+  border: 1px solid rgba(223, 210, 195, 0.7);
+  border-radius: 12px;
+  padding: 2rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.3s ease;
+}
+
+.testimonialCard:hover {
+  transform: translateY(-3px);
+  border-color: rgba(185, 154, 103, 0.5);
+  box-shadow: 0 10px 24px rgba(43, 33, 29, 0.06);
+}
+
+.starsRow {
+  color: var(--gold, #b99a67);
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.testimonialQuote {
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: #4f423b;
+  font-style: italic;
+  margin-bottom: 1.5rem;
+}
+
+.authorBlock {
+  border-top: 1px solid rgba(223, 210, 195, 0.6);
+  padding-top: 1rem;
+}
+
+.authorName {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: #1f1916;
+}
+
+.authorCity {
+  font-size: 0.8125rem;
+  color: #78685f;
+}
+
+/* --------------------------------------------------------------------------
+   7. Final Diwali CTA Section
+   -------------------------------------------------------------------------- */
+.finalCtaSection {
+  padding: 6rem 0;
+  background: linear-gradient(145deg, #4d0707 0%, #7f1010 60%, #5a0909 100%);
+  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+}
+
+.finalCtaSection::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%,
+      rgba(185, 154, 103, 0.18) 0%,
+      rgba(0, 0, 0, 0) 70%);
+  pointer-events: none;
+}
+
+.finalCtaBox {
+  position: relative;
+  text-align: center;
+  max-width: 780px;
+  margin: 0 auto;
+  z-index: 1;
+}
+
+.finalEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--gold, #b99a67);
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(185, 154, 103, 0.4);
+  padding: 0.4rem 1.15rem;
+  border-radius: 9999px;
+  margin-bottom: 1.5rem;
+}
+
+.finalTitle {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: clamp(2.25rem, 4vw, 3.25rem);
+  font-weight: 600;
+  line-height: 1.2;
+  color: #fffaf4;
+  margin-bottom: 1.25rem;
+}
+
+.finalDescription {
+  font-size: 1.125rem;
+  line-height: 1.65;
+  color: rgba(255, 250, 244, 0.85);
+  margin-bottom: 2rem;
+}
+
+.finalOfferPill {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(185, 154, 103, 0.5);
+  padding: 0.6rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fffaf4;
+  margin-bottom: 2.25rem;
+}
+
+.finalOfferHighlight {
+  color: var(--gold, #b99a67);
+  font-weight: 700;
+}
+
+.finalCtaBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background: #ffffff;
+  color: var(--primary, #7f1010);
+  font-size: 1.125rem;
+  font-weight: 700;
+  padding: 1.15rem 2.5rem;
+  border-radius: 8px;
+  border: none;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  margin-bottom: 1rem;
+}
+
+.finalCtaBtn:hover {
+  background: #fffaf4;
+  transform: translateY(-2px);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.45);
+}
+
+.finalCtaBtn:focus-visible {
+  outline: 3px solid var(--gold, #b99a67);
+  outline-offset: 3px;
+}
+
+.finalMicroNote {
+  font-size: 0.8125rem;
+  color: rgba(255, 250, 244, 0.65);
+}
+
+/* --------------------------------------------------------------------------
+   Accessibility & Reduced Motion
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+
+  .primaryCtaBtn,
+  .cardCtaBtn,
+  .finalCtaBtn,
+  .benefitCard,
+  .stepCard,
+  .testimonialCard,
+  .heroImage {
+    transition: none !important;
+    transform: none !important;
+  }
+}

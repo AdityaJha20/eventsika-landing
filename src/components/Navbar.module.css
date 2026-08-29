@@ -21,13 +21,50 @@
   text-decoration: none;
   line-height: 0;
   flex-shrink: 0;
+  border-radius: 4px;
+  outline: none;
+}
+
+.brand:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
 }
 
 .brandLogo {
   height: 66px;
   width: auto;
-  object-fit: contain;
   display: block;
+  overflow: visible;
+}
+
+.brandLogo path {
+  /* Direct SVG color transition without filter artifacts */
+  transition: fill 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.logoSymbol {
+  transform-origin: 152.13px 253.98px;
+  /* Subtle, elegant rotation with luxury easing */
+  transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.logoWordmark {
+  /* Wordmark remains stationary */
+  transform: none;
+}
+
+/* Hover & Keyboard Focus States */
+.brand:hover .brandLogo path,
+.brand:focus-visible .brandLogo path,
+.brandLogo:hover path {
+  fill: #7f1010;
+}
+
+.brand:hover .logoSymbol,
+.brand:focus-visible .logoSymbol,
+.brandLogo:hover .logoSymbol {
+  transform: rotate(180deg);
 }
 
 /* Center Navigation (Desktop) */
@@ -265,5 +302,26 @@
 
   .mobileMenuOpen {
     display: block;
+  }
+}
+
+/* Accessibility: Respect Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .brandLogo path,
+  .logoSymbol {
+    transition: none !important;
+    will-change: auto;
+  }
+
+  .brand:hover .logoSymbol,
+  .brand:focus-visible .logoSymbol,
+  .brandLogo:hover .logoSymbol {
+    transform: none !important;
+  }
+
+  .brand:hover .brandLogo path,
+  .brand:focus-visible .brandLogo path,
+  .brandLogo:hover path {
+    fill: #7f1010;
   }
 }

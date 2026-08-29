@@ -45,9 +45,11 @@
   width: auto;
   display: block;
   overflow: visible;
-  /* Smooth color and glow transition */
-  transition: filter 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-  will-change: filter;
+}
+
+.brandLogo path {
+  /* Direct SVG color transition without filter artifacts */
+  transition: fill 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 .logoSymbol {
@@ -63,11 +65,10 @@
 }
 
 /* Hover & Keyboard Focus States */
-.brandLink:hover .brandLogo,
-.brandLink:focus-visible .brandLogo,
-.brandLogo:hover {
-  /* Exact brand red #7f1010 filter + subtle warm ambient bloom */
-  filter: brightness(0) saturate(100%) invert(11%) sepia(85%) saturate(4100%) hue-rotate(352deg) brightness(85%) contrast(105%) drop-shadow(0 2px 14px rgba(127, 16, 16, 0.24));
+.brandLink:hover .brandLogo path,
+.brandLink:focus-visible .brandLogo path,
+.brandLogo:hover path {
+  fill: #7f1010;
 }
 
 .brandLink:hover .logoSymbol,
@@ -329,7 +330,7 @@
 
 /* Accessibility: Respect Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
-  .brandLogo,
+  .brandLogo path,
   .logoSymbol {
     transition: none !important;
     will-change: auto;
@@ -341,9 +342,9 @@
     transform: none !important;
   }
 
-  .brandLink:hover .brandLogo,
-  .brandLink:focus-visible .brandLogo,
-  .brandLogo:hover {
-    filter: brightness(0) saturate(100%) invert(11%) sepia(85%) saturate(4100%) hue-rotate(352deg) brightness(85%) contrast(105%);
+  .brandLink:hover .brandLogo path,
+  .brandLink:focus-visible .brandLogo path,
+  .brandLogo:hover path {
+    fill: #7f1010;
   }
 }
