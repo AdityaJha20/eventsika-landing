@@ -17,16 +17,26 @@ This skill governs how Antigravity utilizes the connected local **Memory MCP** (
 When stored memory, conversation context, and repository code diverge, resolve conflicts using this strict priority order:
 
 ```
-1. Current Repository & Source Code  (Absolute Ground Truth)
+1. Current Repository & Source Code  (Absolute Ground Truth & Final Authority)
    ↓
-2. Current Project Documentation     (Official Architecture & Runbooks)
+2. Project Brain (Brain.md)          (Central Project Knowledge & Architecture)
    ↓
-3. Git Commit History                (Historical Intent & Evolution)
+3. Project Documentation             (Official Runbooks & Guides)
    ↓
-4. Persistent Memory MCP             (Contextual Memory & Decision Cache)
+4. Git Commit History                (Historical Intent & Evolution)
    ↓
-5. Conversational Assumptions        (Unverified Hypotheses)
+5. Persistent Memory MCP             (Contextual Memory & Decision Cache)
+   ↓
+6. Specialized Agent Skills          (Operational Behaviors & Workflows)
+   ↓
+7. Conversational Assumptions        (Unverified Hypotheses)
 ```
+
+### Knowledge & Governance Roles:
+- **Actual Code**: Final authority & active runtime truth.
+- **Brain.md**: Central project knowledge, architectural blueprints, and technology maps.
+- **Memory MCP**: Durable memory & decision cache across sessions.
+- **Project Skills**: Operational behaviors and step-by-step procedures.
 
 ### Conflict Resolution Rules:
 - **Memory Must Never Override Verified Current Code**: If memory asserts something that active code contradicts, the current code is always right.
@@ -63,12 +73,13 @@ Never write sensitive, ephemeral, or trivial data into the Memory MCP:
 
 Before initiating any architectural refactoring, cross-file feature, security hardening, or design update:
 
-1. **Read Core Agent Rules**: Review [`AGENTS.md`](file:///d:/Persional-projects/landing/AGENTS.md) and [`CLAUDE.md`](file:///d:/Persional-projects/landing/CLAUDE.md).
-2. **Inspect Current Repository**: Check the actual source files and CSS modules directly.
-3. **Query Persistent Memory**: Use `search_nodes` or `open_nodes` to check for prior approved decisions or rejected experiments related to the task.
-4. **Inspect Git History**: Review recent commits and diffs when historical context is relevant.
-5. **Reconcile Reality**: Compare retrieved memory against current codebase state.
-6. **Plan & Execute**: Formulate the plan based on verified facts.
+1. **Read Project Brain**: Review [`Brain.md`](file:///d:/Persional-projects/landing/.agents/project-brain/Brain.md) for architectural constraints and current state.
+2. **Read Core Agent Rules**: Review [`AGENTS.md`](file:///d:/Persional-projects/landing/AGENTS.md) and [`CLAUDE.md`](file:///d:/Persional-projects/landing/CLAUDE.md).
+3. **Inspect Current Repository**: Check the actual source files and CSS modules directly.
+4. **Query Persistent Memory**: Use `search_nodes` or `open_nodes` to check for prior approved decisions or rejected experiments related to the task.
+5. **Inspect Git History**: Review recent commits and diffs when historical context is relevant.
+6. **Reconcile Reality**: Compare retrieved memory against current codebase state.
+7. **Plan & Execute**: Formulate the plan based on verified facts.
 
 *(Do not query memory for trivial, single-line edits or minor styling tweaks).*
 
