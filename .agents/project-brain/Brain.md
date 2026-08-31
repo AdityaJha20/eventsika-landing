@@ -113,6 +113,7 @@ landing/
 ├── public/                                # Static public assets (Zero build bundling)
 │   ├── images/                            # WebP/PNG photography, event types & services
 │   │   ├── packages/                      # Tiered package imagery (jpg)
+│   │   ├── services/                      # Original PNG & optimized WebP service card assets
 │   │   └── eventsika-official-logo.png    # Official brand logo asset
 │   ├── payment-logos/                     # UPI, GPay, PhonePe, Paytm, Cred vector icons
 │   └── videos/                            # Consultation walkthrough videos (mp4)
@@ -298,16 +299,17 @@ Configured globally in [`next.config.ts`](file:///d:/Persional-projects/landing/
 
 All static assets reside in `public/` and are referenced using root-relative paths:
 
+### 1. Brand, Event Types & Packages
 | Asset Path | Category | Usage / Location in Application |
 | :--- | :--- | :--- |
 | `/images/eventsika-official-logo.png` | Brand | High-resolution brand logo used in `LoginForm.tsx` and JSON-LD schema |
 | `/images/eventsika-official-logo.svg` | Brand | Scalable vector logo asset |
-| `/images/service-venue-decor.webp` | Services | Service card 01 (Venue Decor) in `Services.tsx` & `services/page.tsx` |
-| `/images/service-catering.webp` | Services | Service card 02 (Gourmet Catering) in `Services.tsx` & `services/page.tsx` |
-| `/images/service-photography.webp` | Services | Service card 03 (Photography & Films) |
-| `/images/service-entertainment.webp` | Services | Service card 04 (Entertainment & Performers) |
-| `/images/service-event-management.webp` | Services | Service card 05 (Event Coordination) |
-| `/images/service-invitations-details.webp`| Services | Service card 06 (Invitations & Stationery) |
+| `/images/service-venue-decor.webp` | Services | Service 01 (Venue Decor) in `services/page.tsx` |
+| `/images/service-catering.webp` | Services | Service 02 (Gourmet Catering) in `services/page.tsx` |
+| `/images/service-photography.webp` | Services | Service 03 (Photography & Films) in `services/page.tsx` |
+| `/images/service-entertainment.webp` | Services | Service 04 (Entertainment & Performers) in `services/page.tsx` |
+| `/images/service-event-management.webp` | Services | Service 05 (Event Coordination) in `services/page.tsx` |
+| `/images/service-invitations-details.webp`| Services | Service 06 (Invitations & Stationery) in `services/page.tsx` |
 | `/images/event-diwali.webp` | Event Types | Event showcase 01 (Diwali Celebrations) in `EventTypes.tsx` |
 | `/images/event-birthday.webp.png` | Event Types | Event showcase 02 (Birthdays) |
 | `/images/event-anniversary.webp.png` | Event Types | Event showcase 03 (Anniversaries) |
@@ -325,6 +327,25 @@ All static assets reside in `public/` and are referenced using root-relative pat
 | `/images/vendor-network-final.webp` | Vendors | Editorial photography for `ForVendors.tsx` & `/for-vendors` |
 | `/payment-logos/*.svg` | Payment | UPI, GPay, PhonePe, Paytm, Amazon Pay, Cred icons |
 | `/videos/eventsika-consultation-process.mp4` | Video | Consultation process video demonstration |
+
+### 2. Service Card Assets (`public/images/services/`)
+The interactive 3D flip service cards (`src/components/Services.tsx`) use dedicated assets stored in `public/images/services/`. Source PNG originals are preserved alongside optimized WebP assets.
+
+| Card # | Service Heading | Original PNG Source | Optimized WebP File | Native Dimensions | Original PNG Size | Optimized WebP Size | Reduction |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **01** | DECOR & STYLING | `decor-styling.png` | `decor-styling.webp` | 1122 × 1402 px (4:5) | 3.41 MB (3,576,147 B) | 208.44 KB (213,440 B) | 94.03% |
+| **02** | CATERING & CUISINE | `catering-cuisine.png` | `catering-cuisine.webp` | 1089 × 1361 px (4:5) | 3.57 MB (3,744,736 B) | 237.11 KB (242,796 B) | 93.52% |
+| **03** | RITUALS & BLESSINGS | `rituals-blessings.png` | `rituals-blessings.webp` | 1080 × 1350 px (4:5) | 3.15 MB (3,300,652 B) | 124.36 KB (127,348 B) | 96.14% |
+| **04** | ENTERTAINMENT & PERFORMERS | `entertainment-performers.png` | `entertainment-performers.webp` | 1120 × 1400 px (4:5) | 3.23 MB (3,386,116 B) | 149.16 KB (152,738 B) | 95.49% |
+| **05** | PHOTOGRAPHY & FILMS | `photography-films.png` | `photography-films.webp` | 1094 × 1367 px (4:5) | 3.46 MB (3,624,981 B) | 139.93 KB (143,288 B) | 96.05% |
+| **06** | INVITATIONS & FAVOURS | `invitations-favours.png` | `invitations-favours.webp` | 1104 × 1370 px (4:5) | 3.38 MB (3,545,619 B) | 154.28 KB (157,986 B) | 95.54% |
+| **TOTAL** | — | — | — | — | **20.20 MB** (21,178,251 B) | **0.99 MB** (1,037,596 B) | **95.10%** |
+
+#### Asset Optimization, Responsive & Cropping Notes:
+- **Optimization Rationale**: Source PNG photographs totaled 20.20 MB, creating unacceptable bandwidth overhead for landing page visitors. Converting to WebP (quality 85, effort 6) preserved crisp editorial fidelity while reducing total payload to 0.99 MB (95.10% total size reduction, saving 19.21 MB).
+- **Responsive Cropping & Presentation**: Cards maintain fixed CSS heights per breakpoint—Desktop: 350px, Tablet: 340px, Mobile: 330px. Images apply `object-fit: cover` with `object-position: center` ensuring seamless vertical cropping without distortion across varying aspect ratios.
+- **Next.js `<Image>` Implementation**: Uses `fill` layout with dynamic breakpoint sizes `(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw`.
+- **Lazy-Loading Behavior**: The `<Services />` component is located below `<Hero />` and `<HowItWorks />` on the homepage (below the initial viewport fold). In accordance with Next.js best practices, all six service card images use default lazy loading (`loading="lazy"`, no priority flag) to protect Largest Contentful Paint (LCP).
 
 ---
 
@@ -566,6 +587,7 @@ Every AI agent working in the Eventsika repository must adhere to the following 
 ## 28. Change Log
 
 ### 2026-08-31
+- **Service Card Image Integration & Optimization**: Integrated six original Eventsika service card PNG photographs into `public/images/services/` for `Services.tsx`. Converted to high-fidelity WebP (quality 85), reducing total image payload from 20.20 MB to 0.99 MB (95.10% reduction) while preserving all original PNG source files. Below-the-fold Next.js Image lazy-loading maintained.
 - **Resource Optimization & Cleanup**: Converted package photography and duplicate homepage assets to high-fidelity WebP (quality 85), saving 11.57 MB (84.1% directory reduction). Added video poster preview and documented ADR-07.
 
 ### 2026-08-30

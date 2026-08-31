@@ -11,8 +11,8 @@ const SERVICES = [
     title: "Decor & Styling",
     description:
       "Bespoke venue aesthetics, floral design, ambient lighting, and artful tablescapes tailored to your celebration.",
-    image: "/images/service-venue-decor.webp",
-    alt: "Elegant event venue with floral arrangements and ambient candlelight",
+    image: "/images/services/decor-styling.webp",
+    alt: "Bespoke event venue aesthetics, floral styling, and ambient lighting",
     href: "/services",
   },
   {
@@ -20,7 +20,7 @@ const SERVICES = [
     title: "Catering & Cuisine",
     description:
       "Curated multi-course menus, gourmet catering, and refined dining experiences crafted for your guests.",
-    image: "/images/service-catering.webp",
+    image: "/images/services/catering-cuisine.webp",
     alt: "Gourmet celebration dining and elegant food presentation",
     href: "/services",
   },
@@ -29,8 +29,8 @@ const SERVICES = [
     title: "Rituals & Blessings",
     description:
       "Traditional ceremonies, sacred rituals, and cultural blessings orchestrated with reverence and grace.",
-    image: "/images/service-photography.webp",
-    alt: "Professional event photographer capturing candid celebration moments",
+    image: "/images/services/rituals-blessings.webp",
+    alt: "Traditional ceremonies, sacred rituals, and cultural blessings",
     href: "/services",
   },
   {
@@ -38,8 +38,8 @@ const SERVICES = [
     title: "Entertainment & Performers",
     description:
       "Live musicians, captivating artists, DJs, and cultural performers that bring energy and memorable flair.",
-    image: "/images/service-entertainment.webp",
-    alt: "Live acoustic musical performance at an elegant celebration",
+    image: "/images/services/entertainment-performers.webp",
+    alt: "Live musicians, cultural performers, and celebration entertainment",
     href: "/services",
   },
   {
@@ -47,8 +47,8 @@ const SERVICES = [
     title: "Photography & Films",
     description:
       "Cinematic films, editorial photography, and candid visual storytelling to preserve every cherished memory.",
-    image: "/images/service-event-management.webp",
-    alt: "Professional event coordinator managing venue setup details",
+    image: "/images/services/photography-films.webp",
+    alt: "Cinematic films, editorial photography, and celebration storytelling",
     href: "/services",
   },
   {
@@ -56,8 +56,8 @@ const SERVICES = [
     title: "Invitations & Favours",
     description:
       "Custom stationery, bespoke invitations, thoughtful guest gifts, and keepsake favours crafted with care.",
-    image: "/images/service-invitations-details.webp",
-    alt: "Luxury event stationery, wedding invitations, and gold foil details",
+    image: "/images/services/invitations-favours.webp",
+    alt: "Custom stationery, bespoke invitations, and keepsake gifts",
     href: "/services",
   },
 ];
