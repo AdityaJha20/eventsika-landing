@@ -1,0 +1,117 @@
+.ctaDiyaWrapper {
+  position: absolute;
+  top: 6px;
+  right: calc(clamp(2rem, 5vw, 6.5rem) + 90px);
+  transform: translateX(50%);
+  pointer-events: none;
+  user-select: none;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  will-change: transform;
+}
+
+/* Diya SVG Container */
+.diyaSvg {
+  width: 44px;
+  height: 26px;
+  display: block;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.18));
+}
+
+/* Soft Ambient Flame Glow Halo */
+.ambientGlow {
+  position: absolute;
+  top: -4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 190, 70, 0.7) 0%,
+    rgba(255, 150, 40, 0.25) 50%,
+    transparent 75%
+  );
+  filter: blur(2px);
+  pointer-events: none;
+}
+
+/* Animated Diya Flame */
+.animatedFlame {
+  transform-origin: 47px 18px;
+  animation: flameSway 3.8s ease-in-out infinite;
+  will-change: transform, filter;
+}
+
+@keyframes flameSway {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    filter: drop-shadow(0 0 3.5px rgba(255, 185, 60, 0.7));
+  }
+  25% {
+    transform: scale(1.05, 0.96) rotate(-1.8deg);
+    filter: drop-shadow(0 0 5.5px rgba(255, 205, 80, 0.85));
+  }
+  50% {
+    transform: scale(0.96, 1.04) rotate(1.2deg);
+    filter: drop-shadow(0 0 4px rgba(255, 165, 45, 0.65));
+  }
+  75% {
+    transform: scale(1.03, 1.01) rotate(-0.8deg);
+    filter: drop-shadow(0 0 5px rgba(255, 195, 75, 0.8));
+  }
+}
+
+/* Tablet (641px - 1080px): Adjust position above mobileControls CTA */
+@media (max-width: 1080px) {
+  .ctaDiyaWrapper {
+    top: 5px;
+    right: calc(clamp(1.5rem, 4vw, 3rem) + 125px);
+  }
+  .diyaSvg {
+    width: 38px;
+    height: 22px;
+  }
+  .ambientGlow {
+    width: 18px;
+    height: 18px;
+    top: -3px;
+    right: 3px;
+  }
+}
+
+/* Mobile (<= 640px): Compact scale above mobile CTA button */
+@media (max-width: 640px) {
+  .ctaDiyaWrapper {
+    top: 4px;
+    right: calc(clamp(1.5rem, 4vw, 3rem) + 125px);
+  }
+  .diyaSvg {
+    width: 32px;
+    height: 19px;
+  }
+  .ambientGlow {
+    width: 16px;
+    height: 16px;
+    top: -2px;
+    right: 2px;
+  }
+}
+
+/* Very Small Mobile (<= 380px) */
+@media (max-width: 380px) {
+  .ctaDiyaWrapper {
+    top: 4px;
+    right: calc(1.5rem + 118px);
+  }
+}
+
+/* Accessibility: Respect Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .animatedFlame {
+    animation: none !important;
+    filter: drop-shadow(0 0 4px rgba(255, 185, 60, 0.75));
+  }
+}

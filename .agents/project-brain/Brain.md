@@ -147,7 +147,13 @@ landing/
 │   │   ├── ServiceEstimator.tsx / .module.css  # Interactive budget & guest cost estimator
 │   │   ├── Services.tsx / .module.css     # Interactive 3D flip card service grid
 │   │   ├── ServicesFAQ.tsx / .module.css  # Expandable service FAQ accordions
-│   │   └── VendorApplicationForm.tsx / .module.css # Partner application form
+│   │   ├── VendorApplicationForm.tsx / .module.css # Partner application form
+│   │   └── seasonal/                      # Isolated seasonal occasion decoration engine
+│   │       ├── SeasonalDecoration.tsx     # Central occasion controller & switch
+│   │       ├── DiwaliLights.tsx           # Festive draped festoon wire, golden dots & diyas
+│   │       ├── DiwaliLights.module.css    # Zero-height overlay styles & organic desynchronized twinkle
+│   │       ├── DiwaliCtaDiya.tsx          # Authentic terracotta diya above "Book a Consultation" CTA
+│   │       └── DiwaliCtaDiya.module.css   # Diya positioning, warm glow & 3.8s flame sway animation
 │   └── lib/                               # Shared server & utility infrastructure
 │       ├── mailer.ts                      # Multi-provider zero-dependency email dispatcher
 │       └── rate-limit.ts                  # In-memory IP rate limiter & header extractor
@@ -195,6 +201,44 @@ landing/
 ### 2. Styling Strategy
 - **Vanilla CSS Modules**: Every component is paired with a strictly scoped `.module.css` stylesheet. Class names are hashed by Next.js to eliminate global namespace collisions.
 - **Design Tokens**: Standardized CSS custom properties in `src/app/globals.css` provide uniform colors, borders, max widths, and font stacks across all components.
+
+### 3. Seasonal Occasion Decoration Architecture
+
+Eventsika incorporates an isolated, zero-layout-impact festive decoration engine for seasonal occasions (e.g., Diwali, Holi, Christmas, Wedding Season):
+
+```
+┌──────────────────────────────────────────────────────────┐
+│ <header className={styles.header}>                       │
+│   ├── <SeasonalDecoration /> (absolute overlay, z: 1)    │
+│   └── <div className={styles.container}> (z: 2, locked)  │
+└──────────────────────────────────────────────────────────┘
+```
+
+#### Key Architecture & Governance Rules:
+1. **Isolated Component Location**: All seasonal code resides exclusively in `src/components/seasonal/`:
+   - [`SeasonalDecoration.tsx`](file:///d:/Persional-projects/landing/src/components/seasonal/SeasonalDecoration.tsx): Central occasion controller and switch.
+   - [`DiwaliLights.tsx`](file:///d:/Persional-projects/landing/src/components/seasonal/DiwaliLights.tsx): Festive draped festoon SVG wire with 45% enhanced visibility, warm golden brass dots, and 8 balanced traditional Indian diya lamps on desktop.
+   - [`DiwaliLights.module.css`](file:///d:/Persional-projects/landing/src/components/seasonal/DiwaliLights.module.css): Scoped styles, responsive tiers (8 desktop, 5 tablet, 3 mobile), enhanced warm amber glow, and desynchronized organic flicker animations.
+   - [`DiwaliCtaDiya.tsx`](file:///d:/Persional-projects/landing/src/components/seasonal/DiwaliCtaDiya.tsx): Dedicated authentic terracotta Indian clay diya (`mitti ka diya`) with deep oil pool, cotton wick, and stylized animated flame centered directly above the "Book a Consultation" button.
+   - [`DiwaliCtaDiya.module.css`](file:///d:/Persional-projects/landing/src/components/seasonal/DiwaliCtaDiya.module.css): Non-interactive absolute positioning (`top: 4px–6px; pointer-events: none; z-index: 1;`) and gentle 3.8s flame sway animation (`@keyframes flameSway`).
+2. **Single Integration Point**: In [`src/components/Navbar.tsx`](file:///d:/Persional-projects/landing/src/components/Navbar.tsx), `<SeasonalDecoration />` is mounted as a 1-line integration point immediately inside `<header className={styles.header}>`.
+3. **Zero Layout Height Impact**: The seasonal overlay is styled with `position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 1;`. It contributes **0px** to header layout height, guaranteeing the original navbar dimensions and spacing remain 100% intact.
+4. **Layer Priority & Content Protection**: `.container` in `Navbar.module.css` has `position: relative; z-index: 2;`. All interactive elements (logo, navigation links, social icons, CTA button, mobile controls) sit on top of the decoration. `pointer-events: none` guarantees zero click blockage.
+5. **Disabling Seasonal Decorations Website-Wide**:
+   - In [`SeasonalDecoration.tsx`](file:///d:/Persional-projects/landing/src/components/seasonal/SeasonalDecoration.tsx), set `export const ACTIVE_SEASONAL_OCCASION: SeasonalOccasion = null;`.
+   - The component renders `null` and the navbar cleanly renders with zero leftover DOM nodes, zero orphaned CSS rules, and zero layout shifts.
+6. **Replacing with Future Occasions (Holi, Christmas, Wedding Season)**:
+   - Create a dedicated component under `src/components/seasonal/` (e.g. `HoliDecoration.tsx`, `ChristmasGarland.tsx`, `WeddingFloral.tsx`).
+   - Add the key to `SeasonalOccasion` union type in `SeasonalDecoration.tsx`.
+   - Add a `case` switch statement in `SeasonalDecoration.tsx`.
+   - Set `ACTIVE_SEASONAL_OCCASION = "holi"`.
+   - **Zero edits are needed inside `Navbar.tsx` or `Navbar.module.css`**.
+   - When retiring Diwali features, update Brain.md to move Diwali from active to retired status without deleting historical changelog context.
+7. **Organic Animation & Performance**:
+   - Pure inline SVG vectors and Vanilla CSS keyframes; zero JS animation loops, zero image files.
+   - Lights use desynchronized cycles (8.7s to 12.3s) and steady warm baseline states so only selective lights gently brighten at any moment while others remain calm.
+   - CTA Diya features a gentle 3.8s ease-in-out flame sway anchor-based animation.
+   - Full `@media (prefers-reduced-motion: reduce)` support: disables all animations/sway and maintains warm static illumination.
 
 ---
 

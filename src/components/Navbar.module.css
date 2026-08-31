@@ -12,6 +12,8 @@
   display: flex;
   align-items: center;
   gap: 2rem;
+  position: relative;
+  z-index: 2;
 }
 
 /* Brand / Logo Styling */

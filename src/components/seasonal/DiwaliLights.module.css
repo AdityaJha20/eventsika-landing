@@ -1,0 +1,218 @@
+.seasonalOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  user-select: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+/* Festive Draped String / Festoon - Enhanced 45% Visibility */
+.festoonSvg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 24px;
+  display: block;
+}
+
+.festoonPath {
+  stroke: rgba(200, 162, 92, 0.72);
+  stroke-width: 1.15px;
+  stroke-linecap: round;
+  fill: none;
+  filter: drop-shadow(0 1px 2px rgba(212, 175, 55, 0.3));
+}
+
+/* Golden Dots along String */
+.dotsTrack,
+.diyasTrack {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.goldenDot {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff4c8, #c5a05c 70%, #7a561e);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 3.5px rgba(255, 190, 65, 0.5);
+  will-change: opacity, transform;
+}
+
+/* Hanging Diya Node */
+.diyaNode {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateX(-50%);
+  will-change: opacity, transform, filter;
+}
+
+/* Attachment Bead */
+.bead {
+  width: 2.8px;
+  height: 2.8px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff4c8, #c5a05c 70%, #7a561e);
+  box-shadow: 0 0 2px rgba(255, 192, 72, 0.4);
+  margin-bottom: -0.5px;
+  z-index: 2;
+}
+
+/* Suspension Thread */
+.dropThread {
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    rgba(200, 162, 92, 0.8),
+    rgba(212, 175, 55, 0.55)
+  );
+}
+
+/* Diya Fixture Container */
+.diyaFixture {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: -0.5px;
+}
+
+/* Soft Ambient Warm Glow Halo - Enhanced Warmth */
+.glowHalo {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 192, 72, 0.6) 0%,
+    rgba(255, 170, 48, 0.22) 50%,
+    transparent 75%
+  );
+  filter: blur(1.2px);
+  pointer-events: none;
+}
+
+/* Diya SVG Icon */
+.diyaSvg {
+  width: 10px;
+  height: 12px;
+  display: block;
+  filter: drop-shadow(0 1px 3px rgba(212, 160, 45, 0.45));
+}
+
+.diyaFlame {
+  transform-origin: 5px 5.5px;
+}
+
+/* ==================================================
+   DESYNCHRONIZED ORGANIC ANIMATIONS & BRIGHTNESS
+   ================================================== */
+
+/* Steady dim ambient baseline */
+.glowSteady {
+  opacity: 0.72;
+}
+
+/* Slow, gentle breathing glow */
+@keyframes breatheCycle {
+  0%, 100% {
+    opacity: 0.65;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 0.92;
+    transform: scale(1.04);
+    filter: drop-shadow(0 1px 4.5px rgba(255, 190, 60, 0.5));
+  }
+}
+
+.glowBreathe {
+  animation: breatheCycle 11.4s ease-in-out infinite;
+}
+
+/* Subtle, occasional warm flicker patterns */
+@keyframes organicFlicker {
+  0%, 84%, 100% {
+    opacity: 0.68;
+    transform: scale(1);
+    filter: drop-shadow(0 0.5px 2px rgba(230, 160, 50, 0.25));
+  }
+  91% {
+    opacity: 1;
+    transform: scale(1.08);
+    filter: drop-shadow(0 1.5px 5.5px rgba(255, 190, 60, 0.6))
+      drop-shadow(0 0 3px rgba(255, 240, 180, 0.65));
+  }
+}
+
+.flickerA {
+  animation: organicFlicker 8.7s ease-in-out 1.2s infinite;
+}
+
+.flickerB {
+  animation: organicFlicker 12.3s ease-in-out 4.8s infinite;
+}
+
+.flickerC {
+  animation: organicFlicker 10.1s ease-in-out 6.5s infinite;
+}
+
+/* ==================================================
+   RESPONSIVE TIERS
+   ================================================== */
+
+/* Desktop (> 1080px): all 8 lights visible */
+.primary,
+.secondary,
+.tertiary {
+  display: flex;
+}
+
+/* Tablet (641px - 1080px): hide tertiary (5 balanced lights remain) */
+@media (max-width: 1080px) {
+  .tertiary {
+    display: none;
+  }
+}
+
+/* Mobile (<= 640px): hide secondary & tertiary (3 primary lights remain) */
+@media (max-width: 640px) {
+  .secondary,
+  .tertiary {
+    display: none;
+  }
+  .diyaSvg {
+    width: 9px;
+    height: 11px;
+  }
+  .glowHalo {
+    width: 11px;
+    height: 11px;
+  }
+}
+
+/* Accessibility: Respect Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .glowBreathe,
+  .flickerA,
+  .flickerB,
+  .flickerC {
+    animation: none !important;
+    opacity: 0.88;
+  }
+}
