@@ -500,7 +500,7 @@ These areas can be iterated on and refined with standard pre-commit verification
 
 ## 22. Known Issues & Technical Debt
 
-1. **PR #1 (Open)**: Flags global `scroll-behavior: smooth` in `globals.css` vs Next.js 16 recommendation for `data-scroll-behavior="smooth"` attribute in `layout.tsx`.
+1. **Resolved: Next.js 16 Scroll Behavior**: Added `data-scroll-behavior="smooth"` to `<html>` in `src/app/layout.tsx` to align with App Router smooth scroll transition standards.
 2. **Legacy `page.module.css`**: Contains default boilerplate CSS from initial `create-next-app` initialization. Unused by current components but retained to avoid unnecessary breaking diffs.
 3. **In-Memory Rate Limiting Scope**: Memory state is per Node process. When deployed across multiple distributed serverless instances, rate limits are enforced on a per-instance basis rather than globally (sufficient for current traffic; upgrade to Redis when scaling).
 
@@ -587,6 +587,7 @@ Every AI agent working in the Eventsika repository must adhere to the following 
 ## 28. Change Log
 
 ### 2026-08-31
+- **Development Warning Diagnostics & Refinement**: Added `data-scroll-behavior="smooth"` attribute to `RootLayout` (`src/app/layout.tsx`) resolving Next.js App Router smooth scrolling warnings. Corrected Next.js `<Image>` width/height props and matching CSS in `src/app/diwali-consultation` (`upi-icon.svg` 37x22, `paytm-icon.svg` 64x20) matching native SVG aspect ratios. Diagnosed Node.js Turbopack Gzip MaxListeners warning as an internal development streaming artifact.
 - **Service Card Image Integration & Optimization**: Integrated six original Eventsika service card PNG photographs into `public/images/services/` for `Services.tsx`. Converted to high-fidelity WebP (quality 85), reducing total image payload from 20.20 MB to 0.99 MB (95.10% reduction) while preserving all original PNG source files. Below-the-fold Next.js Image lazy-loading maintained.
 - **Resource Optimization & Cleanup**: Converted package photography and duplicate homepage assets to high-fidelity WebP (quality 85), saving 11.57 MB (84.1% directory reduction). Added video poster preview and documented ADR-07.
 

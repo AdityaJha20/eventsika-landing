@@ -325,8 +325,8 @@
 }
 
 .paymentLogoUpi {
+  width: 37px;
   height: 22px;
-  width: auto;
   object-fit: contain;
   display: block;
   pointer-events: none;
@@ -349,8 +349,8 @@
 }
 
 .paymentLogoPaytm {
+  width: 64px;
   height: 20px;
-  width: auto;
   object-fit: contain;
   display: block;
   pointer-events: none;

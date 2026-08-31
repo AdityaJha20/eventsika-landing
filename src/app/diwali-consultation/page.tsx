@@ -195,7 +195,7 @@ export default function DiwaliConsultationPage() {
                       <Image
                         src="/payment-logos/upi-icon.svg"
                         alt="UPI"
-                        width={58}
+                        width={37}
                         height={22}
                         className={styles.paymentLogoUpi}
                       />
@@ -216,7 +216,7 @@ export default function DiwaliConsultationPage() {
                       <Image
                         src="/payment-logos/paytm-icon.svg"
                         alt="Paytm"
-                        width={52}
+                        width={64}
                         height={20}
                         className={styles.paymentLogoPaytm}
                       />
