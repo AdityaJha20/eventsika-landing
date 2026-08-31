@@ -36,7 +36,7 @@ const PACKAGE_TIERS: PackageTier[] = [
     name: "Balcony / Terrace",
     guestRange: "10 TO 30 GUESTS",
     price: "Starting at ₹35,000",
-    image: "/images/packages/balcony-terrace.jpg",
+    image: "/images/packages/balcony-terrace.webp",
     description:
       "Open-air ambient styling with warm fairy lighting, cozy floor cushions, and intimate terrace decor.",
     features: [
@@ -58,7 +58,7 @@ const PACKAGE_TIERS: PackageTier[] = [
     guestRange: "50 TO 120 GUESTS",
     price: "Starting at ₹1,25,000",
     badge: "MOST POPULAR",
-    image: "/images/packages/driveway-lawns.jpg",
+    image: "/images/packages/driveway-lawns.webp",
     description:
       "Our most popular all-in-one celebration package with signature decor, catering, DJ, and full management.",
     features: [
@@ -78,7 +78,7 @@ const PACKAGE_TIERS: PackageTier[] = [
     name: "Living Rooms / Family Dinner",
     guestRange: "10 TO 35 GUESTS",
     price: "Starting at ₹45,000",
-    image: "/images/packages/living-room-dinner.jpg",
+    image: "/images/packages/living-room-dinner.webp",
     description:
       "Designed for cozy apartment living rooms, family dinners, and intimate milestone gatherings at home.",
     features: [
@@ -99,7 +99,7 @@ const PACKAGE_TIERS: PackageTier[] = [
     name: "Showrooms / Offices",
     guestRange: "25 TO 100+ GUESTS",
     price: "Starting at ₹65,000",
-    image: "/images/packages/showroom-office.jpg",
+    image: "/images/packages/showroom-office.webp",
     description:
       "Sophisticated corporate celebrations, brand launches, or office milestone events with sleek modern decor.",
     features: [
@@ -119,7 +119,7 @@ const PACKAGE_TIERS: PackageTier[] = [
     name: "Grand Celebrations",
     guestRange: "120+ GUESTS",
     price: "Starting at ₹3,25,000",
-    image: "/images/packages/grand-celebration.jpg",
+    image: "/images/packages/grand-celebration.webp",
     description:
       "Luxury full-scale transformation for milestone anniversaries, grand housewarmings, and pre-wedding soirees.",
     features: [
@@ -141,7 +141,7 @@ const PACKAGE_TIERS: PackageTier[] = [
     name: "Small Budget Wedding",
     guestRange: "30 TO 80 GUESTS",
     price: "Starting at ₹85,000",
-    image: "/images/packages/small-budget-wedding.jpg",
+    image: "/images/packages/small-budget-wedding.webp",
     description:
       "Tasteful intimate Indian wedding, roka, or engagement setup with beautiful economical decor and full coordination.",
     features: [

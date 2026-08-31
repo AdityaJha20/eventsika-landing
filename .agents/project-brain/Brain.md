@@ -451,6 +451,7 @@ The repository includes 6 purpose-built skills located in [`.agents/skills/`](fi
 | **ADR-04** | **Direct SVG Fill Transitions for Logo** | CSS `filter: hue-rotate()` interpolates through intermediate rainbow hues (green/blue) when transitioning gold to crimson. | Logo vector paths use explicit `transition: fill` with 180° emblem rotation and stationary wordmark. |
 | **ADR-05** | **React Compiler Enabled** | Automates memoization and re-render optimizations in React 19 without manual `useMemo`/`useCallback` clutter. | Enabled via `reactCompiler: true` in `next.config.ts`. |
 | **ADR-06** | **Presentation Login Portal** | Client portal dashboard is undergoing staging; users need clear guidance and immediate direct assistance rather than dead ends. | `/login` validates input and provides explicit support links to `care@eventsika.in`. |
+| **ADR-07** | **Canonical WebP Asset Optimization & Lazy-Loading** | High-resolution raster images (PNGs/JPEGs) bloat initial page load. Next.js `<Image>` provides default viewport lazy-loading. | All photographic assets use high-fidelity WebP (quality ~85). Below-the-fold media uses deferred loading with poster preview frames. |
 
 ---
 
@@ -563,6 +564,9 @@ Every AI agent working in the Eventsika repository must adhere to the following 
 ---
 
 ## 28. Change Log
+
+### 2026-08-31
+- **Resource Optimization & Cleanup**: Converted package photography and duplicate homepage assets to high-fidelity WebP (quality 85), saving 11.57 MB (84.1% directory reduction). Added video poster preview and documented ADR-07.
 
 ### 2026-08-30
 - **Created**: Initial establishment of the central Eventsika Project Brain (`Brain.md`).

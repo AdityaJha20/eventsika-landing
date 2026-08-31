@@ -339,6 +339,7 @@ export default function DiwaliConsultationPage() {
                   loop
                   playsInline
                   preload="metadata"
+                  poster="/images/eventsika-consultation-poster.webp"
                   className={styles.whyVideo}
                   aria-label="Eventsika celebration consultation process video"
                 >

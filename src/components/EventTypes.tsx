@@ -18,7 +18,7 @@ const EVENT_TYPES = [
     title: "Birthday",
     description:
       "Make every birthday feel personal, joyful, and beautifully planned.",
-    image: "/images/event-birthday.webp.png",
+    image: "/images/event-birthday.webp",
     alt: "Warm birthday celebration with sophisticated decor and ambient cake candles",
   },
   {
@@ -26,7 +26,7 @@ const EVENT_TYPES = [
     title: "Anniversary",
     description:
       "Celebrate your story with an intimate experience designed around you.",
-    image: "/images/event-anniversary.webp.png",
+    image: "/images/event-anniversary.webp",
     alt: "Intimate anniversary candlelit dining setup at home",
   },
   {

@@ -22,7 +22,7 @@ const PACKAGES: PackageItem[] = [
     tagline: "Simple celebrations, thoughtfully arranged.",
     description:
       "For intimate gatherings where you need the important details brought together beautifully.",
-    image: "/images/packages/living-room-dinner.jpg",
+    image: "/images/packages/living-room-dinner.webp",
     features: [
       "Event planning consultation",
       "Venue & decor coordination",
@@ -40,7 +40,7 @@ const PACKAGES: PackageItem[] = [
     tagline: "Everything comes together beautifully.",
     description:
       "For celebrations where every detail matters and you want a dedicated team bringing the entire experience together.",
-    image: "/images/packages/driveway-lawns.jpg",
+    image: "/images/packages/driveway-lawns.webp",
     features: [
       "Complete event planning",
       "Venue & decor coordination",
@@ -59,7 +59,7 @@ const PACKAGES: PackageItem[] = [
     tagline: "Complete planning, from idea to celebration.",
     description:
       "For larger or more elaborate occasions that need complete planning, coordination, and execution.",
-    image: "/images/packages/grand-celebration.jpg",
+    image: "/images/packages/grand-celebration.webp",
     features: [
       "Full event management",
       "Premium venue & decor planning",

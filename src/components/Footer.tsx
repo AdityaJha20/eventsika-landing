@@ -664,13 +664,6 @@ export default function Footer() {
             <h3 className={styles.colHeading}>Get in touch</h3>
             <p className={styles.contactText}>Plan your celebration with us.</p>
             <a
-              href="tel:+917876666056"
-              className={styles.contactLink}
-              aria-label="Call +91 78766 66056"
-            >
-              +91 78766 66056
-            </a>
-            <a
               href="mailto:care@eventsika.in"
               className={styles.contactLink}
               aria-label="Email care@eventsika.in"
