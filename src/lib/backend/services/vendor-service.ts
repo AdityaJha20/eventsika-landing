@@ -3,7 +3,9 @@ import { defaultDeliveryNotifier } from "../integrations/mailer-delivery-notifie
 import { IDeliveryNotifier } from "../integrations/delivery-notifier.interface";
 import { logger, maskEmail, maskPhone } from "../logger/logger";
 import { defaultVendorRepository } from "../repositories/in-memory-vendor-repository";
+import { SupabaseVendorRepository } from "../repositories/supabase-vendor-repository";
 import { IVendorRepository } from "../repositories/vendor-repository.interface";
+import { isSupabaseConfigured } from "../supabase/client";
 import { ValidatedVendorInput } from "../validation/vendor-schema";
 
 export interface VendorServiceResult {
@@ -14,21 +16,28 @@ export interface VendorServiceResult {
   applicationId?: string;
 }
 
+export function getDefaultVendorRepository(): IVendorRepository {
+  if (isSupabaseConfigured()) {
+    return new SupabaseVendorRepository();
+  }
+  return defaultVendorRepository;
+}
+
 export class VendorService {
   private repository: IVendorRepository;
   private notifier: IDeliveryNotifier;
 
   constructor(
-    repository: IVendorRepository = defaultVendorRepository,
+    repository?: IVendorRepository,
     notifier: IDeliveryNotifier = defaultDeliveryNotifier
   ) {
-    this.repository = repository;
+    this.repository = repository || getDefaultVendorRepository();
     this.notifier = notifier;
   }
 
   /**
    * Processes a validated vendor application submission.
-   * Handles honeypot detection, rapid deduplication, persistence boundary, and notification dispatch.
+   * Handles honeypot detection, rapid deduplication, durable database persistence, and notification dispatch.
    */
   async processVendorApplication(
     vendor: ValidatedVendorInput,
@@ -36,7 +45,7 @@ export class VendorService {
   ): Promise<VendorServiceResult> {
     const requestId = context?.requestId;
 
-    // 1. Honeypot Bot Trap
+    // 1. Honeypot Bot Trap: drop silently without notification or DB write
     if (vendor.isBot) {
       logger.info("Honeypot bot vendor application dropped silently", {
         requestId,
@@ -70,10 +79,10 @@ export class VendorService {
       };
     }
 
-    // 3. Persistence Boundary (In-Memory for Day 2; DB in Day 7)
+    // 3. Durable Database Persistence Boundary
     let savedRecord;
     try {
-      savedRecord = await this.repository.saveVendorApplication(vendor);
+      savedRecord = await this.repository.saveVendorApplication(vendor, { requestId });
     } catch (err) {
       logger.error("Failed to persist vendor application to repository boundary", err, { requestId });
     }
@@ -103,3 +112,4 @@ export class VendorService {
 }
 
 export const vendorService = new VendorService();
+

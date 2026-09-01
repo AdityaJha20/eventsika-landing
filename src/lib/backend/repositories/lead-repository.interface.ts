@@ -8,8 +8,8 @@ export interface SavedLeadRecord extends ValidatedLeadInput {
 export interface ILeadRepository {
   /**
    * Persists a validated lead submission.
-   * In Day 2 this is backed by an in-memory/no-op store;
-   * in Day 7 this will be backed by the selected production database.
+   * Backed by Supabase PostgreSQL in production, with in-memory fallback.
    */
-  saveLead(lead: ValidatedLeadInput): Promise<SavedLeadRecord>;
+  saveLead(lead: ValidatedLeadInput, context?: { requestId?: string }): Promise<SavedLeadRecord>;
 }
+
