@@ -1,12 +1,12 @@
 /**
  * Eventsika Lead & Vendor Notification Mailer Utility
- * 
+ *
  * Supports zero-dependency dispatch via:
  * 1. Resend API (RESEND_API_KEY)
  * 2. SendGrid API (SENDGRID_API_KEY)
  * 3. Custom Webhook (LEAD_WEBHOOK_URL)
- * 4. Fallback server logger (when environment variables are awaiting configuration)
- * 
+ * 4. PII-Safe Development Fallback Logger
+ *
  * Target: care@eventsika.in
  */
 
@@ -24,6 +24,41 @@ export function escapeHtml(str: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function maskPhoneForLogs(phone: string): string {
+  const clean = phone.replace(/\D/g, "");
+  if (clean.length < 6) return "******";
+  return `${clean.slice(0, 2)}****${clean.slice(-4)}`;
+}
+
+function maskEmailForLogs(email: string): string {
+  if (!email || !email.includes("@")) return "***@***";
+  const [localPart, domain] = email.split("@");
+  return `${localPart.slice(0, 2)}***@${domain}`;
+}
+
+function sanitizeDataForSafeLog(
+  data: Record<string, string | string[]>
+): Record<string, string | string[]> {
+  const sanitized: Record<string, string | string[]> = {};
+  for (const [key, value] of Object.entries(data)) {
+    const lowerKey = key.toLowerCase();
+    if (typeof value === "string") {
+      if (lowerKey.includes("phone") || lowerKey.includes("mobile") || lowerKey.includes("whatsapp")) {
+        sanitized[key] = maskPhoneForLogs(value);
+      } else if (lowerKey.includes("email")) {
+        sanitized[key] = maskEmailForLogs(value);
+      } else if (lowerKey.includes("name")) {
+        sanitized[key] = value.length > 2 ? `${value[0]}***` : "***";
+      } else {
+        sanitized[key] = value;
+      }
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
 }
 
 function generateHtmlEmail(payload: LeadEmailPayload): string {
@@ -111,7 +146,7 @@ Target: care@eventsika.in
 
 export async function sendNotificationEmail(
   payload: LeadEmailPayload
-): Promise<{ success: boolean; delivered: boolean; error?: string }> {
+): Promise<{ success: boolean; delivered: boolean; channel?: string; error?: string }> {
   const targetEmail = process.env.NOTIFICATION_EMAIL || "care@eventsika.in";
   const fromEmail = process.env.EMAIL_FROM || "Eventsika <care@eventsika.in>";
   const htmlContent = generateHtmlEmail(payload);
@@ -137,15 +172,15 @@ export async function sendNotificationEmail(
       });
 
       if (!res.ok) {
-        const errorData = await res.text();
-        console.error("[Mailer] Resend API Error:", errorData);
-        return { success: false, delivered: false, error: "Email provider error" };
+        const errorText = await res.text();
+        console.error("[Mailer] Resend API error response received (status %d)", res.status);
+        return { success: false, delivered: false, channel: "resend", error: `Resend error: ${errorText}` };
       }
 
-      return { success: true, delivered: true };
+      return { success: true, delivered: true, channel: "resend" };
     } catch (err) {
-      console.error("[Mailer] Resend network error:", err);
-      return { success: false, delivered: false, error: "Network error during email dispatch" };
+      console.error("[Mailer] Resend network error:", err instanceof Error ? err.message : "Network error");
+      return { success: false, delivered: false, channel: "resend", error: "Network error during email dispatch" };
     }
   }
 
@@ -171,15 +206,14 @@ export async function sendNotificationEmail(
       });
 
       if (!res.ok) {
-        const errorData = await res.text();
-        console.error("[Mailer] SendGrid API Error:", errorData);
-        return { success: false, delivered: false, error: "Email provider error" };
+        console.error("[Mailer] SendGrid API error response received (status %d)", res.status);
+        return { success: false, delivered: false, channel: "sendgrid", error: "SendGrid provider error" };
       }
 
-      return { success: true, delivered: true };
+      return { success: true, delivered: true, channel: "sendgrid" };
     } catch (err) {
-      console.error("[Mailer] SendGrid network error:", err);
-      return { success: false, delivered: false, error: "Network error during email dispatch" };
+      console.error("[Mailer] SendGrid network error:", err instanceof Error ? err.message : "Network error");
+      return { success: false, delivered: false, channel: "sendgrid", error: "Network error during email dispatch" };
     }
   }
 
@@ -199,22 +233,29 @@ export async function sendNotificationEmail(
       });
 
       if (res.ok) {
-        return { success: true, delivered: true };
+        return { success: true, delivered: true, channel: "webhook" };
       }
     } catch (err) {
-      console.error("[Mailer] Webhook dispatch error:", err);
+      console.error("[Mailer] Webhook dispatch error:", err instanceof Error ? err.message : "Network error");
     }
   }
 
-  // 4. Development / Staging Fallback (When environment variables are pending)
-  console.log(
-    `\n========== [NEW LEAD RECEIVED - DELIVER TO: ${targetEmail}] ==========\n` +
-      `Subject: ${payload.title}\n` +
-      `Timestamp: ${new Date().toISOString()}\n` +
-      JSON.stringify(payload.data, null, 2) +
-      `\n=======================================================================\n`
-  );
+  // 4. Safe Development Logger (When environment variables are unconfigured)
+  if (process.env.NODE_ENV === "production") {
+    // In production with unconfigured mailer, log safe warning with ZERO customer PII
+    console.warn(
+      `[Mailer] External delivery unconfigured. Submission [${payload.type}] recorded safely. Target: ${targetEmail}`
+    );
+  } else {
+    // In development, log masked summary for debugging
+    const safeData = sanitizeDataForSafeLog(payload.data);
+    console.log(
+      `\n[Dev Notification Dispatcher] Type: ${payload.type} | Target: ${targetEmail}\n` +
+        JSON.stringify(safeData, null, 2) +
+        `\n`
+    );
+  }
 
   // Return success so user submission is acknowledged gracefully
-  return { success: true, delivered: false };
+  return { success: true, delivered: false, channel: "fallback" };
 }

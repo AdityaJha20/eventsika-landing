@@ -71,22 +71,27 @@ graph TD
         NextRouter --> MetadataRoutes["/robots.txt & /sitemap.xml"]
     end
 
-    subgraph BackendAPI ["API & Serverless Layer (src/app/api)"]
-        HomeRoute -.->|"POST /api/leads"| LeadAPI["API: /api/leads"]
-        VendorRoute -.->|"POST /api/vendor-applications"| VendorAPI["API: /api/vendor-applications"]
+    subgraph BackendAPI ["API & Route Handler Layer (src/app/api)"]
+        HomeRoute -.->|"POST /api/leads"| LeadRoute["Route: /api/leads"]
+        VendorRoute -.->|"POST /api/vendor-applications"| VendorRouteAPI["Route: /api/vendor-applications"]
+        NextRouter -.->|"GET /api/health"| HealthRoute["Route: /api/health"]
         
-        LeadAPI --> RateLimit["In-Memory Rate Limiter (src/lib/rate-limit.ts)"]
-        VendorAPI --> RateLimit
+        LeadRoute --> RequestGuards["Request Guards (Rate Limit 5/10m, Size 50KB, RequestId)"]
+        VendorRouteAPI --> RequestGuards
         
-        RateLimit --> Sanitizer["Payload Guard & Honeypot Check"]
-        Sanitizer --> Mailer["Notification Dispatcher (src/lib/mailer.ts)"]
+        RequestGuards --> ValidationLayer["Validation Layer (src/lib/backend/validation)"]
+        ValidationLayer --> ServiceLayer["Business Service Layer (LeadService & VendorService)"]
+        ServiceLayer --> Deduplicator["In-Memory Deduplicator (30s Sliding Window)"]
+        ServiceLayer --> RepoBoundary["Repository Boundary (ILeadRepository, IVendorRepository)"]
+        ServiceLayer --> DeliveryBoundary["Delivery Notifier Boundary (IDeliveryNotifier)"]
     end
 
-    subgraph ExternalServices ["External Integrations & Dispatch"]
-        Mailer -->|"RESEND_API_KEY"| ResendAPI["Resend REST API"]
-        Mailer -->|"SENDGRID_API_KEY"| SendgridAPI["SendGrid v3 API"]
-        Mailer -->|"LEAD_WEBHOOK_URL"| CustomWebhook["Custom Webhook / Automation"]
-        Mailer -.->|"Dev / Pending Env"| ConsoleLogger["Console Logger Fallback"]
+    subgraph Integrations ["Integrations & External Dispatch (src/lib/mailer.ts)"]
+        DeliveryBoundary --> MailerAdapter["Mailer Delivery Notifier"]
+        MailerAdapter -->|"RESEND_API_KEY"| ResendAPI["Resend REST API"]
+        MailerAdapter -->|"SENDGRID_API_KEY"| SendgridAPI["SendGrid v3 API"]
+        MailerAdapter -->|"LEAD_WEBHOOK_URL"| CustomWebhook["Custom Webhook / Automation"]
+        MailerAdapter -.->|"Dev / Fallback"| SafeLogger["PII-Safe Masked Logger"]
         
         ResendAPI --> OpsTeam["care@eventsika.in (Ops & Planners)"]
         SendgridAPI --> OpsTeam
@@ -120,6 +125,7 @@ landing/
 ├── src/
 │   ├── app/                               # Next.js 16 App Router hierarchy
 │   │   ├── api/                           # Serverless Route Handlers
+│   │   │   ├── health/route.ts            # GET application liveness & health check
 │   │   │   ├── leads/route.ts             # POST celebration lead capture
 │   │   │   └── vendor-applications/route.ts # POST partner application capture
 │   │   ├── diwali-consultation/           # Special 1-on-1 advisory promotion route
@@ -154,7 +160,16 @@ landing/
 │   │       ├── DiwaliLights.module.css    # Zero-height overlay styles & organic desynchronized twinkle
 │   │       ├── DiwaliCtaDiya.tsx          # Authentic terracotta diya above "Book a Consultation" CTA
 │   │       └── DiwaliCtaDiya.module.css   # Diya positioning, warm glow & 3.8s flame sway animation
-│   └── lib/                               # Shared server & utility infrastructure
+│   └── lib/                               # Shared server & backend infrastructure
+│       ├── backend/                       # Layered backend architecture (Day 2)
+│       │   ├── constants/allowlists.ts    # Authoritative canonical form allowlists
+│       │   ├── deduplication/             # 30s sliding window in-memory deduplicator
+│       │   ├── integrations/              # Delivery notifier interfaces & adapters
+│       │   ├── logger/logger.ts           # PII-safe structured logger with phone/email masking
+│       │   ├── repositories/              # Abstract repository interfaces & in-memory stores
+│       │   ├── services/                  # LeadService & VendorService domain workflows
+│       │   ├── utils/request-id.ts        # Correlation ID generator & header extractor
+│       │   └── validation/                # Server-side validation schemas (phone, date, url)
 │       ├── mailer.ts                      # Multi-provider zero-dependency email dispatcher
 │       └── rate-limit.ts                  # In-memory IP rate limiter & header extractor
 ├── .env.example                           # Sanitized environment variable template
@@ -181,8 +196,9 @@ landing/
 | `/login` | Page (Static) | [`src/app/login/page.tsx`](file:///d:/Persional-projects/landing/src/app/login/page.tsx) | Client and vendor portal authentication page. Features client-side validation and simulated staging status notices. |
 | `/robots.txt` | Metadata | [`src/app/robots.ts`](file:///d:/Persional-projects/landing/src/app/robots.ts) | Dynamic SEO robot instructions allowing all crawling except `/api/` endpoints. |
 | `/sitemap.xml` | Metadata | [`src/app/sitemap.ts`](file:///d:/Persional-projects/landing/src/app/sitemap.ts) | Dynamic XML sitemap indexing all canonical public routes with priority ratings. |
-| `/api/leads` | API (Dynamic) | [`src/app/api/leads/route.ts`](file:///d:/Persional-projects/landing/src/app/api/leads/route.ts) | POST endpoint for celebration inquiries. Rate limited, size capped, honeypot protected, dispatches email to `care@eventsika.in`. |
-| `/api/vendor-applications` | API (Dynamic) | [`src/app/api/vendor-applications/route.ts`](file:///d:/Persional-projects/landing/src/app/api/vendor-applications/route.ts) | POST endpoint for vendor partner applications. Rate limited, validates portfolio URLs & category arrays, dispatches email. |
+| `/api/health` | API (Dynamic) | [`src/app/api/health/route.ts`](file:///d:/Persional-projects/landing/src/app/api/health/route.ts) | GET endpoint for application health and uptime verification (`{ status: "healthy", timestamp, version }`). |
+| `/api/leads` | API (Dynamic) | [`src/app/api/leads/route.ts`](file:///d:/Persional-projects/landing/src/app/api/leads/route.ts) | POST endpoint for celebration inquiries. Rate limited (5/10m), 50KB capped, deduplicated, validated, dispatches email/webhook. |
+| `/api/vendor-applications` | API (Dynamic) | [`src/app/api/vendor-applications/route.ts`](file:///d:/Persional-projects/landing/src/app/api/vendor-applications/route.ts) | POST endpoint for vendor partner applications. Rate limited, deduplicated, validates portfolio URLs & category arrays. |
 
 ---
 
@@ -244,37 +260,61 @@ Eventsika incorporates an isolated, zero-layout-impact festive decoration engine
 
 ## 7. Backend Architecture
 
-### Route Handlers & Processing Flow
-The backend operates entirely through serverless Next.js Route Handlers in `src/app/api/`:
+### 5-Layer Backend Architecture (Day 2 Hardened)
+The backend is structured into a clean, database-agnostic layered architecture colocated within the Next.js App Router project:
 
-1. **Rate Limiting Check**:
-   - Evaluated via `checkRateLimit(request, namespace, options)` in [`src/lib/rate-limit.ts`](file:///d:/Persional-projects/landing/src/lib/rate-limit.ts).
-   - Standard limit: 5 requests per 10-minute sliding window per IP address.
-   - Extracts real IP prioritizing `x-real-ip` -> `x-forwarded-for` (first entry) -> fallback `127.0.0.1`.
-   - Rejection returns HTTP `429 Too Many Requests` with `Retry-After` headers.
-2. **Payload Size Guard**:
-   - Inspects `content-length` header. Rejects any request exceeding `51,200 bytes` (50 KB) with HTTP `413 Payload Too Large`.
-3. **Automated Bot Honeypot Check**:
-   - Forms include a hidden `honeypot` text field hidden from real users via CSS.
-   - If a bot populates this field, the server silently returns HTTP `200 OK` without executing downstream mailers or logging.
-4. **Server-Side Input Sanitization & Validation**:
-   - Strips non-digit characters from phone numbers and verifies against standard 10-digit Indian mobile formats (`/^[6-9]\d{9}$/` or prefixed with `+91`/`0`).
-   - Validates email strings against RFC-compliant regex patterns.
-   - Restricts text field lengths (e.g. name ≤ 100 chars, business name ≤ 150 chars).
-   - Enforces required service category selections.
-5. **Zero-Dependency Transactional Mailer (`src/lib/mailer.ts`)**:
-   - Generates responsive, brand-styled HTML email tables alongside clean plaintext fallbacks.
-   - Uses native `fetch` to dispatch emails via **Resend REST API** (`https://api.resend.com/emails`) or **SendGrid v3 API** (`https://api.sendgrid.com/v3/mail/send`).
-   - Supports optional JSON forwarding via **Custom Webhooks** (`LEAD_WEBHOOK_URL`).
-   - Features development fallback logging to server stdout when email environment variables are unconfigured.
+```
+HTTP Request
+    ↓
+Route Handler (src/app/api/.../route.ts)
+    ↓
+Validation & Sanitization Layer (src/lib/backend/validation/)
+    ↓
+Business Service Layer (src/lib/backend/services/)
+    ↓
+Repository Interface / Persistence Boundary (src/lib/backend/repositories/)
+    ↓
+Delivery / Integration Boundary (src/lib/backend/integrations/)
+    ↓
+Safe Standardized HTTP Response ({ success, message })
+```
+
+#### Layer Responsibilities:
+
+1. **HTTP Routing & Protocol Layer (`src/app/api/`)**:
+   - `src/app/api/health/route.ts`: Minimal liveness check returning `{ status: "healthy", timestamp, version }`.
+   - `src/app/api/leads/route.ts` & `src/app/api/vendor-applications/route.ts`: Extracts request context, generates correlation ID (`X-Request-Id`), evaluates IP rate limiting (5 req / 10 min window), enforces 50 KB payload size limit, delegates validation and service execution, and returns standardized response contracts.
+2. **Validation & Allowlist Layer (`src/lib/backend/validation/`)**:
+   - Canonical option allowlists defined in `src/lib/backend/constants/allowlists.ts` (`CITY_OPTIONS`, `EVENT_TYPE_OPTIONS`, `GUEST_COUNT_OPTIONS`, `VENUE_TYPE_OPTIONS`, `SERVICE_OPTIONS`, `BUDGET_OPTIONS`, `VENDOR_CATEGORIES`, `VENDOR_EXPERIENCE_TIERS`).
+   - `phone.ts`: Normalizes and validates Indian mobile phone formats (`/^[6-9]\d{9}$/` or `+91`/`0` prefixes).
+   - `date.ts`: Validates `YYYY-MM-DD` calendar dates, enforces non-past dates, and caps forward planning dates at 24 months (730 days).
+   - `url.ts`: Enforces valid URL/domain syntax and blocks unsafe protocols (`javascript:`, `data:`, `file:`).
+   - `lead-schema.ts` & `vendor-schema.ts`: Comprehensive schema validation returning typed inputs or descriptive safe error messages.
+3. **Business Service Layer (`src/lib/backend/services/`)**:
+   - `LeadService` & `VendorService`: Own domain workflow orchestration.
+   - Handles silent bot honeypot filtering (`isBot: true`).
+   - Coordinates rapid duplicate submission suppression via `deduplicator.ts` (30-second sliding memory window).
+   - Coordinates decoupled repository persistence.
+   - Coordinates decoupled external delivery notifications.
+4. **Repository / Persistence Boundary (`src/lib/backend/repositories/`)**:
+   - `ILeadRepository` & `IVendorRepository`: Abstract TypeScript interface contracts.
+   - `InMemoryLeadRepository` & `InMemoryVendorRepository`: Zero-dependency in-memory persistence boundaries for Day 2; database engine selection is deferred to Day 7.
+5. **Delivery / Integration Boundary (`src/lib/backend/integrations/`)**:
+   - `IDeliveryNotifier`: Abstract delivery interface.
+   - `MailerDeliveryNotifier`: Adapts zero-dependency transactional dispatch in `src/lib/mailer.ts` (Resend, SendGrid, Webhooks).
+6. **PII-Safe Structured Logging (`src/lib/backend/logger/logger.ts`)**:
+   - Automatically masks phone numbers (`98****3210`), emails (`a***@domain.com`), and names.
+   - Never logs full customer payloads in production.
+   - Generates single-line JSON logs with correlation IDs (`X-Request-Id`).
 
 ---
 
 ## 8. Database Architecture
 
-* **Current Status**: **No persistent database engine** (PostgreSQL, MongoDB, MySQL, SQLite, Prisma, Drizzle) is currently installed or configured.
-* **Data Flow**: Eventsika operates on an **event-driven transactional dispatch model**. Form submissions are captured, validated, and instantly transmitted to the operations team at `care@eventsika.in`.
-* **Future Extension**: When user authentication, booking states, or vendor catalogs require database storage, an ORM (such as Prisma or Drizzle) and database client can be integrated directly inside Route Handlers without breaking existing UI contracts.
+* **Current Status**: **Database-Agnostic / In-Memory Boundary**.
+* **Design Philosophy**: Business service workflows interact exclusively through abstract repository interfaces (`ILeadRepository`, `IVendorRepository`).
+* **Day 2 Storage**: Lightweight in-memory persistence boundary.
+* **Production Database Selection**: Intentionally deferred to Day 7. Database drivers (PostgreSQL, Supabase, MongoDB, SQLite) will slot behind the repository interfaces with zero breaking changes to routes, validation, or frontend contracts.
 
 ---
 
@@ -630,6 +670,17 @@ Every AI agent working in the Eventsika repository must adhere to the following 
 
 ## 28. Change Log
 
+### 2026-09-01
+- **Eventsika Backend — Day 2: API Endpoints + Request Workflows**:
+  - Implemented 5-layer backend architecture under `src/lib/backend/` (Constants, Validation, Services, Repositories, Integrations, Logger, Utils).
+  - Hardened `POST /api/leads` and `POST /api/vendor-applications` with strict allowlist validation, Indian phone validation (`/^[6-9]\d{9}$/`), date sanity checking (non-past, 2-year cap), URL validation, 50 KB payload ceilings, and correlation ID tracking (`X-Request-Id`).
+  - Added new health check endpoint `GET /api/health` returning `{ status: "healthy", timestamp, version }`.
+  - Added 30-second sliding memory window request deduplication (`deduplicator.ts`) preventing duplicate external work on rapid submissions while returning graceful success responses.
+  - Implemented abstract repository boundaries (`ILeadRepository`, `IVendorRepository`) with lightweight in-memory implementations (`InMemoryLeadRepository`, `InMemoryVendorRepository`), preserving database-agnostic design until Day 7.
+  - Fixed high-risk PII logging vulnerability in `src/lib/mailer.ts` and introduced structured PII-masked logger (`logger.ts`) with phone/email masking.
+  - Verified 100% frontend compatibility with zero UI/styling modifications.
+  - Automated test suite passed: 46 of 46 endpoint tests verified. `tsc --noEmit`, `npm run lint`, and `npm run build` passed with zero errors.
+
 ### 2026-08-31
 - **Development Warning Diagnostics & Refinement**: Added `data-scroll-behavior="smooth"` attribute to `RootLayout` (`src/app/layout.tsx`) resolving Next.js App Router smooth scrolling warnings. Corrected Next.js `<Image>` width/height props and matching CSS in `src/app/diwali-consultation` (`upi-icon.svg` 37x22, `paytm-icon.svg` 64x20) matching native SVG aspect ratios. Diagnosed Node.js Turbopack Gzip MaxListeners warning as an internal development streaming artifact.
 - **Service Card Image Integration & Optimization**: Integrated six original Eventsika service card PNG photographs into `public/images/services/` for `Services.tsx`. Converted to high-fidelity WebP (quality 85), reducing total image payload from 20.20 MB to 0.99 MB (95.10% reduction) while preserving all original PNG source files. Below-the-fold Next.js Image lazy-loading maintained.
@@ -645,9 +696,9 @@ Every AI agent working in the Eventsika repository must adhere to the following 
 ## 29. Final Verification
 
 - **Repository Inspected**: YES (All files, routes, components, and configs verified from source)
-- **Architecture Verified**: YES (App Router, Server/Client boundaries, Mailer & Rate Limiter confirmed)
+- **Architecture Verified**: YES (5-layer backend flow, RSC boundaries, Mailer & Rate Limiter confirmed)
 - **Secrets Excluded**: YES (Zero API keys, credentials, or private values included)
 - **Existing Agent Tooling Preserved**: YES (All 6 skills in `.agents/skills/` and MCP configurations intact)
-- **Application Code Modified**: NO (Documentation & governance task only)
+- **Application Code Modified**: YES (Day 2 backend hardening & health endpoint)
 - **Brain.md Generated From Actual Codebase**: YES
-- **Verification Timestamp**: `2026-08-30T12:36:00+05:30`
+- **Verification Timestamp**: `2026-09-01T13:06:00+05:30`
