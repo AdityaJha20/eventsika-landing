@@ -1,41 +1,38 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { requireAdminSession } from "@/lib/backend/auth/require-admin";
-import { LogoutButton } from "./LogoutButton";
 import styles from "./admin.module.css";
 
 export const metadata: Metadata = {
-  title: "Admin Portal | Eventsika",
-  robots: {
-    index: false,
-    follow: false,
-  },
+  title: "Admin Dashboard",
 };
 
-export default async function AdminPage() {
-  const authResult = await requireAdminSession();
-
-  if (!authResult.authorized) {
-    redirect("/login");
-  }
-
+export default function AdminDashboardPage() {
   return (
-    <div className={styles.container}>
-      <header className={styles.header}>
-        <span className={styles.brand}>Eventsika</span>
-        <LogoutButton />
+    <div className={styles.dashboardPlaceholder}>
+      <header className={styles.pageHeader}>
+        <h1 className={styles.title}>Admin Dashboard</h1>
+        <p className={styles.subtitle}>
+          Eventsika administration and operations portal.
+        </p>
       </header>
 
-      <main className={styles.main}>
-        <div className={styles.card}>
-          <h1 className={styles.title}>Eventsika Admin Portal</h1>
-          <p className={styles.description}>
-            Authentication and authorization foundation verified. Administrative services and data
-            management will be provisioned in the upcoming phase.
-          </p>
-          <LogoutButton />
+      <section className={styles.statusCard} aria-labelledby="status-card-heading">
+        <div className={styles.cardHeader}>
+          <span className={styles.statusBadge}>
+            <span className={styles.statusDot} aria-hidden="true" />
+            Operational
+          </span>
         </div>
-      </main>
+
+        <h2 id="status-card-heading" className={styles.cardTitle}>
+          Phase 1C: Admin Shell Active
+        </h2>
+
+        <p className={styles.cardDescription}>
+          The administrative navigation framework, top utility bar, and responsive layout
+          container are active. Future modules (Lead Inquiries, Vendor Partner Applications,
+          and Operations Analytics) will be provisioned inside this shell in upcoming phases.
+        </p>
+      </section>
     </div>
   );
 }
