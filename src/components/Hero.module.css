@@ -492,6 +492,78 @@
   border-color: var(--gold);
 }
 
+/* Confirmation Step Panel */
+.confirmContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.confirmHeading {
+  font-family: var(--font-playfair), serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--foreground);
+  line-height: 1.35;
+  margin: 0;
+}
+
+.confirmActions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.confirmYesBtn {
+  flex: 1;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  text-align: center;
+}
+
+.confirmYesBtn:hover:not(:disabled) {
+  background-color: var(--cream);
+  border-color: var(--gold);
+}
+
+.confirmYesBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.confirmNoBtn {
+  flex: 1;
+  background-color: var(--primary);
+  color: var(--cream-light);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.8rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-align: center;
+}
+
+.confirmNoBtn:hover:not(:disabled) {
+  background-color: var(--primary-dark);
+}
+
+.confirmNoBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 /* Tablet Responsiveness */
 @media (max-width: 1024px) {
   .hero {
@@ -571,5 +643,9 @@
 
   .card {
     padding: 1.5rem 1.25rem;
+  }
+
+  .confirmActions {
+    flex-direction: column;
   }
 }

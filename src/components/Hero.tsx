@@ -78,6 +78,7 @@ function isValidPhoneNumber(phone: string): boolean {
 }
 
 export default function Hero() {
+  const [formStep, setFormStep] = useState<"form" | "confirm" | "success">("form");
   const [userName, setUserName] = useState("");
   const [userPhone, setUserPhone] = useState("");
   const [city, setCity] = useState("");
@@ -90,7 +91,6 @@ export default function Hero() {
   const [whatsappConsent, setWhatsappConsent] = useState(false);
   const [honeypot, setHoneypot] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const toggleService = (service: string) => {
@@ -101,7 +101,7 @@ export default function Hero() {
     );
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleReview = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!userName.trim()) {
@@ -150,6 +150,11 @@ export default function Hero() {
     }
 
     setError(null);
+    setFormStep("confirm");
+  };
+
+  const handleFinalSubmit = async () => {
+    setError(null);
     setIsSubmitting(true);
 
     try {
@@ -182,7 +187,7 @@ export default function Hero() {
         return;
       }
 
-      setIsSubmitted(true);
+      setFormStep("success");
     } catch (err) {
       console.error("Submission error:", err);
       setError(
@@ -191,11 +196,6 @@ export default function Hero() {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleReset = () => {
-    setIsSubmitted(false);
-    setError(null);
   };
 
   const today = new Date().toISOString().split("T")[0];
@@ -253,13 +253,17 @@ export default function Hero() {
               </div>
               <div className={styles.cardDivider} />
               <div className={styles.titleRow}>
-                <h2 className={styles.cardTitle}>Plan your celebration</h2>
-                <span className={styles.cardSubtitle}>in 2 minutes</span>
+                <h2 className={styles.cardTitle}>
+                  {formStep === "form" && "Plan your celebration"}
+                  {formStep === "confirm" && "Review your celebration"}
+                  {formStep === "success" && "Celebration Submitted"}
+                </h2>
+                {formStep === "form" && <span className={styles.cardSubtitle}>in 2 minutes</span>}
               </div>
             </div>
 
-            {!isSubmitted ? (
-              <form onSubmit={handleSubmit} className={styles.form}>
+            {formStep === "form" && (
+              <form onSubmit={handleReview} className={styles.form}>
                 {/* Row 1: Name + Phone */}
                 <div className={styles.formRow}>
                   <div className={styles.fieldGroup}>
@@ -447,8 +451,9 @@ export default function Hero() {
                       return (
                         <label
                           key={service}
-                          className={`${styles.serviceBox} ${isSelected ? styles.serviceBoxSelected : ""
-                            }`}
+                          className={`${styles.serviceBox} ${
+                            isSelected ? styles.serviceBoxSelected : ""
+                          }`}
                         >
                           <input
                             type="checkbox"
@@ -509,22 +514,98 @@ export default function Hero() {
                 {/* Submit Button */}
                 <button
                   type="submit"
-                  disabled={isSubmitting}
                   className={styles.cardButton}
-                  style={
-                    isSubmitting
-                      ? { opacity: 0.75, cursor: "not-allowed" }
-                      : undefined
-                  }
                 >
-                  {isSubmitting ? "Submitting Plan..." : "Get My Celebration Plan"}
+                  Get My Celebration Plan
                 </button>
               </form>
-            ) : (
-              /* Results Summary Panel */
+            )}
+
+            {formStep === "confirm" && (
+              <div className={styles.confirmContainer}>
+                <h3 className={styles.confirmHeading}>
+                  Do you want to edit something before submitting?
+                </h3>
+
+                <div className={styles.summaryGrid}>
+                  <div className={styles.summaryItem}>
+                    <span className={styles.summaryKey}>Name</span>
+                    <span className={styles.summaryVal}>{userName}</span>
+                  </div>
+
+                  <div className={styles.summaryItem}>
+                    <span className={styles.summaryKey}>Phone</span>
+                    <span className={styles.summaryVal}>{userPhone}</span>
+                  </div>
+
+                  <div className={styles.summaryItem}>
+                    <span className={styles.summaryKey}>City</span>
+                    <span className={styles.summaryVal}>{city}</span>
+                  </div>
+
+                  <div className={styles.summaryItem}>
+                    <span className={styles.summaryKey}>Event</span>
+                    <span className={styles.summaryVal}>{eventType}</span>
+                  </div>
+
+                  <div className={styles.summaryItem}>
+                    <span className={styles.summaryKey}>Date</span>
+                    <span className={styles.summaryVal}>{eventDate}</span>
+                  </div>
+
+                  <div className={styles.summaryItem}>
+                    <span className={styles.summaryKey}>Guests</span>
+                    <span className={styles.summaryVal}>{guestCount}</span>
+                  </div>
+
+                  <div className={styles.summaryItem}>
+                    <span className={styles.summaryKey}>Venue</span>
+                    <span className={styles.summaryVal}>{venueType}</span>
+                  </div>
+
+                  <div className={styles.summaryItem}>
+                    <span className={styles.summaryKey}>Services</span>
+                    <span className={styles.summaryVal}>
+                      {selectedServices.join(", ")}
+                    </span>
+                  </div>
+
+                  <div className={styles.summaryItem}>
+                    <span className={styles.summaryKey}>Budget</span>
+                    <span className={styles.summaryVal}>{budgetRange}</span>
+                  </div>
+                </div>
+
+                {error && <p className={styles.errorText} role="alert">{error}</p>}
+
+                <div className={styles.confirmActions}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError(null);
+                      setFormStep("form");
+                    }}
+                    disabled={isSubmitting}
+                    className={styles.confirmYesBtn}
+                  >
+                    Yes, Edit Details
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleFinalSubmit}
+                    disabled={isSubmitting}
+                    className={styles.confirmNoBtn}
+                  >
+                    {isSubmitting ? "Submitting Plan..." : "No, Submit Plan"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {formStep === "success" && (
               <div className={styles.resultsContainer}>
                 <h3 className={styles.resultsTitle}>
-                  Your celebration details are ready.
+                  Congratulations and thank you for sharing your event details with us.
                 </h3>
 
                 <div className={styles.summaryGrid}>
@@ -575,13 +656,6 @@ export default function Hero() {
                   <Link href="#contact" className={styles.resultsCta}>
                     Request a Detailed Quote
                   </Link>
-                  <button
-                    type="button"
-                    onClick={handleReset}
-                    className={styles.resetBtn}
-                  >
-                    Edit Details
-                  </button>
                 </div>
               </div>
             )}

@@ -24,14 +24,16 @@ export function getDefaultLeadRepository(): ILeadRepository {
 }
 
 export class LeadService {
-  private repository: ILeadRepository;
+  private repository?: ILeadRepository;
   private notifier: IDeliveryNotifier;
 
   constructor(
     repository?: ILeadRepository,
     notifier: IDeliveryNotifier = defaultDeliveryNotifier
   ) {
-    this.repository = repository || getDefaultLeadRepository();
+    if (repository) {
+      this.repository = repository;
+    }
     this.notifier = notifier;
   }
 
@@ -83,10 +85,22 @@ export class LeadService {
     // 3. Durable Database Persistence Boundary
     let savedRecord;
     try {
-      savedRecord = await this.repository.saveLead(lead, { requestId });
+      const repo = this.repository || getDefaultLeadRepository();
+      savedRecord = await repo.saveLead(lead, { requestId });
     } catch (err) {
       logger.error("Failed to persist lead record to repository boundary", err, { requestId });
-      // Proceed gracefully to notification dispatch so user is not stranded if DB connection transiently hiccups
+      return {
+        success: false,
+        message: "Unable to save your celebration details. Please try again or reach out to care@eventsika.in.",
+      };
+    }
+
+    if (!savedRecord || !savedRecord.id) {
+      logger.error("Lead repository did not return a valid saved record", undefined, { requestId });
+      return {
+        success: false,
+        message: "Unable to save your celebration details. Please try again or reach out to care@eventsika.in.",
+      };
     }
 
     // 4. External Delivery / Notification Boundary
@@ -98,7 +112,7 @@ export class LeadService {
 
     logger.info("Lead submission processed and recorded successfully", {
       requestId,
-      leadId: savedRecord?.id,
+      leadId: savedRecord.id,
       maskedPhone: maskPhone(lead.userPhone),
       city: lead.city,
       eventType: lead.eventType,
@@ -108,7 +122,7 @@ export class LeadService {
     return {
       success: true,
       message: "Celebration details submitted successfully.",
-      leadId: savedRecord?.id,
+      leadId: savedRecord.id,
     };
   }
 }

@@ -96,9 +96,22 @@ export async function POST(request: NextRequest) {
       clientIp,
     });
 
+    if (!result.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: result.message,
+        },
+        {
+          status: 500,
+          headers: responseHeaders,
+        }
+      );
+    }
+
     return NextResponse.json(
       {
-        success: result.success,
+        success: true,
         message: result.message,
       },
       {
