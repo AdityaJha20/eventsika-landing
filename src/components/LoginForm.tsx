@@ -3,34 +3,30 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import styles from "./LoginForm.module.css";
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function LoginForm() {
-  const [identifier, setIdentifier] = useState("");
+  const router = useRouter();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submissionState, setSubmissionState] = useState<"idle" | "notice">("idle");
+  const [authError, setAuthError] = useState<string | null>(null);
   const [activeInfo, setActiveInfo] = useState<"none" | "forgot-password" | "sign-up">("none");
-  const [errors, setErrors] = useState<{ identifier?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
   const validateForm = () => {
-    const newErrors: { identifier?: string; password?: string } = {};
+    const newErrors: { email?: string; password?: string } = {};
 
-    const cleanIdentifier = identifier.trim();
-    if (!cleanIdentifier) {
-      newErrors.identifier = "Please enter your email address or phone number.";
-    } else if (cleanIdentifier.includes("@")) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(cleanIdentifier)) {
-        newErrors.identifier = "Please enter a valid email address.";
-      }
-    } else {
-      const digits = cleanIdentifier.replace(/\D/g, "");
-      if (digits.length < 10) {
-        newErrors.identifier = "Please enter a valid 10-digit phone number or email.";
-      }
+    const cleanEmail = email.trim();
+    if (!cleanEmail) {
+      newErrors.email = "Please enter your email address.";
+    } else if (!EMAIL_REGEX.test(cleanEmail)) {
+      newErrors.email = "Please enter a valid email address.";
     }
 
     if (!password) {
@@ -43,21 +39,45 @@ export default function LoginForm() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAuthError(null);
     setActiveInfo("none");
 
-    if (!validateForm()) {
+    if (!validateForm() || isSubmitting) {
       return;
     }
 
     setIsSubmitting(true);
 
-    // Presentation simulation only: NO backend transmission, persistence, or credential handling
-    setTimeout(() => {
+    try {
+      const response = await fetch("/api/admin/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (response.ok && data.success) {
+        // Redirect to admin dashboard on successful authentication
+        router.push("/admin");
+        router.refresh();
+        return;
+      }
+
+      // Display generic server error response
+      setAuthError(data.error || "Invalid email or password. Please try again.");
+    } catch {
+      setAuthError("Network connection error. Please verify your connection and try again.");
+    } finally {
       setIsSubmitting(false);
-      setSubmissionState("notice");
-    }, 400);
+    }
   };
 
   const handleTogglePassword = () => {
@@ -65,12 +85,12 @@ export default function LoginForm() {
   };
 
   const handleForgotPasswordClick = () => {
-    setSubmissionState("idle");
+    setAuthError(null);
     setActiveInfo((prev) => (prev === "forgot-password" ? "none" : "forgot-password"));
   };
 
   const handleSignUpClick = () => {
-    setSubmissionState("idle");
+    setAuthError(null);
     setActiveInfo((prev) => (prev === "sign-up" ? "none" : "sign-up"));
   };
 
@@ -97,33 +117,57 @@ export default function LoginForm() {
 
       {/* Main Form */}
       <form noValidate onSubmit={handleSubmit} className={styles.form}>
-        {/* Email or Phone Input */}
+        {/* Server Error Alert Banner */}
+        {authError && (
+          <div className={styles.statusNotice} role="alert" aria-live="assertive">
+            <div className={styles.statusNoticeHeader}>
+              <svg
+                className={styles.statusNoticeIcon}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span className={styles.statusNoticeTitle}>Authentication Error</span>
+            </div>
+            <p className={styles.statusNoticeText}>{authError}</p>
+          </div>
+        )}
+
+        {/* Email Input */}
         <div className={styles.formGroup}>
-          <label htmlFor="login-identifier" className={styles.label}>
-            Email Address or Phone Number
+          <label htmlFor="login-email" className={styles.label}>
+            Email Address
           </label>
           <div className={styles.inputWrapper}>
             <input
-              id="login-identifier"
-              name="identifier"
-              type="text"
+              id="login-email"
+              name="email"
+              type="email"
               autoComplete="username"
-              value={identifier}
+              value={email}
               onChange={(e) => {
-                setIdentifier(e.target.value);
-                if (errors.identifier) {
-                  setErrors((prev) => ({ ...prev, identifier: undefined }));
+                setEmail(e.target.value);
+                if (errors.email) {
+                  setErrors((prev) => ({ ...prev, email: undefined }));
                 }
               }}
-              placeholder="e.g. priya@example.com or 9876543210"
-              aria-invalid={Boolean(errors.identifier)}
-              aria-describedby={errors.identifier ? "identifier-error" : undefined}
-              className={`${styles.input} ${errors.identifier ? styles.inputError : ""}`}
+              placeholder="e.g. admin@eventsika.in or priya@example.com"
+              aria-invalid={Boolean(errors.email)}
+              aria-describedby={errors.email ? "email-error" : undefined}
+              className={`${styles.input} ${errors.email ? styles.inputError : ""}`}
             />
           </div>
-          {errors.identifier && (
-            <p id="identifier-error" className={styles.errorText} role="alert">
-              {errors.identifier}
+          {errors.email && (
+            <p id="email-error" className={styles.errorText} role="alert">
+              {errors.email}
             </p>
           )}
         </div>
@@ -149,8 +193,9 @@ export default function LoginForm() {
               placeholder="Enter your password"
               aria-invalid={Boolean(errors.password)}
               aria-describedby={errors.password ? "password-error" : undefined}
-              className={`${styles.input} ${styles.inputWithToggle} ${errors.password ? styles.inputError : ""
-                }`}
+              className={`${styles.input} ${styles.inputWithToggle} ${
+                errors.password ? styles.inputError : ""
+              }`}
             />
             <button
               type="button"
@@ -237,8 +282,7 @@ export default function LoginForm() {
               <line x1="12" y1="8" x2="12.01" y2="8" />
             </svg>
             <p className={styles.infoBannerText}>
-              Self-serve password reset will be available when our portal launches. For immediate
-              account assistance, email{" "}
+              For account password resets, contact your system administrator at{" "}
               <a href="mailto:care@eventsika.in">care@eventsika.in</a>.
             </p>
           </div>
@@ -284,40 +328,6 @@ export default function LoginForm() {
             <span>Log In</span>
           )}
         </button>
-
-        {/* Presentation-Only Status Notification */}
-        {submissionState === "notice" && (
-          <div className={styles.statusNotice} role="status" aria-live="polite">
-            <div className={styles.statusNoticeHeader}>
-              <svg
-                className={styles.statusNoticeIcon}
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-              <span className={styles.statusNoticeTitle}>
-                Login functionality will be available soon.
-              </span>
-            </div>
-            <p className={styles.statusNoticeText}>
-              The Eventsika client &amp; vendor portal is currently undergoing final staging. Direct
-              dashboard logins will be active with our upcoming portal release.
-            </p>
-            <p className={styles.statusNoticeContact}>
-              Need active celebration assistance or booking status? Contact our team directly at{" "}
-              <a href="mailto:care@eventsika.in">care@eventsika.in</a> or{" "}
-              <a href="tel:+917876666056">+91 78766 66056</a>.
-            </p>
-          </div>
-        )}
       </form>
 
       {/* Divider */}
