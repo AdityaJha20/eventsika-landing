@@ -304,131 +304,267 @@
 }
 
 /* -------------------------------------------------------------------------- */
-/* Lead Pipeline Track (5 Stages)                                             */
+/* Circular Lead Overview & Lifecycle Breakdown                              */
 /* -------------------------------------------------------------------------- */
 
-.pipelineTrackContainer {
-  position: relative;
+.overviewContainer {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  align-items: center;
   margin: 1.25rem 0;
 }
 
-.pipelineConnectingLine {
-  display: none;
-}
-
-@media (min-width: 680px) {
-  .pipelineConnectingLine {
-    display: block;
-    position: absolute;
-    top: 48px;
-    left: 8%;
-    right: 8%;
-    height: 2px;
-    background-color: var(--border, #dfd2c3);
-    z-index: 1;
+@media (min-width: 640px) {
+  .overviewContainer {
+    grid-template-columns: 200px 1fr;
+    gap: 2rem;
   }
 }
 
-.pipelineStagesGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
+.gaugeWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.gaugeVisual {
   position: relative;
-  z-index: 2;
+  width: 190px;
+  height: 190px;
+  flex-shrink: 0;
 }
 
-@media (min-width: 680px) {
-  .pipelineStagesGrid {
-    grid-template-columns: repeat(5, 1fr);
+.gaugeSvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  display: block;
+}
+
+.gaugeProgress {
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: gaugeDraw 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes gaugeDraw {
+  from {
+    stroke-dashoffset: 490.09;
   }
 }
 
-.pipelineStageCard {
-  background-color: var(--background, #f8f3ec);
-  border: 1px solid var(--border, #dfd2c3);
-  border-radius: 8px;
-  padding: 1rem 0.5rem;
+@media (prefers-reduced-motion: reduce) {
+  .gaugeProgress {
+    animation: none;
+    transition: none;
+  }
+}
+
+.gaugeCenter {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   text-align: center;
-  transition: all 0.18s ease;
+  pointer-events: none;
 }
 
-.pipelineStageCard:hover {
-  background-color: #f3ede4;
-}
-
-.pipelineStageActive {
-  border-color: rgba(127, 16, 16, 0.4);
-  background-color: rgba(127, 16, 16, 0.03);
-}
-
-.stageLabel {
-  font-size: 0.68rem;
+.gaugeCenterLabel {
+  font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #7a6860;
-  margin-bottom: 0.5rem;
+  letter-spacing: 0.12em;
+  color: var(--gold, #b99a67);
+  margin-bottom: 0.15rem;
 }
 
-.stageLabelActive {
-  color: var(--primary, #7f1010);
-}
-
-.stageNode {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background-color: var(--cream-light, #fffaf4);
-  border: 2px solid var(--border, #dfd2c3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 0.5rem;
-  color: #7a6860;
-  box-shadow: 0 1px 3px rgba(43, 33, 29, 0.05);
-}
-
-.stageNodeActive {
-  border-color: var(--primary, #7f1010);
-  color: var(--primary, #7f1010);
-  background-color: #fff0ef;
-}
-
-.stageValue {
+.gaugeCenterValue {
   font-family: var(--font-playfair), Georgia, serif;
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1;
   color: var(--foreground, #2b211d);
-  line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
 
-.stageValueActive {
+.gaugeCenterSub {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--primary, #7f1010);
+  margin-top: 0.25rem;
+}
+
+.breakdownContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  width: 100%;
+}
+
+.metricsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.metricRow {
+  background-color: var(--background, #f8f3ec);
+  border: 1px solid var(--border, #dfd2c3);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  transition: background-color 0.15s ease;
+}
+
+.metricRow:hover {
+  background-color: #f3ede4;
+}
+
+.metricRowLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.rowIndicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.indicatorGold {
+  background-color: var(--gold, #b99a67);
+  box-shadow: 0 0 0 2px rgba(185, 154, 103, 0.25);
+}
+
+.indicatorCrimson {
+  background-color: var(--primary, #7f1010);
+  box-shadow: 0 0 0 2px rgba(127, 16, 16, 0.25);
+}
+
+.rowTitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--foreground, #2b211d);
+  line-height: 1.2;
+}
+
+.rowSub {
+  font-size: 0.72rem;
+  color: #7a6860;
+  margin-top: 0.1rem;
+}
+
+.metricRowRight {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-shrink: 0;
+}
+
+.rowValue {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--foreground, #2b211d);
+  font-variant-numeric: tabular-nums;
+}
+
+.rowValueCrimson {
   color: var(--primary, #7f1010);
 }
 
-.stageSubtext {
-  margin-top: 0.35rem;
+.rowBadgeGold {
   font-size: 0.68rem;
   font-weight: 600;
   padding: 0.15rem 0.45rem;
-  border-radius: 9999px;
-  background-color: rgba(223, 210, 195, 0.5);
-  color: #6b5a52;
+  border-radius: 4px;
+  background-color: rgba(185, 154, 103, 0.15);
+  color: #745a2d;
 }
 
-.stageSubtextActive {
+.rowBadgeCrimson {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
   background-color: rgba(127, 16, 16, 0.1);
   color: var(--primary, #7f1010);
 }
 
-.stageSubtextFuture {
+.workflowSection {
+  background-color: rgba(248, 243, 236, 0.5);
+  border: 1px dashed var(--border, #dfd2c3);
+  border-radius: 6px;
+  padding: 0.65rem 0.85rem;
+}
+
+.workflowHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.workflowTitle {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #7a6860;
+}
+
+.workflowStatusTag {
+  font-size: 0.62rem;
+  font-weight: 600;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
   background-color: rgba(185, 154, 103, 0.15);
   color: #745a2d;
-  font-size: 0.64rem;
+}
+
+.workflowGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.workflowItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--cream-light, #fffaf4);
+  border: 1px solid rgba(223, 210, 195, 0.6);
+  border-radius: 4px;
+  padding: 0.35rem 0.55rem;
+}
+
+.workflowDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: #baa699;
+}
+
+.workflowLabel {
+  font-size: 0.72rem;
+  color: #6b5a52;
+  font-weight: 500;
+}
+
+.workflowValue {
+  font-size: 0.75rem;
+  color: #9c8a80;
+  font-weight: 600;
 }
 
 .pipelineNotice {

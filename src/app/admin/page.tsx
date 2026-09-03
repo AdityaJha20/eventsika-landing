@@ -277,9 +277,9 @@ export default async function AdminDashboardPage() {
           <div>
             <div className={styles.sectionHeader}>
               <div>
-                <h2 className={styles.sectionTitle}>Lead Pipeline</h2>
+                <h2 className={styles.sectionTitle}>Lead Overview</h2>
                 <p className={styles.sectionSubtitle}>
-                  Operational inquiry progression across active stages
+                  Real-time inquiry intake &amp; operational status breakdown
                 </p>
               </div>
               <span className={styles.syncBadge}>
@@ -288,116 +288,137 @@ export default async function AdminDashboardPage() {
               </span>
             </div>
 
-            {/* 5-Stage Horizontal Progression Track */}
-            <div className={styles.pipelineTrackContainer}>
-              <div className={styles.pipelineConnectingLine} aria-hidden="true" />
-
-              <div className={styles.pipelineStagesGrid}>
-                {/* Stage 1: TOTAL INQUIRIES */}
-                <div className={styles.pipelineStageCard}>
-                  <span className={styles.stageLabel}>Total Intake</span>
-                  <div className={styles.stageNode} aria-hidden="true">
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                    </svg>
-                  </div>
-                  <span className={styles.stageValue}>{metrics.totalLeads}</span>
-                  <span className={styles.stageSubtext}>100%</span>
-                </div>
-
-                {/* Stage 2: NEW INQUIRIES */}
-                <div className={`${styles.pipelineStageCard} ${styles.pipelineStageActive}`}>
-                  <span className={`${styles.stageLabel} ${styles.stageLabelActive}`}>
-                    New (7d)
-                  </span>
-                  <div
-                    className={`${styles.stageNode} ${styles.stageNodeActive}`}
-                    aria-hidden="true"
+            {/* Circular Gauge Visualization & Operational Breakdown */}
+            <div className={styles.overviewContainer}>
+              {/* Circular Gauge Visual */}
+              <div className={styles.gaugeWrapper}>
+                <div className={styles.gaugeVisual}>
+                  <svg
+                    viewBox="0 0 200 200"
+                    className={styles.gaugeSvg}
+                    role="img"
+                    aria-label={`Lead distribution chart: ${metrics.totalLeads} total leads, ${metrics.newLeadsLast7Days} new in the last 7 days`}
                   >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
+                    {/* Decorative Outer Dotted Ring */}
+                    <circle
+                      cx="100"
+                      cy="100"
+                      r="92"
                       fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                    </svg>
+                      stroke="rgba(223, 210, 195, 0.45)"
+                      strokeWidth="1"
+                      strokeDasharray="4 4"
+                    />
+                    {/* Background Track Circle */}
+                    <circle
+                      cx="100"
+                      cy="100"
+                      r="78"
+                      fill="none"
+                      stroke="rgba(223, 210, 195, 0.35)"
+                      strokeWidth="12"
+                    />
+                    {/* Base Intake Track (Muted Gold) */}
+                    {metrics.totalLeads > 0 && (
+                      <circle
+                        cx="100"
+                        cy="100"
+                        r="78"
+                        fill="none"
+                        stroke="var(--gold, #b99a67)"
+                        strokeWidth="12"
+                        strokeOpacity="0.4"
+                      />
+                    )}
+                    {/* Active Recent Inquiries Segment (Crimson) */}
+                    {metrics.totalLeads > 0 && metrics.newLeadsLast7Days > 0 && (
+                      <circle
+                        cx="100"
+                        cy="100"
+                        r="78"
+                        fill="none"
+                        stroke="var(--primary, #7f1010)"
+                        strokeWidth="12"
+                        strokeLinecap="round"
+                        strokeDasharray={490.09}
+                        strokeDashoffset={490.09 * (1 - Math.min(newLeadsPercent, 100) / 100)}
+                        transform="rotate(-90 100 100)"
+                        className={styles.gaugeProgress}
+                      />
+                    )}
+                  </svg>
+
+                  {/* Center Metric Display */}
+                  <div className={styles.gaugeCenter}>
+                    <span className={styles.gaugeCenterLabel}>TOTAL LEADS</span>
+                    <span className={styles.gaugeCenterValue}>{metrics.totalLeads}</span>
+                    <span className={styles.gaugeCenterSub}>
+                      {metrics.newLeadsLast7Days > 0
+                        ? `${metrics.newLeadsLast7Days} new (7d)`
+                        : "Database intake"}
+                    </span>
                   </div>
-                  <span className={`${styles.stageValue} ${styles.stageValueActive}`}>
-                    {metrics.newLeadsLast7Days}
-                  </span>
-                  <span className={`${styles.stageSubtext} ${styles.stageSubtextActive}`}>
-                    {newLeadsPercent}%
-                  </span>
+                </div>
+              </div>
+
+              {/* Metrics & Lifecycle Breakdown */}
+              <div className={styles.breakdownContainer}>
+                {/* Active Database Metrics */}
+                <div className={styles.metricsList}>
+                  <div className={styles.metricRow}>
+                    <div className={styles.metricRowLeft}>
+                      <span className={`${styles.rowIndicator} ${styles.indicatorGold}`} aria-hidden="true" />
+                      <div>
+                        <p className={styles.rowTitle}>Total Captured Leads</p>
+                        <p className={styles.rowSub}>Verified intake stored in Supabase</p>
+                      </div>
+                    </div>
+                    <div className={styles.metricRowRight}>
+                      <span className={styles.rowValue}>{metrics.totalLeads}</span>
+                      <span className={styles.rowBadgeGold}>100%</span>
+                    </div>
+                  </div>
+
+                  <div className={styles.metricRow}>
+                    <div className={styles.metricRowLeft}>
+                      <span className={`${styles.rowIndicator} ${styles.indicatorCrimson}`} aria-hidden="true" />
+                      <div>
+                        <p className={styles.rowTitle}>New Inquiries (7d)</p>
+                        <p className={styles.rowSub}>Recent client requests in last 7 days</p>
+                      </div>
+                    </div>
+                    <div className={styles.metricRowRight}>
+                      <span className={`${styles.rowValue} ${styles.rowValueCrimson}`}>
+                        {metrics.newLeadsLast7Days}
+                      </span>
+                      <span className={styles.rowBadgeCrimson}>{newLeadsPercent}%</span>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Stage 3: FOLLOW-UP */}
-                <div className={styles.pipelineStageCard}>
-                  <span className={styles.stageLabel}>Follow-up</span>
-                  <div className={styles.stageNode} aria-hidden="true">
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <circle cx="12" cy="12" r="10" />
-                      <polyline points="12 6 12 12 16 14" />
-                    </svg>
+                {/* Phase 2 Workflow Stages */}
+                <div className={styles.workflowSection}>
+                  <div className={styles.workflowHeader}>
+                    <span className={styles.workflowTitle}>Pipeline Stages (Pending Status Schema)</span>
+                    <span className={styles.workflowStatusTag}>Phase 2</span>
                   </div>
-                  <span className={styles.stageValue}>—</span>
-                  <span className={styles.stageSubtextFuture}>Phase 2</span>
-                </div>
-
-                {/* Stage 4: IN PROGRESS */}
-                <div className={styles.pipelineStageCard}>
-                  <span className={styles.stageLabel}>In Progress</span>
-                  <div className={styles.stageNode} aria-hidden="true">
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-                    </svg>
+                  <div className={styles.workflowGrid}>
+                    <div className={styles.workflowItem}>
+                      <span className={styles.workflowDot} aria-hidden="true" />
+                      <span className={styles.workflowLabel}>Follow-up</span>
+                      <span className={styles.workflowValue}>—</span>
+                    </div>
+                    <div className={styles.workflowItem}>
+                      <span className={styles.workflowDot} aria-hidden="true" />
+                      <span className={styles.workflowLabel}>In Progress</span>
+                      <span className={styles.workflowValue}>—</span>
+                    </div>
+                    <div className={styles.workflowItem}>
+                      <span className={styles.workflowDot} aria-hidden="true" />
+                      <span className={styles.workflowLabel}>Converted</span>
+                      <span className={styles.workflowValue}>—</span>
+                    </div>
                   </div>
-                  <span className={styles.stageValue}>—</span>
-                  <span className={styles.stageSubtextFuture}>Phase 2</span>
-                </div>
-
-                {/* Stage 5: CONVERTED */}
-                <div className={styles.pipelineStageCard}>
-                  <span className={styles.stageLabel}>Converted</span>
-                  <div className={styles.stageNode} aria-hidden="true">
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                      <polyline points="22 4 12 14.01 9 11.01" />
-                    </svg>
-                  </div>
-                  <span className={styles.stageValue}>—</span>
-                  <span className={styles.stageSubtextFuture}>Phase 2</span>
                 </div>
               </div>
             </div>
