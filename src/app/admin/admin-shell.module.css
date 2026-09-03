@@ -39,13 +39,16 @@
   text-decoration: none;
 }
 
-.brandName {
-  font-family: var(--font-playfair), Georgia, serif;
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: var(--primary, #7f1010);
-  letter-spacing: -0.01em;
-  line-height: 1.1;
+.brandLogo {
+  height: 38px;
+  width: auto;
+  display: block;
+  overflow: visible;
+  transition: opacity 0.2s ease;
+}
+
+.brandLink:hover .brandLogo {
+  opacity: 0.88;
 }
 
 .brandTag {

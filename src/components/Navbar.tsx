@@ -15,7 +15,7 @@ const NAV_LINKS = [
   { label: "Contact", href: "/#contact" },
 ];
 
-function EventsikaLogo({ className }: { className?: string }) {
+export function EventsikaLogo({ className }: { className?: string }) {
   return (
     <svg
       version="1.1"

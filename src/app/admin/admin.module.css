@@ -1,21 +1,66 @@
-.dashboardPlaceholder {
+/* ==========================================================================
+   Eventsika Luxury Admin Dashboard Styles (admin.module.css)
+   Aesthetic: Quiet Luxury Editorial, Warm Ivory (#FFFAF4), Hairline Sand (#DFD2C3),
+   Regal Crimson (#7F1010), Antique Gold (#B99A67), Espresso (#2B211D).
+   ========================================================================== */
+
+.dashboardContainer {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.75rem;
+  width: 100%;
 }
 
-.pageHeader {
+/* -------------------------------------------------------------------------- */
+/* Section 1: Executive Welcome Header                                        */
+/* -------------------------------------------------------------------------- */
+
+.executiveHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+@media (min-width: 900px) {
+  .executiveHeader {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+}
+
+.headerCopy {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
 }
 
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--gold, #b99a67);
+}
+
+.eyebrowDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--primary, #7f1010);
+  box-shadow: 0 0 0 2px rgba(127, 16, 16, 0.15);
+}
+
 .title {
   font-family: var(--font-playfair), Georgia, serif;
-  font-size: 1.85rem;
-  font-weight: 700;
+  font-size: 2.1rem;
+  font-weight: 600;
   color: var(--foreground, #2b211d);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
 }
 
 .subtitle {
@@ -24,60 +69,670 @@
   line-height: 1.5;
 }
 
-.statusCard {
+.headerActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.primaryAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1rem;
+  background-color: var(--primary, #7f1010);
+  color: #ffffff;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.18s ease;
+  box-shadow: 0 2px 6px rgba(127, 16, 16, 0.15);
+}
+
+.primaryAction:hover {
+  background-color: var(--primary-dark, #5f0808);
+  transform: translateY(-1px);
+}
+
+.secondaryAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.9rem;
+  background-color: var(--cream-light, #fffaf4);
+  color: var(--foreground, #2b211d);
+  border: 1px solid var(--border, #dfd2c3);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.18s ease;
+}
+
+.secondaryAction:hover {
+  background-color: var(--background, #f8f3ec);
+  border-color: var(--gold, #b99a67);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Section 2: Four Key Metric Cards                                           */
+/* -------------------------------------------------------------------------- */
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 1.25rem;
+}
+
+@media (min-width: 600px) {
+  .metricsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1100px) {
+  .metricsGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.metricCard {
   background-color: var(--cream-light, #fffaf4);
   border: 1px solid var(--border, #dfd2c3);
   border-radius: 8px;
-  padding: 2rem;
+  padding: 1.35rem 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  box-shadow: 0 2px 8px rgba(43, 33, 29, 0.03);
+  justify-content: space-between;
+  min-height: 140px;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-.cardHeader {
+.metricCard:hover {
+  box-shadow: 0 4px 16px rgba(43, 33, 29, 0.05);
+  transform: translateY(-2px);
+}
+
+.metricCardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.metricLabel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #7a6860;
+  margin-bottom: 0.35rem;
+}
+
+.metricValue {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 2.35rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--foreground, #2b211d);
+  font-variant-numeric: tabular-nums;
+}
+
+.metricValueCrimson {
+  color: var(--primary, #7f1010);
+}
+
+.metricIconWrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background-color: var(--background, #f8f3ec);
+  border: 1px solid rgba(223, 210, 195, 0.6);
   display: flex;
   align-items: center;
+  justify-content: center;
+  color: #7a6860;
+  flex-shrink: 0;
+}
+
+.metricIconWrapCrimson {
+  background-color: rgba(127, 16, 16, 0.08);
+  border-color: rgba(127, 16, 16, 0.25);
+  color: var(--primary, #7f1010);
+}
+
+.metricFooter {
+  margin-top: 1rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgba(223, 210, 195, 0.5);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: #6b5a52;
+}
+
+.metricFooterText {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.metricBadgeSage {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 600;
+  color: #1b6330;
+}
+
+.metricBadgeCrimson {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 600;
+  color: var(--primary, #7f1010);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Section 3: Middle Row (Lead Pipeline 8-col + Recent Activity 4-col)        */
+/* -------------------------------------------------------------------------- */
+
+.middleGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .middleGrid {
+    grid-template-columns: 8fr 4fr;
+  }
+}
+
+.sectionCard {
+  background-color: var(--cream-light, #fffaf4);
+  border: 1px solid var(--border, #dfd2c3);
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
   gap: 0.75rem;
 }
 
-.statusBadge {
+.sectionTitle {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--foreground, #2b211d);
+  line-height: 1.3;
+}
+
+.sectionSubtitle {
+  font-size: 0.85rem;
+  color: #6b5a52;
+  margin-top: 0.2rem;
+}
+
+.syncBadge {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
   font-size: 0.75rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
   color: #1b6330;
   background-color: #e8f5ec;
-  padding: 0.3rem 0.65rem;
+  padding: 0.25rem 0.6rem;
   border-radius: 4px;
+  white-space: nowrap;
 }
 
-.statusDot {
+.syncBadgeDot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background-color: #1b6330;
 }
 
-.cardTitle {
+/* -------------------------------------------------------------------------- */
+/* Lead Pipeline Track (5 Stages)                                             */
+/* -------------------------------------------------------------------------- */
+
+.pipelineTrackContainer {
+  position: relative;
+  margin: 1.25rem 0;
+}
+
+.pipelineConnectingLine {
+  display: none;
+}
+
+@media (min-width: 680px) {
+  .pipelineConnectingLine {
+    display: block;
+    position: absolute;
+    top: 48px;
+    left: 8%;
+    right: 8%;
+    height: 2px;
+    background-color: var(--border, #dfd2c3);
+    z-index: 1;
+  }
+}
+
+.pipelineStagesGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  position: relative;
+  z-index: 2;
+}
+
+@media (min-width: 680px) {
+  .pipelineStagesGrid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+.pipelineStageCard {
+  background-color: var(--background, #f8f3ec);
+  border: 1px solid var(--border, #dfd2c3);
+  border-radius: 8px;
+  padding: 1rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: all 0.18s ease;
+}
+
+.pipelineStageCard:hover {
+  background-color: #f3ede4;
+}
+
+.pipelineStageActive {
+  border-color: rgba(127, 16, 16, 0.4);
+  background-color: rgba(127, 16, 16, 0.03);
+}
+
+.stageLabel {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7a6860;
+  margin-bottom: 0.5rem;
+}
+
+.stageLabelActive {
+  color: var(--primary, #7f1010);
+}
+
+.stageNode {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: var(--cream-light, #fffaf4);
+  border: 2px solid var(--border, #dfd2c3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+  color: #7a6860;
+  box-shadow: 0 1px 3px rgba(43, 33, 29, 0.05);
+}
+
+.stageNodeActive {
+  border-color: var(--primary, #7f1010);
+  color: var(--primary, #7f1010);
+  background-color: #fff0ef;
+}
+
+.stageValue {
   font-family: var(--font-playfair), Georgia, serif;
-  font-size: 1.25rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--foreground, #2b211d);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.stageValueActive {
+  color: var(--primary, #7f1010);
+}
+
+.stageSubtext {
+  margin-top: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: 9999px;
+  background-color: rgba(223, 210, 195, 0.5);
+  color: #6b5a52;
+}
+
+.stageSubtextActive {
+  background-color: rgba(127, 16, 16, 0.1);
+  color: var(--primary, #7f1010);
+}
+
+.stageSubtextFuture {
+  background-color: rgba(185, 154, 103, 0.15);
+  color: #745a2d;
+  font-size: 0.64rem;
+}
+
+.pipelineNotice {
+  margin-top: 1.25rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(223, 210, 195, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: #6b5a52;
+}
+
+@media (min-width: 600px) {
+  .pipelineNotice {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.pipelineNoticeLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #745a2d;
+}
+
+.pipelineNoticeRight {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #1b6330;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Recent Activity Timeline                                                   */
+/* -------------------------------------------------------------------------- */
+
+.activityList {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  margin-top: 0.5rem;
+}
+
+.activityTrackLine {
+  position: absolute;
+  left: 15px;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  background-color: var(--border, #dfd2c3);
+  z-index: 1;
+}
+
+.activityItem {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  z-index: 2;
+}
+
+.activityIconWrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: var(--cream-light, #fffaf4);
+  border: 1.5px solid var(--border, #dfd2c3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(43, 33, 29, 0.06);
+}
+
+.activityIconLead {
+  border-color: rgba(127, 16, 16, 0.4);
+  color: var(--primary, #7f1010);
+  background-color: #fff0ef;
+}
+
+.activityIconVendor {
+  border-color: rgba(185, 154, 103, 0.5);
+  color: #745a2d;
+  background-color: #fdf5e8;
+}
+
+.activityContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.activityTopRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.activityTitle {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--foreground, #2b211d);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.activityTime {
+  font-size: 0.72rem;
+  color: #7a6860;
+  flex-shrink: 0;
+}
+
+.activitySubtitle {
+  font-size: 0.78rem;
+  color: #6b5a52;
+  margin-top: 0.15rem;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.emptyStateText {
+  font-size: 0.88rem;
+  color: #7a6860;
+  padding: 1.5rem 0;
+  text-align: center;
+  font-style: italic;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Section 4: Upcoming Celebrations Table                                      */
+/* -------------------------------------------------------------------------- */
+
+.tableCard {
+  background-color: var(--cream-light, #fffaf4);
+  border: 1px solid var(--border, #dfd2c3);
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.tableResponsiveWrap {
+  overflow-x: auto;
+  border: 1px solid var(--border, #dfd2c3);
+  border-radius: 6px;
+  background-color: #ffffff;
+}
+
+.celebrationsTable {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 680px;
+  text-align: left;
+}
+
+.celebrationsTable th {
+  background-color: var(--background, #f8f3ec);
+  padding: 0.75rem 1rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #7a6860;
+  border-bottom: 1px solid var(--border, #dfd2c3);
+}
+
+.celebrationsTable td {
+  padding: 0.85rem 1rem;
+  font-size: 0.88rem;
+  color: var(--foreground, #2b211d);
+  border-bottom: 1px solid rgba(223, 210, 195, 0.4);
+  vertical-align: middle;
+}
+
+.tableRow:last-child td {
+  border-bottom: none;
+}
+
+.tableRow:hover {
+  background-color: #fdfaf6;
+}
+
+.clientCell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.clientAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: var(--primary, #7f1010);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.clientDetails {
+  display: flex;
+  flex-direction: column;
+}
+
+.clientName {
   font-weight: 600;
   color: var(--foreground, #2b211d);
 }
 
-.cardDescription {
-  font-size: 0.92rem;
-  color: #5c4d46;
-  line-height: 1.6;
-  max-width: 680px;
+.clientCity {
+  font-size: 0.78rem;
+  color: #7a6860;
+}
+
+.eventTypeBadge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--foreground, #2b211d);
+}
+
+.dateCell {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  color: var(--foreground, #2b211d);
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background-color: #fdf5e8;
+  color: #745a2d;
+}
+
+.statusPillDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: var(--gold, #b99a67);
+}
+
+.servicesTagWrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  max-width: 280px;
+}
+
+.serviceTag {
+  font-size: 0.7rem;
+  background-color: var(--background, #f8f3ec);
+  border: 1px solid var(--border, #dfd2c3);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  color: #6b5a52;
 }
 
 /* -------------------------------------------------------------------------- */
-/* Shared Logout Button Styles                                                */
+/* Error & Loading States                                                     */
+/* -------------------------------------------------------------------------- */
+
+.errorCard {
+  background-color: #fff0ef;
+  border: 1px solid rgba(127, 16, 16, 0.3);
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.errorTitle {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--primary, #7f1010);
+}
+
+.errorMessage {
+  font-size: 0.9rem;
+  color: #5c4d46;
+  line-height: 1.5;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Shared Logout Button Styles (Preserved for LogoutButton.tsx)               */
 /* -------------------------------------------------------------------------- */
 
 .logoutBtn {

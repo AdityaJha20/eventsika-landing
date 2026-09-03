@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "./LogoutButton";
+import { EventsikaLogo } from "@/components/Navbar";
 import styles from "./admin-shell.module.css";
 
 interface AdminSidebarProps {
@@ -130,7 +131,7 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     >
       <div className={styles.sidebarBrand}>
         <Link href="/admin" className={styles.brandLink} onClick={onClose}>
-          <span className={styles.brandName}>Eventsika</span>
+          <EventsikaLogo className={styles.brandLogo} />
           <span className={styles.brandTag}>Operations Portal</span>
         </Link>
 

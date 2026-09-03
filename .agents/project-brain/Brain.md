@@ -167,13 +167,18 @@ landing/
 │       │   ├── integrations/              # Delivery notifier interfaces & adapters
 │       │   ├── logger/logger.ts           # PII-safe structured logger with phone/email masking
 │       │   ├── repositories/              # Repository interfaces, in-memory & Supabase stores
+│       │   │   ├── dashboard-repository.interface.ts # Dashboard aggregation contracts & metrics types
 │       │   │   ├── in-memory-lead-repository.ts
 │       │   │   ├── in-memory-vendor-repository.ts
 │       │   │   ├── lead-repository.interface.ts
+│       │   │   ├── supabase-dashboard-repository.ts # Real Supabase dashboard queries (No fake fallback)
 │       │   │   ├── supabase-lead-repository.ts
 │       │   │   ├── supabase-vendor-repository.ts
 │       │   │   └── vendor-repository.interface.ts
-│       │   ├── services/                  # LeadService & VendorService domain workflows
+│       │   ├── services/                  # Business domain services (Lead, Vendor, Dashboard)
+│       │   │   ├── admin-dashboard-service.ts # Dashboard aggregation orchestration & date formatters
+│       │   │   ├── lead-service.ts
+│       │   │   └── vendor-service.ts
 │       │   ├── supabase/client.ts         # Server-only Supabase admin client module
 │       │   ├── utils/request-id.ts        # Correlation ID generator & header extractor
 │       │   └── validation/                # Server-side validation schemas (phone, date, url)
@@ -687,6 +692,28 @@ Every AI agent working in the Eventsika repository must adhere to the following 
 ---
 
 ## 28. Change Log
+
+### 2026-09-03
+- **Admin Dashboard Refinements & Official Branding**:
+  - Removed "Diwali Advisory" quick-action button from the `/admin` dashboard header.
+  - Reused the official vector `<EventsikaLogo>` component in `AdminSidebar.tsx` matching the website standard.
+  - Confirmed and eliminated unused legacy admin placeholder CSS classes in `admin.module.css` and `admin-shell.module.css`.
+
+- **Admin Dashboard Luxury UI Implementation (Step 2)**:
+  - Transformed `/admin` (`src/app/admin/page.tsx`) from a temporary placeholder into the luxury concierge operations dashboard adapting the approved Stitch visual reference.
+  - Implemented 4 key metric cards: Total Leads, New Inquiries (Last 7 Days in Crimson `#7F1010`), Operational Follow-ups, and Vendor Partners.
+  - Implemented 5-stage horizontal Lead Pipeline: accurately reporting real counts for Total Intake and New Inquiries, with transparent Phase 2 indicators for Follow-up, In Progress, and Converted (strictly adhering to no-fabricated-data policy).
+  - Implemented Recent Activity feed displaying real chronologically merged inquiries with relative timestamps and distinct vector icons.
+  - Implemented Upcoming Celebrations table displaying scheduled events from real `public.leads` records (`event_date >= CURRENT_DATE`).
+  - Added comprehensive scoped CSS Modules (`src/app/admin/admin.module.css`) with hairline Sand borders (`#DFD2C3`), Warm Ivory surfaces (`#FFFAF4`), Playfair Display & Inter typography, and responsive breakpoints (12-col desktop, 2-col tablet, single-stack mobile).
+  - Preserved existing logout button styles (`.logoutBtn`, `.sidebarLogoutBtn`) and protected admin layout boundaries.
+
+- **Admin Dashboard Backend Foundation (Step 1)**:
+  - Created `IDashboardRepository` contract (`src/lib/backend/repositories/dashboard-repository.interface.ts`) defining operational metrics, activity items, and celebration interfaces.
+  - Implemented `SupabaseDashboardRepository` (`src/lib/backend/repositories/supabase-dashboard-repository.ts`) directly querying real records from `public.leads` and `public.vendor_applications`.
+  - Enforced strict no-fake-fallback policy: if Supabase is unavailable, errors are thrown and caught by the business service to display a safe user-facing error state rather than fabricating counts.
+  - Implemented `AdminDashboardService` (`src/lib/backend/services/admin-dashboard-service.ts`) returning `{ success: true, data } | { success: false, error }` with relative time and calendar date formatting utilities.
+  - Verified 11/11 test files (85 tests) passing and 0 TypeScript compilation errors.
 
 ### 2026-09-01
 - **Supabase Database Integration (Production Intake Architecture)**:
