@@ -2,6 +2,19 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
+  // Explicit exemption: Public admin login endpoint must be reachable to authenticate
+  if (pathname === "/api/admin/auth/login") {
+    return NextResponse.next({
+      request: {
+        headers: request.headers,
+      },
+    });
+  }
+
+  const isApiAdmin = pathname.startsWith("/api/admin/");
+
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -15,7 +28,12 @@ export async function middleware(request: NextRequest) {
     process.env.SUPABASE_ANON_KEY;
 
   if (!url || !publishableKey) {
-    // If Supabase public auth is unconfigured, deny admin route access safely
+    if (isApiAdmin) {
+      return NextResponse.json(
+        { success: false, error: "Authentication service unavailable." },
+        { status: 503 }
+      );
+    }
     const loginUrl = new URL("/login", request.url);
     return NextResponse.redirect(loginUrl);
   }
@@ -46,6 +64,12 @@ export async function middleware(request: NextRequest) {
   const role = user?.app_metadata?.role;
 
   if (!user || role !== "admin") {
+    if (isApiAdmin) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized: Administrator privileges required." },
+        { status: 401 }
+      );
+    }
     const loginUrl = new URL("/login", request.url);
     return NextResponse.redirect(loginUrl);
   }
@@ -54,5 +78,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/api/admin/:path*"],
 };

@@ -357,47 +357,8 @@
   text-underline-offset: 2px;
 }
 
-.divider {
-  height: 1px;
-  background-color: var(--border);
-  margin: 1.75rem 0 1.25rem 0;
-}
-
-.footerRow {
-  text-align: center;
-  font-family: var(--font-inter), sans-serif;
-  font-size: 0.875rem;
-  color: #5d4a40;
-}
-
-.footerLink {
-  background: none;
-  border: none;
-  padding: 0;
-  font-family: inherit;
-  font-size: inherit;
-  font-weight: 600;
-  color: var(--primary);
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  transition: color 0.2s ease;
-}
-
-.footerLink:hover {
-  color: var(--primary-dark);
-}
-
-.footerLink:focus-visible {
-  outline: 2px solid var(--gold);
-  outline-offset: 2px;
-  border-radius: 2px;
-}
-
 .partnerBadge {
   margin-top: 1.25rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;

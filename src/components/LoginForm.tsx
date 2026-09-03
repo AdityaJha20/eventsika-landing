@@ -16,7 +16,7 @@ export default function LoginForm() {
   const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [activeInfo, setActiveInfo] = useState<"none" | "forgot-password" | "sign-up">("none");
+  const [activeInfo, setActiveInfo] = useState<"none" | "forgot-password">("none");
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
   const validateForm = () => {
@@ -87,11 +87,6 @@ export default function LoginForm() {
   const handleForgotPasswordClick = () => {
     setAuthError(null);
     setActiveInfo((prev) => (prev === "forgot-password" ? "none" : "forgot-password"));
-  };
-
-  const handleSignUpClick = () => {
-    setAuthError(null);
-    setActiveInfo((prev) => (prev === "sign-up" ? "none" : "sign-up"));
   };
 
   return (
@@ -288,31 +283,6 @@ export default function LoginForm() {
           </div>
         )}
 
-        {/* Sign Up Info Banner */}
-        {activeInfo === "sign-up" && (
-          <div className={styles.infoBanner} role="status">
-            <svg
-              className={styles.infoBannerIcon}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="16" x2="12" y2="12" />
-              <line x1="12" y1="8" x2="12.01" y2="8" />
-            </svg>
-            <p className={styles.infoBannerText}>
-              Direct client registration will open soon. You can currently{" "}
-              <Link href="/#plan-event">plan a celebration</Link> or{" "}
-              <Link href="/for-vendors">apply as an event partner</Link>.
-            </p>
-          </div>
-        )}
-
         {/* Primary Log In Button */}
         <button
           type="submit"
@@ -329,22 +299,6 @@ export default function LoginForm() {
           )}
         </button>
       </form>
-
-      {/* Divider */}
-      <div className={styles.divider} />
-
-      {/* Secondary Link: Sign Up */}
-      <div className={styles.footerRow}>
-        <span>Don&apos;t have an account? </span>
-        <button
-          type="button"
-          onClick={handleSignUpClick}
-          className={styles.footerLink}
-          aria-expanded={activeInfo === "sign-up"}
-        >
-          Sign Up
-        </button>
-      </div>
 
       {/* Vendor Onboarding Link */}
       <div className={styles.partnerBadge}>
