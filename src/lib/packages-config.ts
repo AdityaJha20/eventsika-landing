@@ -84,8 +84,8 @@ export const ADDONS_CONFIG: AddonConfig[] = [
     displayPrice: "+₹15,000",
   },
   {
-    id: "drone-reels",
-    name: "Drone Cinematography & Reels",
+    id: "photography-films",
+    name: "Photography & Films",
     price: 18000,
     displayPrice: "+₹18,000",
   },
