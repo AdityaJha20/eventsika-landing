@@ -7,6 +7,7 @@ import {
 } from "@/lib/rate-limit";
 import { logger, maskEmail } from "@/lib/backend/logger/logger";
 import { getOrCreateRequestId } from "@/lib/backend/utils/request-id";
+import { isAllowedOrigin } from "@/lib/backend/http/origin";
 
 const MAX_PAYLOAD_BYTES = 8 * 1024; // 8 KB payload ceiling for auth
 const MAX_EMAIL_LENGTH = 254;       // RFC 5321 standard maximum
@@ -14,31 +15,6 @@ const MAX_PASSWORD_LENGTH = 1024;   // Prevents computational CPU exhaustion att
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const GENERIC_AUTH_ERROR = "Invalid email or password.";
-
-/**
- * Validates request origin to protect against Login CSRF / cross-site submission attacks.
- * Verifies Origin header against request Host. Uses Sec-Fetch-Site as secondary signal.
- * Permits non-browser API clients where Origin is not emitted.
- */
-function isAllowedOrigin(request: NextRequest): boolean {
-  const secFetchSite = request.headers.get("sec-fetch-site");
-  if (secFetchSite === "cross-site") {
-    return false;
-  }
-
-  const origin = request.headers.get("origin");
-  if (!origin) {
-    return true; // Non-browser / server-side client
-  }
-
-  try {
-    const originUrl = new URL(origin);
-    const host = request.headers.get("host") || request.nextUrl.host;
-    return originUrl.host.toLowerCase() === host.toLowerCase();
-  } catch {
-    return false;
-  }
-}
 
 export async function POST(request: NextRequest) {
   const requestId = getOrCreateRequestId(request);

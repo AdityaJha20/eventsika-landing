@@ -2,29 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/backend/supabase/server";
 import { logger } from "@/lib/backend/logger/logger";
 import { getOrCreateRequestId } from "@/lib/backend/utils/request-id";
-
-/**
- * Validates request origin to protect against Logout CSRF attacks.
- */
-function isAllowedOrigin(request: NextRequest): boolean {
-  const secFetchSite = request.headers.get("sec-fetch-site");
-  if (secFetchSite === "cross-site") {
-    return false;
-  }
-
-  const origin = request.headers.get("origin");
-  if (!origin) {
-    return true; // Non-browser / server-side client
-  }
-
-  try {
-    const originUrl = new URL(origin);
-    const host = request.headers.get("host") || request.nextUrl.host;
-    return originUrl.host.toLowerCase() === host.toLowerCase();
-  } catch {
-    return false;
-  }
-}
+import { isAllowedOrigin } from "@/lib/backend/http/origin";
 
 export async function POST(request: NextRequest) {
   const requestId = getOrCreateRequestId(request);

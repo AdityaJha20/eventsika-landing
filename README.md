@@ -29,8 +29,20 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## Production Security & Ingress Architecture
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 1. Reverse-Proxy & Ingress Trust Assumptions
+Eventsika rate limiters extract client IP addresses via `getClientIp()` by checking edge proxy headers (`cf-connecting-ip`, `x-real-ip`, and `x-forwarded-for`).
+- **Application Security Boundary**: Application code running in Node.js cannot cryptographically distinguish between a genuine header added by a trusted reverse proxy and a spoofed header injected by a client when exposed directly to the public internet without an ingress filter.
+- **Production Deployment Invariant (Hostinger / Cloudflare / Nginx)**:
+  - The edge/ingress reverse proxy (e.g. Cloudflare proxy, Hostinger OpenLiteSpeed/Nginx reverse proxy) MUST be configured to **overwrite or strip** client-supplied `X-Forwarded-For` and `CF-Connecting-IP` headers before requests reach the Next.js process.
+  - On Hostinger VPS or standalone Node deployments, ensure Nginx passes `$remote_addr` as `X-Real-IP` and `$proxy_add_x_forwarded_for` as `X-Forwarded-For`, resetting untrusted upstream client values.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 2. Environment Configuration
+- Public variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`) are safe for browser and SSR usage.
+- Server secrets (`SUPABASE_SERVICE_ROLE_KEY`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`) must never be prefixed with `NEXT_PUBLIC_` and are validated by `src/lib/backend/config/env.ts`.
+
+### 3. Fail-Closed Security Policy
+- When running in `NODE_ENV === "production"`, if distributed Upstash Redis is unconfigured or unreachable, rate limiters fail closed (HTTP 503), preventing unthrottled brute-force or denial-of-service abuse.
+- In development/test environments, an in-memory fallback store is used automatically for zero-dependency offline workflows.
+

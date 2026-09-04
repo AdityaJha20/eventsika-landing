@@ -52,6 +52,21 @@ export function isValidIp(ip: string): boolean {
 
 /**
  * Safely extracts client IP address from request socket or trusted reverse-proxy headers.
+ *
+ * PRODUCTION INGRESS TRUST ARCHITECTURE & SECURITY ASSUMPTIONS:
+ * 1. Reverse-Proxy Header Trust Model:
+ *    - This function inspects headers emitted by edge proxies: `cf-connecting-ip` (Cloudflare),
+ *      `x-real-ip` (Nginx/Hostinger proxy), and `x-forwarded-for`.
+ *    - Application-layer code CANNOT cryptographically distinguish between a genuine header
+ *      added by a trusted reverse proxy and a spoofed header injected by a client IF the
+ *      application server is exposed directly to the public internet without an ingress filter.
+ * 2. Mandatory Production Requirement:
+ *    - In production deployments (e.g. Hostinger VPS, Cloudflare edge, Docker container),
+ *      the perimeter reverse proxy (Cloudflare / Nginx / Hostinger gateway) MUST be configured
+ *      to OVERWRITE or STRIP any client-supplied `X-Forwarded-For` or `CF-Connecting-IP` headers
+ *      before proxying traffic to the Next.js Node process.
+ * 3. Fallback:
+ *    - If no valid IP is discovered, safely defaults to "127.0.0.1".
  */
 export function getClientIp(request: Request): string {
   const socketIp = (request as unknown as { ip?: string }).ip;
@@ -94,20 +109,18 @@ export interface RateLimitResult {
   remaining: number;
   resetTime: number;
   retryAfterSeconds: number;
+  isUnavailable?: boolean;
 }
 
 /**
- * Standard fixed/sliding window rate limiter for general API routes.
+ * In-memory fallback rate limiter for general API routes (used in development & test).
  */
-export function checkRateLimit(
-  request: Request,
+function checkRateLimitInMemory(
+  clientIp: string,
   namespace: string,
-  options: RateLimitOptions = {}
+  limit: number,
+  windowMs: number
 ): RateLimitResult {
-  const limit = options.limit ?? 5;
-  const windowMs = options.windowMs ?? 10 * 60 * 1000;
-
-  const clientIp = getClientIp(request);
   const key = `${namespace}:${clientIp}`;
   const now = Date.now();
 
@@ -143,6 +156,60 @@ export function checkRateLimit(
     resetTime: record.resetTime,
     retryAfterSeconds,
   };
+}
+
+/**
+ * Distributed & in-memory rate limiter for general API routes (leads, vendor applications).
+ *
+ * Production:
+ * - Uses Upstash Redis with atomic Lua script and bounded key TTLs.
+ * - Fails closed (isUnavailable: true) if Redis is unavailable, maintaining the rate-limit
+ *   security boundary consistently with admin authentication.
+ *
+ * Development / Test:
+ * - Uses in-memory Map store for offline zero-dependency development and testing.
+ */
+export async function checkRateLimit(
+  request: Request,
+  namespace: string,
+  options: RateLimitOptions = {}
+): Promise<RateLimitResult> {
+  const limit = options.limit ?? 5;
+  const windowMs = options.windowMs ?? 10 * 60 * 1000;
+  const windowSeconds = Math.ceil(windowMs / 1000);
+  const clientIp = getClientIp(request);
+  const isProduction = process.env.NODE_ENV === "production";
+
+  const { store, isUnavailable } = getAdminRateLimitStore();
+
+  if (isProduction && (isUnavailable || !store)) {
+    return {
+      isAllowed: false,
+      remaining: 0,
+      resetTime: Date.now() + 60_000,
+      retryAfterSeconds: 60,
+      isUnavailable: true,
+    };
+  }
+
+  if (store instanceof UpstashRedisRateLimitStore) {
+    try {
+      return await store.checkNamespaceLimit(clientIp, namespace, limit, windowSeconds);
+    } catch (err) {
+      logger.error("Public rate limiter Redis check failed", err);
+      if (isProduction) {
+        return {
+          isAllowed: false,
+          remaining: 0,
+          resetTime: Date.now() + 60_000,
+          retryAfterSeconds: 60,
+          isUnavailable: true,
+        };
+      }
+    }
+  }
+
+  return checkRateLimitInMemory(clientIp, namespace, limit, windowMs);
 }
 
 /* ==========================================================================
@@ -243,6 +310,24 @@ if count >= (tier * 5) then
 end
 
 return { count, 0 }
+`;
+
+/**
+ * Atomic Lua Script for Public Endpoints Fixed-Window Rate Limiting:
+ * KEYS[1]: rate limit key (e.g. eventsika:rate:leads:192.0.2.1)
+ * ARGV[1]: windowSeconds (TTL)
+ */
+const PUBLIC_RATE_LIMIT_LUA = `
+local current = redis.call('INCR', KEYS[1])
+if current == 1 then
+    redis.call('EXPIRE', KEYS[1], tonumber(ARGV[1]))
+end
+local ttl = redis.call('TTL', KEYS[1])
+if ttl < 0 then
+    redis.call('EXPIRE', KEYS[1], tonumber(ARGV[1]))
+    ttl = tonumber(ARGV[1])
+end
+return { current, ttl }
 `;
 
 /**
@@ -368,6 +453,39 @@ export class UpstashRedisRateLimitStore implements IAdminRateLimitStore {
       );
     }
     await this.redis.del(...keysToDelete);
+  }
+
+  async checkNamespaceLimit(
+    ip: string,
+    namespace: string,
+    limit: number,
+    windowSeconds: number
+  ): Promise<RateLimitResult> {
+    const key = `eventsika:rate:${namespace}:${ip}`;
+    const result = (await this.redis.eval(
+      PUBLIC_RATE_LIMIT_LUA,
+      [key],
+      [windowSeconds]
+    )) as [number, number];
+
+    const current = Array.isArray(result) ? Number(result[0]) : 1;
+    const ttl = Array.isArray(result) ? Number(result[1]) : windowSeconds;
+
+    if (current <= limit) {
+      return {
+        isAllowed: true,
+        remaining: Math.max(0, limit - current),
+        resetTime: Date.now() + ttl * 1000,
+        retryAfterSeconds: 0,
+      };
+    }
+
+    return {
+      isAllowed: false,
+      remaining: 0,
+      resetTime: Date.now() + ttl * 1000,
+      retryAfterSeconds: Math.max(1, ttl),
+    };
   }
 
   async clear(): Promise<void> {

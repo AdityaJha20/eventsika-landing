@@ -4,6 +4,7 @@ import { validateVendorInput } from "@/lib/backend/validation/vendor-schema";
 import { vendorService } from "@/lib/backend/services/vendor-service";
 import { logger } from "@/lib/backend/logger/logger";
 import { getOrCreateRequestId } from "@/lib/backend/utils/request-id";
+import { isAllowedOrigin } from "@/lib/backend/http/origin";
 
 export const dynamic = "force-dynamic";
 
@@ -13,8 +14,26 @@ export async function POST(request: NextRequest) {
   const requestId = getOrCreateRequestId(request);
   const clientIp = getClientIp(request);
 
-  // 1. IP-based rate limiting (Max 5 requests per 10 minutes)
-  const rateLimit = checkRateLimit(request, "vendor_applications", {
+  // 1. Origin & Cross-Site Request Guard
+  if (!isAllowedOrigin(request)) {
+    logger.warn("Vendor application rejected: Cross-origin request blocked", {
+      requestId,
+      clientIp,
+    });
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Cross-origin submission blocked.",
+      },
+      {
+        status: 403,
+        headers: { "X-Request-Id": requestId },
+      }
+    );
+  }
+
+  // 2. Distributed / IP-based rate limiting (Max 5 requests per 10 minutes)
+  const rateLimit = await checkRateLimit(request, "vendor_applications", {
     limit: 5,
     windowMs: 10 * 60 * 1000,
   });
@@ -24,6 +43,23 @@ export async function POST(request: NextRequest) {
     "X-RateLimit-Limit": "5",
     "X-RateLimit-Remaining": rateLimit.remaining.toString(),
   };
+
+  if (rateLimit.isUnavailable) {
+    logger.error("Rate limiter datastore unavailable in production; failing closed for vendor applications endpoint", {
+      requestId,
+      clientIp,
+    });
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Submission service temporarily unavailable. Please try again later.",
+      },
+      {
+        status: 503,
+        headers: { "X-Request-Id": requestId },
+      }
+    );
+  }
 
   if (!rateLimit.isAllowed) {
     logger.warn("Rate limit exceeded for vendor applications endpoint", {

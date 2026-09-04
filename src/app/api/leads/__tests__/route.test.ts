@@ -230,4 +230,31 @@ describe("POST /api/leads Integration Contract", () => {
       expect((processedLead as unknown as Record<string, unknown>).status).toBeUndefined();
     });
   });
+
+  describe("Cross-origin submission protection", () => {
+    it("rejects cross-origin requests with HTTP 403 and prevents lead processing", async () => {
+      const processLeadSpy = vi.spyOn(leadService, "processLead");
+
+      const request = new NextRequest("http://localhost:3000/api/leads", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          host: "localhost:3000",
+          origin: "https://unauthorized-third-party.com",
+          "sec-fetch-site": "cross-site",
+          "x-real-ip": "198.51.100.16",
+        },
+        body: JSON.stringify(getValidLeadPayload()),
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.success).toBe(false);
+      expect(data.message).toContain("Cross-origin submission blocked.");
+      expect(processLeadSpy).not.toHaveBeenCalled();
+    });
+  });
 });
+
