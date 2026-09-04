@@ -1,81 +1,50 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import {
+  PACKAGES_CONFIG,
+  DEFAULT_PACKAGE_ID,
+  type PackageTierConfig,
+} from "@/lib/packages-config";
+import PackageCustomizer from "./PackageCustomizer";
 import styles from "./Packages.module.css";
 
-interface PackageItem {
+interface HomePackagePresentation {
   number: string;
-  name: string;
-  badge?: string;
-  tagline: string;
+  image: string;
   description: string;
-  features: string[];
-  ctaText: string;
-  ctaHref: string;
-  isSignature: boolean;
-  image?: string;
 }
 
-const PACKAGES: PackageItem[] = [
-  {
+const HOME_PACKAGE_PRESENTATION: Record<
+  PackageTierConfig["id"],
+  HomePackagePresentation
+> = {
+  essential: {
     number: "01",
-    name: "ESSENTIAL",
-    tagline: "Simple celebrations, thoughtfully arranged.",
+    image: "/images/packages/living-room-dinner.webp",
     description:
       "For intimate gatherings where you need the important details brought together beautifully.",
-    image: "/images/packages/living-room-dinner.webp",
-    features: [
-      "Event planning consultation",
-      "Venue & decor coordination",
-      "Essential vendor coordination",
-      "Event-day guidance",
-    ],
-    ctaText: "Explore Essential",
-    ctaHref: "#plan-event",
-    isSignature: false,
   },
-  {
+  signature: {
     number: "02",
-    name: "SIGNATURE",
-    badge: "OUR SIGNATURE",
-    tagline: "Everything comes together beautifully.",
+    image: "/images/packages/driveway-lawns.webp",
     description:
       "For celebrations where every detail matters and you want a dedicated team bringing the entire experience together.",
-    image: "/images/packages/driveway-lawns.webp",
-    features: [
-      "Complete event planning",
-      "Venue & decor coordination",
-      "Catering coordination",
-      "Photography & films coordination",
-      "Entertainment coordination",
-      "Event-day management",
-    ],
-    ctaText: "Plan With Signature",
-    ctaHref: "#plan-event",
-    isSignature: true,
   },
-  {
+  grand: {
     number: "03",
-    name: "GRAND",
-    tagline: "Complete planning, from idea to celebration.",
+    image: "/images/packages/grand-celebration.webp",
     description:
       "For larger or more elaborate occasions that need complete planning, coordination, and execution.",
-    image: "/images/packages/grand-celebration.webp",
-    features: [
-      "Full event management",
-      "Premium venue & decor planning",
-      "Catering & hospitality coordination",
-      "Photography & films",
-      "Entertainment & production",
-      "Guest experience coordination",
-      "Complete event-day execution",
-    ],
-    ctaText: "Plan a Grand Celebration",
-    ctaHref: "#plan-event",
-    isSignature: false,
   },
-];
+};
 
 export default function Packages() {
+  const [selectedPackageId, setSelectedPackageId] =
+    useState<PackageTierConfig["id"]>(DEFAULT_PACKAGE_ID);
+
   return (
     <section
       id="packages"
@@ -95,78 +64,115 @@ export default function Packages() {
           </p>
         </div>
 
-        {/* Packages Cards Grid */}
-        <ul className={styles.grid}>
-          {PACKAGES.map((pkg) => (
-            <li
-              key={pkg.number}
-              className={`${styles.card} ${
-                pkg.isSignature ? styles.signatureCard : ""
-              }`}
-            >
-              {pkg.badge && (
-                <span className={styles.signatureBadge}>{pkg.badge}</span>
-              )}
+        {/* Packages Cards Grid - Primary Interactive Package Selector */}
+        <div
+          className={styles.grid}
+          role="radiogroup"
+          aria-label="Select celebration package"
+        >
+          {PACKAGES_CONFIG.map((pkg) => {
+            const meta = HOME_PACKAGE_PRESENTATION[pkg.id];
+            const isSelected = selectedPackageId === pkg.id;
+            const isSignature = pkg.id === "signature";
 
-              <div>
-                {pkg.image && (
-                  <div className={styles.imageWrapper}>
-                    <Image
-                      src={pkg.image}
-                      alt={pkg.name}
-                      fill
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      className={styles.cardImage}
-                    />
-                  </div>
+            const handleSelect = () => {
+              setSelectedPackageId(pkg.id);
+            };
+
+            const handleKeyDown = (e: React.KeyboardEvent) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setSelectedPackageId(pkg.id);
+              }
+            };
+
+            return (
+              <div
+                key={pkg.id}
+                role="radio"
+                aria-checked={isSelected}
+                tabIndex={0}
+                onClick={handleSelect}
+                onKeyDown={handleKeyDown}
+                aria-label={`${pkg.name} Package — ${pkg.displayRate}`}
+                className={`${styles.card} ${
+                  isSignature ? styles.signatureCard : ""
+                } ${isSelected ? styles.cardSelected : ""}`}
+              >
+                {pkg.badge && (
+                  <span className={styles.signatureBadge}>{pkg.badge}</span>
                 )}
 
-                <div className={styles.cardHeader}>
-                  <span className={styles.packageNumber}>{pkg.number}</span>
-                  <h3 className={styles.packageName}>{pkg.name}</h3>
-                  <p className={styles.packageTagline}>{pkg.tagline}</p>
-                  <p className={styles.packageDescription}>{pkg.description}</p>
+                <div>
+                  {meta.image && (
+                    <div className={styles.imageWrapper}>
+                      <Image
+                        src={meta.image}
+                        alt={pkg.name}
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className={styles.cardImage}
+                      />
+                    </div>
+                  )}
+
+                  <div className={styles.cardHeader}>
+                    <span className={styles.packageNumber}>{meta.number}</span>
+                    <h3 className={styles.packageName}>{pkg.name}</h3>
+                    <span className={styles.packageRate}>{pkg.displayRate}</span>
+                    <p className={styles.packageTagline}>{pkg.tagline}</p>
+                    <p className={styles.packageDescription}>
+                      {meta.description}
+                    </p>
+                  </div>
+
+                  <div className={styles.divider} />
+
+                  <ul className={styles.featureList}>
+                    {pkg.features.map((feature) => (
+                      <li key={feature} className={styles.featureItem}>
+                        <svg
+                          className={styles.checkIcon}
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
 
-                <div className={styles.divider} />
-
-                <ul className={styles.featureList}>
-                  {pkg.features.map((feature) => (
-                    <li key={feature} className={styles.featureItem}>
-                      <svg
-                        className={styles.checkIcon}
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
+                <div className={styles.cardFooter}>
+                  <p className={styles.pricingNote}>
+                    Tailored to your occasion
+                  </p>
+                  <div
+                    className={`${styles.selectIndicator} ${
+                      isSelected ? styles.selectIndicatorActive : ""
+                    }`}
+                    aria-hidden="true"
+                  >
+                    {isSelected ? "✓ Selected" : `Select ${pkg.name}`}
+                  </div>
+                </div>
               </div>
+            );
+          })}
+        </div>
 
-              <div className={styles.cardFooter}>
-                <p className={styles.pricingNote}>
-                  Tailored to your occasion
-                </p>
-                <Link
-                  href={pkg.ctaHref}
-                  className={`${styles.ctaButton} ${
-                    pkg.isSignature ? styles.signatureCta : ""
-                  }`}
-                >
-                  {pkg.ctaText}
-                </Link>
-              </div>
-            </li>
-          ))}
-        </ul>
+        {/* Embedded Live Estimator directly connected to selected card */}
+        <PackageCustomizer
+          embedded={true}
+          selectedPackageId={selectedPackageId}
+          onPackageSelect={setSelectedPackageId}
+        />
 
         {/* Secondary Comparison CTA */}
         <div className={styles.secondaryCtaContainer}>

@@ -70,6 +70,9 @@
   flex-direction: column;
   justify-content: space-between;
   position: relative;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
   transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
@@ -77,6 +80,24 @@
   transform: translateY(-6px);
   border-color: var(--gold);
   box-shadow: 0 14px 36px rgba(43, 33, 29, 0.07);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+/* Selected Card Interactive State */
+.cardSelected {
+  border-color: var(--gold);
+  background-color: #fffdf9;
+  box-shadow: 0 0 0 2px var(--gold), 0 16px 40px rgba(185, 154, 103, 0.16);
+  transform: translateY(-4px);
+}
+
+.cardSelected:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 0 0 2px var(--gold), 0 18px 44px rgba(185, 154, 103, 0.2);
 }
 
 /* Signature Featured Card Emphasis */
@@ -145,8 +166,17 @@
   color: var(--foreground);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
   line-height: 1.15;
+}
+
+.packageRate {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--primary);
+  display: block;
+  margin-bottom: 0.65rem;
 }
 
 .packageTagline {
@@ -252,6 +282,43 @@
   color: var(--cream-light);
 }
 
+/* Card Selection Visual Indicator (Safeguard 1: Non-interactive child element; card is the interactive control) */
+.selectIndicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  background-color: transparent;
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.85rem;
+  border-radius: 4px;
+  user-select: none;
+  pointer-events: none;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.card:hover .selectIndicator {
+  background-color: #fffdf9;
+  border-color: var(--gold);
+  color: var(--primary);
+}
+
+.selectIndicatorActive {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: var(--cream-light);
+}
+
+.card:hover .selectIndicatorActive {
+  background-color: var(--primary-dark);
+  border-color: var(--primary-dark);
+  color: var(--cream-light);
+}
+
 /* Secondary Comparison CTA */
 .secondaryCtaContainer {
   display: flex;
@@ -279,10 +346,13 @@
 /* Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
   .card,
+  .cardSelected,
+  .selectIndicator,
   .secondaryCta {
     transition: none !important;
   }
   .card:hover,
+  .cardSelected:hover,
   .secondaryCta:hover {
     transform: none !important;
   }
@@ -305,6 +375,14 @@
   }
 
   .signatureCard:hover {
+    transform: translateY(-4px);
+  }
+
+  .cardSelected {
+    transform: none;
+  }
+
+  .cardSelected:hover {
     transform: translateY(-4px);
   }
 
@@ -334,6 +412,14 @@
 
   .card {
     padding: 2.25rem 1.5rem;
+  }
+
+  .cardSelected {
+    transform: none;
+  }
+
+  .cardSelected:hover {
+    transform: translateY(-4px);
   }
 
   .secondaryCtaContainer {

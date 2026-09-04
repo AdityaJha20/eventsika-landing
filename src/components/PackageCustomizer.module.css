@@ -12,6 +12,15 @@
   flex-direction: column;
 }
 
+/* Embedded Container (used when embedded in Home packages section) */
+.embeddedContainer {
+  width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
 /* Header Area */
 .header {
   text-align: center;
@@ -45,6 +54,41 @@
   line-height: 1.65;
   color: #4a3b32;
   margin: 0 auto;
+}
+
+/* Embedded Header (used in Home packages section directly below card selection) */
+.embeddedHeader {
+  text-align: center;
+  max-width: 720px;
+  margin: 3.5rem auto 3rem auto;
+  width: 100%;
+}
+
+.embeddedDivider {
+  height: 1px;
+  background-color: var(--border);
+  margin-bottom: 3.5rem;
+  opacity: 0.7;
+}
+
+.embeddedEyebrow {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 0.75rem;
+}
+
+.embeddedTitle {
+  font-family: var(--font-playfair), serif;
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  font-weight: 700;
+  color: var(--foreground);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  margin: 0;
 }
 
 /* 2-Column Grid Layout */
@@ -601,6 +645,14 @@
     padding: 4.5rem 1.5rem;
   }
 
+  .embeddedHeader {
+    margin: 2.75rem auto 2.25rem auto;
+  }
+
+  .embeddedDivider {
+    margin-bottom: 2.75rem;
+  }
+
   .grid {
     grid-template-columns: 1fr;
     gap: 3rem;
@@ -622,6 +674,14 @@
 
   .header {
     margin-bottom: 3rem;
+  }
+
+  .embeddedHeader {
+    margin: 2.25rem auto 2rem auto;
+  }
+
+  .embeddedDivider {
+    margin-bottom: 2.25rem;
   }
 
   .stepperRow {
