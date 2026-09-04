@@ -2,113 +2,50 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import {
+  PACKAGES_CONFIG,
+  ADDONS_CONFIG,
+  MIN_GUEST_COUNT,
+  DEFAULT_GUEST_COUNT,
+  DEFAULT_PACKAGE_ID,
+  GUEST_PRESETS,
+} from "@/lib/packages-config";
 import styles from "./PackageCustomizer.module.css";
 
-interface PackageOption {
-  id: string;
-  name: string;
-  price: number;
-  guestDefault: string;
-  tagline: string;
-}
-
-interface GuestTier {
-  id: string;
-  label: string;
-  recommendedFor: string;
-}
-
-interface AddonOption {
-  id: string;
-  name: string;
-  price: number;
-  displayPrice: string;
-}
-
-const PACKAGES: PackageOption[] = [
-  {
-    id: "intimate-soiree",
-    name: "Intimate Soirée",
-    price: 45000,
-    guestDefault: "10–35 Guests",
-    tagline: "Cozy home & terrace gatherings",
-  },
-  {
-    id: "grand-utsav",
-    name: "Grand Utsav",
-    price: 125000,
-    guestDefault: "50–120 Guests",
-    tagline: "All-in-one full celebration",
-  },
-  {
-    id: "royal-bespoke",
-    name: "Royal Bespoke",
-    price: 325000,
-    guestDefault: "120+ Guests",
-    tagline: "Luxury full-scale transformation",
-  },
-];
-
-const GUEST_TIERS: GuestTier[] = [
-  {
-    id: "10-35",
-    label: "10–35 Guests",
-    recommendedFor: "Intimate Soirée",
-  },
-  {
-    id: "50-120",
-    label: "50–120 Guests",
-    recommendedFor: "Grand Utsav",
-  },
-  {
-    id: "120+",
-    label: "120+ Guests",
-    recommendedFor: "Royal Bespoke",
-  },
-];
-
-const ADDONS: AddonOption[] = [
-  {
-    id: "live-chaat",
-    name: "Live Chaat & Mocktail Corner",
-    price: 15000,
-    displayPrice: "+₹15,000",
-  },
-  {
-    id: "drone-reels",
-    name: "Drone Cinematography & Reels",
-    price: 18000,
-    displayPrice: "+₹18,000",
-  },
-  {
-    id: "live-music",
-    name: "Live Acoustic / Sufi Duo",
-    price: 20000,
-    displayPrice: "+₹20,000",
-  },
-  {
-    id: "hampers",
-    name: "Custom Welcome Hampers (50 Boxes)",
-    price: 12000,
-    displayPrice: "+₹12,000",
-  },
-  {
-    id: "valet-concierge",
-    name: "Guest Valet & Concierge Desk",
-    price: 8000,
-    displayPrice: "+₹8,000",
-  },
-];
-
 export default function PackageCustomizer() {
-  const [selectedPkgId, setSelectedPkgId] = useState<string>("grand-utsav");
-  const [selectedGuestTierId, setSelectedGuestTierId] = useState<string>("50-120");
+  const [guestCount, setGuestCount] = useState<number>(DEFAULT_GUEST_COUNT);
+  const [inputValue, setInputValue] = useState<string>(String(DEFAULT_GUEST_COUNT));
+  const [selectedPkgId, setSelectedPkgId] = useState<string>(DEFAULT_PACKAGE_ID);
   const [selectedAddonIds, setSelectedAddonIds] = useState<string[]>([]);
 
   const selectedPkg =
-    PACKAGES.find((p) => p.id === selectedPkgId) || PACKAGES[1];
-  const selectedGuestTier =
-    GUEST_TIERS.find((g) => g.id === selectedGuestTierId) || GUEST_TIERS[1];
+    PACKAGES_CONFIG.find((p) => p.id === selectedPkgId) || PACKAGES_CONFIG[1];
+
+  const handleGuestChange = (newCount: number) => {
+    const clamped = Math.max(MIN_GUEST_COUNT, Math.round(newCount));
+    setGuestCount(clamped);
+    setInputValue(String(clamped));
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    setInputValue(raw);
+    const parsed = parseInt(raw, 10);
+    if (!isNaN(parsed) && parsed >= MIN_GUEST_COUNT) {
+      setGuestCount(parsed);
+    }
+  };
+
+  const handleInputBlur = () => {
+    const parsed = parseInt(inputValue, 10);
+    if (isNaN(parsed) || parsed < MIN_GUEST_COUNT) {
+      setGuestCount(MIN_GUEST_COUNT);
+      setInputValue(String(MIN_GUEST_COUNT));
+    } else {
+      setGuestCount(parsed);
+      setInputValue(String(parsed));
+    }
+  };
 
   const toggleAddon = (id: string) => {
     setSelectedAddonIds((prev) =>
@@ -116,14 +53,16 @@ export default function PackageCustomizer() {
     );
   };
 
+  const basePackageTotal = guestCount * selectedPkg.pricePerGuest;
+
   const addonsTotal = selectedAddonIds.reduce((sum, id) => {
-    const addon = ADDONS.find((a) => a.id === id);
+    const addon = ADDONS_CONFIG.find((a) => a.id === id);
     return sum + (addon ? addon.price : 0);
   }, 0);
 
-  const grandTotal = selectedPkg.price + addonsTotal;
+  const grandTotal = basePackageTotal + addonsTotal;
   const formattedTotal = `₹${grandTotal.toLocaleString("en-IN")}`;
-  const formattedBase = `₹${selectedPkg.price.toLocaleString("en-IN")}`;
+  const formattedBase = `₹${basePackageTotal.toLocaleString("en-IN")}`;
   const formattedAddons = `₹${addonsTotal.toLocaleString("en-IN")}`;
 
   return (
@@ -140,9 +79,9 @@ export default function PackageCustomizer() {
             Build Your Custom Quote
           </h2>
           <p className={styles.description}>
-            Tailor a celebration package to your vision. Choose your base tier,
-            expected guest count, and optional premium add-ons for an instant
-            live budget preview.
+            Tailor a celebration package to your vision. Choose your expected
+            guest count, select your celebration tier, and add optional services
+            for an instant live estimate.
           </p>
         </div>
 
@@ -150,19 +89,102 @@ export default function PackageCustomizer() {
         <div className={styles.grid}>
           {/* Left: Customizer Controls */}
           <div className={styles.controlsCol}>
-            {/* Step 1: Package Selection */}
+            {/* Step 1: Guest Count */}
             <fieldset className={styles.stepGroup}>
               <legend className={styles.stepLegend}>
                 <span className={styles.stepNum}>1</span>
-                <span>Select Your Base Package</span>
+                <span>Expected Guest Count</span>
+              </legend>
+
+              <div className={styles.guestInputSection}>
+                <div className={styles.stepperRow}>
+                  <div
+                    className={styles.stepperContainer}
+                    role="group"
+                    aria-label="Adjust guest count"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleGuestChange(guestCount - 5)}
+                      disabled={guestCount <= MIN_GUEST_COUNT}
+                      aria-label="Decrease guest count by 5"
+                      className={styles.stepperBtn}
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      min={MIN_GUEST_COUNT}
+                      value={inputValue}
+                      onChange={handleInputChange}
+                      onBlur={handleInputBlur}
+                      aria-label="Enter number of guests"
+                      className={styles.stepperInput}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleGuestChange(guestCount + 5)}
+                      aria-label="Increase guest count by 5"
+                      className={styles.stepperBtn}
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  <span className={styles.guestCountHelper}>
+                    {guestCount <= MIN_GUEST_COUNT ? (
+                      <span className={styles.guestMinNotice}>
+                        Minimum {MIN_GUEST_COUNT} guests for standard packages
+                      </span>
+                    ) : (
+                      <span>Planning for {guestCount} celebration guests</span>
+                    )}
+                  </span>
+                </div>
+
+                {/* Quick Preset Chips */}
+                <div className={styles.presetChipsGroup}>
+                  <span className={styles.presetLabel}>Quick Presets:</span>
+                  <div
+                    className={styles.presetChips}
+                    role="radiogroup"
+                    aria-label="Popular guest count presets"
+                  >
+                    {GUEST_PRESETS.map((preset) => {
+                      const isActive = guestCount === preset;
+                      return (
+                        <button
+                          key={preset}
+                          type="button"
+                          role="radio"
+                          aria-checked={isActive}
+                          onClick={() => handleGuestChange(preset)}
+                          className={`${styles.presetChip} ${
+                            isActive ? styles.presetChipActive : ""
+                          }`}
+                        >
+                          {preset} guests
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </fieldset>
+
+            {/* Step 2: Package Selection */}
+            <fieldset className={styles.stepGroup}>
+              <legend className={styles.stepLegend}>
+                <span className={styles.stepNum}>2</span>
+                <span>Select Your Celebration Package</span>
               </legend>
 
               <div
                 className={styles.packageRadioGrid}
                 role="radiogroup"
-                aria-label="Select Base Package"
+                aria-label="Select Celebration Package"
               >
-                {PACKAGES.map((pkg) => {
+                {PACKAGES_CONFIG.map((pkg) => {
                   const isSelected = selectedPkgId === pkg.id;
                   return (
                     <label
@@ -171,69 +193,28 @@ export default function PackageCustomizer() {
                         isSelected ? styles.packageRadioCardActive : ""
                       }`}
                     >
+                      {pkg.badge && (
+                        <span className={styles.cardBadge}>{pkg.badge}</span>
+                      )}
+
                       <input
                         type="radio"
                         name="package-tier"
                         value={pkg.id}
                         checked={isSelected}
-                        onChange={() => {
-                          setSelectedPkgId(pkg.id);
-                          if (pkg.id === "intimate-soiree")
-                            setSelectedGuestTierId("10-35");
-                          if (pkg.id === "grand-utsav")
-                            setSelectedGuestTierId("50-120");
-                          if (pkg.id === "royal-bespoke")
-                            setSelectedGuestTierId("120+");
-                        }}
+                        onChange={() => setSelectedPkgId(pkg.id)}
                         className={styles.radioInput}
                       />
                       <div className={styles.radioTop}>
                         <span className={styles.packageName}>{pkg.name}</span>
                         <span className={styles.packagePrice}>
-                          ₹{pkg.price.toLocaleString("en-IN")}
+                          {pkg.displayRate}
                         </span>
                       </div>
                       <span className={styles.packageTagline}>
                         {pkg.tagline}
                       </span>
                     </label>
-                  );
-                })}
-              </div>
-            </fieldset>
-
-            {/* Step 2: Guest Count */}
-            <fieldset className={styles.stepGroup}>
-              <legend className={styles.stepLegend}>
-                <span className={styles.stepNum}>2</span>
-                <span>Expected Guest Count</span>
-              </legend>
-
-              <div
-                className={styles.guestTierGrid}
-                role="radiogroup"
-                aria-label="Select Expected Guest Count"
-              >
-                {GUEST_TIERS.map((tier) => {
-                  const isSelected = selectedGuestTierId === tier.id;
-                  return (
-                    <button
-                      key={tier.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={isSelected}
-                      onClick={() => setSelectedGuestTierId(tier.id)}
-                      className={`${styles.guestTierBtn} ${
-                        isSelected ? styles.guestTierBtnActive : ""
-                      }`}
-                    >
-                      <span className={styles.guestTierLabel}>
-                        {tier.label}
-                      </span>
-                      <span className={styles.guestTierRec}>
-                        Recommended: {tier.recommendedFor}
-                      </span>
-                    </button>
                   );
                 })}
               </div>
@@ -251,7 +232,7 @@ export default function PackageCustomizer() {
                 role="group"
                 aria-label="Select Optional Premium Add-Ons"
               >
-                {ADDONS.map((addon) => {
+                {ADDONS_CONFIG.map((addon) => {
                   const isChecked = selectedAddonIds.includes(addon.id);
                   return (
                     <label
@@ -317,15 +298,17 @@ export default function PackageCustomizer() {
 
               <div className={styles.breakdownList}>
                 <div className={styles.breakdownRow}>
-                  <span>Base Package ({selectedPkg.name})</span>
+                  <span>
+                    Base Package ({selectedPkg.name})
+                  </span>
                   <span>{formattedBase}</span>
                 </div>
-                <div className={styles.breakdownRow}>
-                  <span>Guest Scale</span>
-                  <span className={styles.guestHighlight}>
-                    {selectedGuestTier.label}
+                <div className={styles.calculationDetail}>
+                  <span>
+                    {guestCount} guests × ₹{selectedPkg.pricePerGuest.toLocaleString("en-IN")} / guest
                   </span>
                 </div>
+
                 {selectedAddonIds.length > 0 && (
                   <div className={styles.breakdownRow}>
                     <span>Add-ons ({selectedAddonIds.length} selected)</span>
@@ -337,7 +320,7 @@ export default function PackageCustomizer() {
               {selectedAddonIds.length > 0 && (
                 <ul className={styles.selectedAddonPills}>
                   {selectedAddonIds.map((id) => {
-                    const item = ADDONS.find((a) => a.id === id);
+                    const item = ADDONS_CONFIG.find((a) => a.id === id);
                     return item ? (
                       <li key={id} className={styles.addonPill}>
                         {item.name}
@@ -350,12 +333,12 @@ export default function PackageCustomizer() {
               <div className={styles.divider} />
 
               <Link href="/#plan-event" className={styles.ctaButton}>
-                Lock In This Package
+                Request Detailed Quote
               </Link>
 
               <p className={styles.disclaimer}>
-                Estimates are indicative and inclusive of standard coordination.
-                Final quotation is tailored to your exact venue, custom menu,
+                Estimates are indicative and calculated based on your expected guest
+                scale. Final quotation is tailored to your exact venue, custom menu,
                 and date availability.
               </p>
             </div>

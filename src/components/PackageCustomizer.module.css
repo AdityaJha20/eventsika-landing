@@ -95,7 +95,158 @@
   border-radius: 50%;
 }
 
-/* Step 1: Package Radios */
+/* Step 1: Guest Count Controls */
+.guestInputSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.stepperRow {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.stepperContainer {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background-color: var(--cream-light);
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(43, 33, 29, 0.04);
+}
+
+.stepperBtn {
+  width: 44px;
+  height: 44px;
+  background-color: transparent;
+  border: none;
+  font-family: var(--font-inter), sans-serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--foreground);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.stepperBtn:hover:not(:disabled) {
+  background-color: var(--cream);
+  color: var(--primary);
+}
+
+.stepperBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.stepperBtn:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: -2px;
+}
+
+.stepperInput {
+  width: 70px;
+  height: 44px;
+  border: none;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  background-color: #ffffff;
+  font-family: var(--font-playfair), serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--foreground);
+  text-align: center;
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.stepperInput::-webkit-outer-spin-button,
+.stepperInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.stepperInput:focus {
+  background-color: #fffdf9;
+}
+
+.guestCountHelper {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.85rem;
+  color: #6b5b52;
+}
+
+.guestMinNotice {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.presetChipsGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.presetLabel {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.775rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b5b52;
+}
+
+.presetChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.presetChip {
+  background-color: var(--cream-light);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 0.4rem 0.9rem;
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: var(--foreground);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.presetChip:hover {
+  border-color: var(--gold);
+  background-color: #fffdf9;
+  color: var(--primary);
+}
+
+.presetChip:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.presetChipActive {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: var(--cream-light);
+}
+
+.presetChipActive:hover {
+  background-color: var(--primary-dark);
+  border-color: var(--primary-dark);
+  color: var(--cream-light);
+}
+
+/* Step 2: Package Radios */
 .packageRadioGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -125,6 +276,23 @@
   border-color: var(--gold);
   background-color: #fffdf9;
   box-shadow: 0 6px 18px rgba(185, 154, 103, 0.15);
+}
+
+.cardBadge {
+  position: absolute;
+  top: -10px;
+  right: 12px;
+  background-color: var(--primary);
+  color: var(--cream-light);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.6rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(127, 16, 16, 0.25);
+  white-space: nowrap;
 }
 
 .radioInput {
@@ -160,56 +328,6 @@
   font-size: 0.775rem;
   color: #6b5b52;
   line-height: 1.4;
-}
-
-/* Step 2: Guest Tiers */
-.guestTierGrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-}
-
-.guestTierBtn {
-  background-color: var(--cream-light);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 1rem 0.85rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 0.35rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  outline: none;
-}
-
-.guestTierBtn:hover {
-  border-color: var(--gold);
-}
-
-.guestTierBtn:focus-visible {
-  outline: 2px solid var(--gold);
-  outline-offset: 2px;
-}
-
-.guestTierBtnActive {
-  border-color: var(--primary);
-  background-color: #fffdf9;
-  box-shadow: 0 4px 14px rgba(127, 16, 16, 0.08);
-}
-
-.guestTierLabel {
-  font-family: var(--font-inter), sans-serif;
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--foreground);
-}
-
-.guestTierRec {
-  font-family: var(--font-inter), sans-serif;
-  font-size: 0.725rem;
-  color: #8c7b70;
 }
 
 /* Step 3: Add-Ons */
@@ -394,9 +512,13 @@
   color: #4a3b32;
 }
 
-.guestHighlight {
-  font-weight: 600;
-  color: var(--foreground);
+.calculationDetail {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.775rem;
+  color: #6b5b52;
+  margin-top: -0.35rem;
+  margin-bottom: 0.25rem;
+  font-style: italic;
 }
 
 .selectedAddonPills {
@@ -464,7 +586,8 @@
 /* Reduced Motion Override */
 @media (prefers-reduced-motion: reduce) {
   .packageRadioCard,
-  .guestTierBtn,
+  .stepperBtn,
+  .presetChip,
   .addonCard,
   .customBox,
   .ctaButton {
@@ -501,14 +624,15 @@
     margin-bottom: 3rem;
   }
 
+  .stepperRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
   .packageRadioGrid {
     grid-template-columns: 1fr;
     gap: 0.85rem;
-  }
-
-  .guestTierGrid {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
   }
 
   .addonsList {

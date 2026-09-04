@@ -3,9 +3,9 @@ import styles from "./PackageComparison.module.css";
 
 interface ComparisonItem {
   feature: string;
-  intimate: string;
+  essential: string;
+  signature: string;
   grand: string;
-  royal: string;
 }
 
 interface ComparisonCategory {
@@ -15,126 +15,126 @@ interface ComparisonCategory {
 
 const COMPARISON_DATA: ComparisonCategory[] = [
   {
-    category: "Capacity & Venue",
+    category: "Capacity & Scale",
     rows: [
       {
-        feature: "Target Guest Range",
-        intimate: "10 to 35 Guests",
-        grand: "50 to 120 Guests",
-        royal: "120+ Guests",
+        feature: "Recommended Guest Scale",
+        essential: "10 to 35 Guests",
+        signature: "25 to 100 Guests",
+        grand: "75 to 200+ Guests",
       },
       {
-        feature: "Ideal Setting",
-        intimate: "Cozy home / terrace",
-        grand: "Banquet hall / lawn",
-        royal: "Luxury estate / gala",
+        feature: "Ideal Celebration Setting",
+        essential: "Cozy home / terrace / living room",
+        signature: "Lawns / banquet / terrace / farmhouse",
+        grand: "Luxury estate / grand hall / gala grounds",
       },
     ],
   },
   {
-    category: "Decor & Styling",
+    category: "Decor & Floral Styling",
     rows: [
       {
-        feature: "Stage / Floral Concept",
-        intimate: "Signature Backdrop / Mandap",
-        grand: "Grand Stage + Entrance Toran",
-        royal: "Architectural Fabrication & Chandeliers",
+        feature: "Stage / Backdrop Concept",
+        essential: "Signature Themed Backdrop or Floral Mandap",
+        signature: "Grand Floral Stage + Entrance Toran",
+        grand: "Bespoke Architectural Fabrication & Chandeliers",
       },
       {
-        feature: "Lighting & Seating",
-        intimate: "Fairy Lights & Diwan Seating",
-        grand: "Intelligent Party Lighting Rig",
-        royal: "Draped Canopies & Architectural Lighting",
+        feature: "Lighting & Ambient Decor",
+        essential: "Warm Fairy Lights & Table Accents",
+        signature: "Intelligent Ambient & Party Lighting Rig",
+        grand: "Multi-Zone Mood Lighting & Draped Canopies",
       },
     ],
   },
   {
-    category: "Catering",
+    category: "Catering & Hospitality",
     rows: [
       {
-        feature: "Buffet Dining",
-        intimate: "— (Add-on available)",
-        grand: "Multi-Course Buffet (50 Guests)",
-        royal: "Live Gourmet Showcase & Multi-Cuisine",
+        feature: "Buffet Dining Coordination",
+        essential: "Coordination available as add-on",
+        signature: "Multi-Course Gourmet Buffet Planning",
+        grand: "Curated Live Gourmet Counters & Fusion Dining",
       },
       {
-        feature: "Live Counter / Chaat",
-        intimate: "—",
-        grand: "Live Chaat & Mocktail Corner",
-        royal: "Multi-Station Experiential Bars",
+        feature: "Live Food & Mocktails",
+        essential: "Optional add-on available",
+        signature: "Live Chaat & Refreshment Stations",
+        grand: "Multi-Station Experiential Food Bars",
       },
     ],
   },
   {
-    category: "Photo & Cinema",
+    category: "Photography & Cinematography",
     rows: [
       {
-        feature: "Photography",
-        intimate: "Candid Coverage (3 Hours)",
-        grand: "Full Event Candid Photographer",
-        royal: "Duo Candid + Lead Traditional",
+        feature: "Still Photography",
+        essential: "Candid Coverage (3 Hours)",
+        signature: "Full Celebration Candid Coverage",
+        grand: "Duo Lead Candid + Traditional Coverage",
       },
       {
-        feature: "Cinematic Video & Reel",
-        intimate: "—",
-        grand: "4K Cinematic Highlight Reel",
-        royal: "Full Film Crew + Drone + Teaser",
+        feature: "Cinematic Film & Reels",
+        essential: "Optional add-on available",
+        signature: "4K Cinematic Highlight Reel",
+        grand: "Full Cinematography Team + Drone + Teasers",
       },
     ],
   },
   {
-    category: "Entertainment",
+    category: "Entertainment & Sound",
     rows: [
       {
-        feature: "Music / DJ",
-        intimate: "Hi-Fi Bluetooth & Playlist",
-        grand: "Professional DJ & Sound Rig",
-        royal: "Live Sufi/Acoustic Band & Host",
+        feature: "Music & Sound System",
+        essential: "High-Fidelity Bluetooth Sound & Playlist",
+        signature: "Professional DJ & Party Sound Setup",
+        grand: "Live Acoustic / Sufi Band & Celebrity Host",
       },
     ],
   },
   {
-    category: "Management",
+    category: "Coordination & Management",
     rows: [
       {
-        feature: "On-Ground Operations",
-        intimate: "1 On-Site Coordinator",
-        grand: "1 Lead Manager + 2 Staff",
-        royal: "Comprehensive Execution Team",
+        feature: "On-Ground Management Team",
+        essential: "1 Dedicated On-Site Event Coordinator",
+        signature: "1 Lead Floor Manager + 2 Operations Staff",
+        grand: "Comprehensive End-to-End Concierge Team",
       },
       {
-        feature: "Valet & Guest Concierge",
-        intimate: "—",
-        grand: "— (Add-on available)",
-        royal: "Complete Valet & Concierge Desk",
+        feature: "Valet & Guest Hospitality",
+        essential: "Optional add-on available",
+        signature: "Dedicated Welcome Coordination",
+        grand: "Complete Valet, Concierge & Guest Desk",
       },
     ],
   },
   {
-    category: "Invites & Details",
+    category: "Invitations & Stationery",
     rows: [
       {
-        feature: "Invitation Format",
-        intimate: "Digital WhatsApp Invite",
-        grand: "Digital Video WhatsApp Invite",
-        royal: "Animated Video + RSVP Microsite",
+        feature: "Digital Invitations",
+        essential: "Digital WhatsApp Invitation Design",
+        signature: "Animated WhatsApp Video Invitation",
+        grand: "Animated Video + Interactive RSVP Microsite",
       },
       {
-        feature: "Physical Favors / Boxes",
-        intimate: "—",
-        grand: "— (Add-on available)",
-        royal: "Luxury Boxed Keepsake Hampers",
+        feature: "Physical Keepsakes & Favors",
+        essential: "Optional add-on available",
+        signature: "Coordination available as add-on",
+        grand: "Curated Luxury Boxed Keepsake Hampers",
       },
     ],
   },
   {
-    category: "Setup",
+    category: "Execution & Teardown",
     rows: [
       {
-        feature: "Setup & Post-Dismantling",
-        intimate: "✓ Included",
+        feature: "Setup & Post-Event Dismantling",
+        essential: "✓ Included",
+        signature: "✓ Included",
         grand: "✓ Included",
-        royal: "✓ Included",
       },
     ],
   },
@@ -177,8 +177,8 @@ export default function PackageComparison() {
                 </th>
                 <th scope="col" className={styles.packageColHeader}>
                   <div className={styles.packageHeaderBox}>
-                    <span className={styles.packageName}>Intimate Soirée</span>
-                    <span className={styles.packagePrice}>₹45,000</span>
+                    <span className={styles.packageName}>Essential</span>
+                    <span className={styles.packagePrice}>₹1,500 / guest</span>
                   </div>
                 </th>
                 <th
@@ -186,15 +186,15 @@ export default function PackageComparison() {
                   className={`${styles.packageColHeader} ${styles.popularColHeader}`}
                 >
                   <div className={styles.packageHeaderBox}>
-                    <span className={styles.popularBadge}>MOST POPULAR</span>
-                    <span className={styles.packageName}>Grand Utsav</span>
-                    <span className={styles.packagePrice}>₹1,25,000</span>
+                    <span className={styles.popularBadge}>OUR SIGNATURE</span>
+                    <span className={styles.packageName}>Signature</span>
+                    <span className={styles.packagePrice}>₹2,500 / guest</span>
                   </div>
                 </th>
                 <th scope="col" className={styles.packageColHeader}>
                   <div className={styles.packageHeaderBox}>
-                    <span className={styles.packageName}>Royal Bespoke</span>
-                    <span className={styles.packagePrice}>₹3,25,000</span>
+                    <span className={styles.packageName}>Grand</span>
+                    <span className={styles.packagePrice}>₹3,500 / guest</span>
                   </div>
                 </th>
               </tr>
@@ -217,7 +217,7 @@ export default function PackageComparison() {
                         {row.feature}
                       </th>
                       <td className={styles.dataCell}>
-                        {row.intimate === "✓ Included" ? (
+                        {row.essential === "✓ Included" ? (
                           <span className={styles.checkValue}>
                             <svg
                               className={styles.checkIcon}
@@ -233,15 +233,38 @@ export default function PackageComparison() {
                             </svg>
                             <span>Included</span>
                           </span>
-                        ) : row.intimate === "—" ? (
+                        ) : row.essential === "—" ? (
                           <span className={styles.dashValue}>—</span>
                         ) : (
-                          <span>{row.intimate}</span>
+                          <span>{row.essential}</span>
                         )}
                       </td>
                       <td
                         className={`${styles.dataCell} ${styles.popularDataCell}`}
                       >
+                        {row.signature === "✓ Included" ? (
+                          <span className={styles.checkValue}>
+                            <svg
+                              className={styles.checkIcon}
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden="true"
+                            >
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            <span>Included</span>
+                          </span>
+                        ) : row.signature === "—" ? (
+                          <span className={styles.dashValue}>—</span>
+                        ) : (
+                          <span>{row.signature}</span>
+                        )}
+                      </td>
+                      <td className={styles.dataCell}>
                         {row.grand === "✓ Included" ? (
                           <span className={styles.checkValue}>
                             <svg
@@ -262,29 +285,6 @@ export default function PackageComparison() {
                           <span className={styles.dashValue}>—</span>
                         ) : (
                           <span>{row.grand}</span>
-                        )}
-                      </td>
-                      <td className={styles.dataCell}>
-                        {row.royal === "✓ Included" ? (
-                          <span className={styles.checkValue}>
-                            <svg
-                              className={styles.checkIcon}
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              aria-hidden="true"
-                            >
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                            <span>Included</span>
-                          </span>
-                        ) : row.royal === "—" ? (
-                          <span className={styles.dashValue}>—</span>
-                        ) : (
-                          <span>{row.royal}</span>
                         )}
                       </td>
                     </tr>
