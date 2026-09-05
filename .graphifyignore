@@ -1,0 +1,96 @@
+# ==============================================================================
+# Graphify Ignore Configuration — Eventsika (landing)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Critical Secrets & Environment Configuration (NEVER INDEX)
+# ------------------------------------------------------------------------------
+.env
+.env.*
+*.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.example
+*.pem
+*.key
+*.cert
+
+# ------------------------------------------------------------------------------
+# 2. Graphify Self-Output & Tooling State (Prevents circular graph loops)
+# ------------------------------------------------------------------------------
+graphify-out/
+.graphify/
+graphify-output/
+
+# ------------------------------------------------------------------------------
+# 3. Dependencies & Transitive Resolution Lockfiles
+# ------------------------------------------------------------------------------
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
+.pnp
+.pnp.*
+.yarn/
+
+# ------------------------------------------------------------------------------
+# 4. Next.js Build Outputs, Compilers, & Intermediate Caches
+# ------------------------------------------------------------------------------
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+coverage/
+.turbo/
+.vercel/
+
+# ------------------------------------------------------------------------------
+# 5. Production Zip Archives & Deployment Bundles
+# ------------------------------------------------------------------------------
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# ------------------------------------------------------------------------------
+# 6. Static Media, Images, Videos, & Binary Assets
+# ------------------------------------------------------------------------------
+public/
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.ico
+*.svg
+*.mp4
+*.webm
+*.mov
+*.avi
+*.mp3
+*.wav
+
+# ------------------------------------------------------------------------------
+# 7. Database & Tooling Temporary/Cache Files
+# ------------------------------------------------------------------------------
+supabase/.temp/
+.temp/
+.cache/
+
+# ------------------------------------------------------------------------------
+# 8. Logs & OS Metadata
+# ------------------------------------------------------------------------------
+*.log*
+.git/
+.DS_Store
+Thumbs.db
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
