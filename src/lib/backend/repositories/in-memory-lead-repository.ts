@@ -34,6 +34,10 @@ export class InMemoryLeadRepository implements ILeadRepository {
   getRecentCount(): number {
     return this.records.length;
   }
+
+  async getAllLeads(): Promise<SavedLeadRecord[]> {
+    return [...this.records];
+  }
 }
 
 export const defaultLeadRepository = new InMemoryLeadRepository();

@@ -30,6 +30,7 @@ describe("LeadService", () => {
         id: "mock-lead-uuid-1234",
         createdAt: "2026-09-02T12:00:00.000Z",
       })),
+      getAllLeads: vi.fn().mockResolvedValue([]),
     };
 
     mockNotifier = {

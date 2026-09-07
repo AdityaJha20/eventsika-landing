@@ -62,4 +62,39 @@ export class SupabaseLeadRepository implements ILeadRepository {
       createdAt: data.created_at,
     };
   }
+
+  async getAllLeads(): Promise<SavedLeadRecord[]> {
+    const client = this.client || getSupabaseAdminClient();
+    if (!client) {
+      throw new Error("Supabase client is not configured or unavailable.");
+    }
+
+    const { data, error } = await client
+      .from("leads")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw new Error(`Database error retrieving leads: ${error.message}`);
+    }
+
+    return (data || []).map((row) => ({
+      id: row.id,
+      userName: row.user_name,
+      userPhone: row.user_phone,
+      city: row.city,
+      eventType: row.event_type,
+      eventDate: row.event_date,
+      guestCount: row.guest_count,
+      venueType: row.venue_type,
+      selectedServices: Array.isArray(row.selected_services) ? row.selected_services : [],
+      budgetRange: row.budget_range,
+      whatsappConsent: Boolean(row.whatsapp_consent),
+      isBot: false,
+      requestId: row.request_id || null,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
+  }
 }
+
