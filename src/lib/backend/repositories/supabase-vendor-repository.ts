@@ -60,4 +60,37 @@ export class SupabaseVendorRepository implements IVendorRepository {
       createdAt: data.created_at,
     };
   }
+
+  async getAllVendorApplications(): Promise<SavedVendorRecord[]> {
+    const client = this.client || getSupabaseAdminClient();
+    if (!client) {
+      throw new Error("Supabase client is not configured or unavailable.");
+    }
+
+    const { data, error } = await client
+      .from("vendor_applications")
+      .select(
+        "id, business_name, contact_name, phone, email, city, experience, portfolio_url, categories, created_at, request_id"
+      )
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw new Error(`Database error retrieving vendor applications: ${error.message}`);
+    }
+
+    return (data || []).map((row) => ({
+      id: row.id,
+      businessName: row.business_name,
+      contactName: row.contact_name,
+      phone: row.phone,
+      email: row.email,
+      city: row.city,
+      experience: row.experience,
+      portfolioUrl: row.portfolio_url,
+      categories: Array.isArray(row.categories) ? row.categories : [],
+      isBot: false,
+      requestId: row.request_id || null,
+      createdAt: row.created_at,
+    }));
+  }
 }

@@ -3,6 +3,7 @@ import { ValidatedVendorInput } from "../validation/vendor-schema";
 export interface SavedVendorRecord extends ValidatedVendorInput {
   id: string;
   createdAt: string;
+  requestId?: string | null;
 }
 
 export interface IVendorRepository {
@@ -11,5 +12,10 @@ export interface IVendorRepository {
    * Backed by Supabase PostgreSQL in production, with in-memory fallback.
    */
   saveVendorApplication(vendor: ValidatedVendorInput, context?: { requestId?: string }): Promise<SavedVendorRecord>;
+
+  /**
+   * Retrieves all celebration vendor partner applications.
+   */
+  getAllVendorApplications(): Promise<SavedVendorRecord[]>;
 }
 

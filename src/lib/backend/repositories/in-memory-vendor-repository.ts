@@ -34,6 +34,10 @@ export class InMemoryVendorRepository implements IVendorRepository {
   getRecentCount(): number {
     return this.records.length;
   }
+
+  async getAllVendorApplications(): Promise<SavedVendorRecord[]> {
+    return [...this.records];
+  }
 }
 
 export const defaultVendorRepository = new InMemoryVendorRepository();
