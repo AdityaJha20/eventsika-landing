@@ -546,10 +546,10 @@
     "semantic_hash": "8db4431a22d08517bbd9e9553a1c3f31"
   },
   ".agents/project-brain/Brain.md": {
-    "mtime": 1788437549.147268,
-    "seen": 1788611791.4320893,
-    "ast_hash": "f400d565845064047598774351133989",
-    "semantic_hash": "f400d565845064047598774351133989"
+    "mtime": 1788855590.4275157,
+    "seen": 1788855642.4273376,
+    "ast_hash": "49d1b952f273465261bb7ccfa43cc7f7",
+    "semantic_hash": ""
   },
   ".agents/rules/graphify.md": {
     "mtime": 1788611108.0431175,

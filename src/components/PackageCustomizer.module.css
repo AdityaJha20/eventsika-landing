@@ -209,6 +209,7 @@
   text-align: center;
   outline: none;
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 .stepperInput::-webkit-outer-spin-button,

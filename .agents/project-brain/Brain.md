@@ -10,9 +10,9 @@
 | :--- | :--- |
 | **Project Name** | Eventsika (`landing`) |
 | **Document Path** | [`.agents/project-brain/Brain.md`](file:///d:/Persional-projects/landing/.agents/project-brain/Brain.md) |
-| **Brain Version** | `1.0.0` |
+| **Brain Version** | `1.2.0` |
 | **Creation Date** | `2026-08-30` |
-| **Last Verified** | `2026-08-30` |
+| **Last Verified** | `2026-09-08` |
 | **Target Framework** | Next.js `16.3.0` (React `19.2.8`, App Router) |
 | **Primary Domain** | `https://eventsika.in` |
 | **Support Inbox** | `care@eventsika.in` |
@@ -28,9 +28,10 @@
 1. **Curated Celebration Services**: Venue decor & floral styling, gourmet catering, live counters, ritual & puja arrangements, photography & cinematography, live entertainment, and bespoke invitations.
 2. **Transparent Tiered Pricing**: Structured packages ranging from intimate terrace gatherings (₹35k+) to grand multi-day festive galas (₹1.25L+), with dynamic customizer and comparison tools.
 3. **Interactive Lead Generation Engine**: High-conversion, validated celebration intake form (`#plan-event`) with server-side rate limiting, honeypot protection, and multi-channel notification dispatch.
-4. **Curated Vendor Partner Network**: Transparent vendor acquisition and onboarding pipeline with verified milestone payouts and on-site event coordination.
+4. **Curated Vendor Partner Network**: Transparent vendor partner application and onboarding registry (`/for-vendors`, `/admin/vendors`) capturing business profiles, portfolio links, and specialized categories.
 5. **Seasonal Strategy Consultations**: High-intent 1-on-1 celebration planning advisory sessions (`/diwali-consultation`).
-6. **Client & Partner Portal (Pre-launch)**: Dedicated portal entry point (`/login`) featuring client-side authentication validation and direct operational support routing.
+6. **Client & Partner Authentication Portal**: Dedicated portal entry point (`/login`) featuring client-side validation, secure Supabase SSR session handshake, and direct operational support routing.
+7. **Concierge Operations Suite**: Protected operational command center (`/admin`) for inquiries management (`/admin/leads`), partner application registry (`/admin/vendors`), and intake metrics.
 
 ---
 
@@ -47,43 +48,74 @@ All dependencies and versions are verified directly from `package.json` and proj
 | **React Compiler** | `1.0.0` | Build Optimization | `babel-plugin-react-compiler` enabled via `reactCompiler: true` in `next.config.ts` |
 | **Styling** | Vanilla CSS | Design System | Pure CSS Modules (`*.module.css`) + CSS Custom Properties. **Zero Tailwind**. |
 | **Typography** | `next/font/google` | Font Management | `Playfair Display` (Serif) & `Inter` (Sans-serif) with CSS variable injection |
+| **Database & Auth** | `@supabase/supabase-js: ^2.112.4`<br>`@supabase/ssr: ^0.12.5` | Persistence & Sessions | PostgreSQL database persistence, server-side session cookies, RLS policies |
+| **Distributed Cache / Rate Limiter** | `@upstash/redis: ^1.38.3` | Distributed Abuse Prevention | Atomic Redis Lua scripts for multi-layer admin auth rate limiting; fails closed in prod |
+| **Rate Limiter (Public)** | In-Memory Map | Public Intake Defense | Sliding window IP rate limiter with automated 5-minute cleanup cycles (`rate-limit.ts`) |
 | **ESLint** | `^9` | Linting & Standards | Flat config format (`eslint.config.mjs`) using `eslint-config-next: 16.3.0` |
+| **Test Framework** | `vitest: ^4.1.11` | Automated Testing | Unit & integration test suites (21 test files, 169 tests passing) |
 | **Mailer Engine** | Native Fetch | Backend Dispatch | Zero-dependency REST dispatchers for Resend, SendGrid, and Custom Webhooks |
-| **Rate Limiter** | In-Memory | Security & Abuse | Sliding/fixed window IP rate limiter with automated stale entry cleanup |
 
 ---
 
 ## 3. High-Level Architecture
 
-Eventsika follows a clean Next.js 16 App Router architecture with strict Server vs. Client component boundaries:
+Eventsika follows a clean Next.js 16 App Router architecture with strict Server vs. Client component boundaries, edge-to-server middleware authentication, and database-persisted concierge operations:
 
 ```mermaid
 graph TD
     Client["Browser / Client (Desktop & Mobile)"] --> NextRouter["Next.js 16 App Router (RootLayout)"]
     
-    subgraph Frontend ["Presentation Layer (src/app & src/components)"]
+    subgraph FrontendPublic ["Public Presentation Layer (src/app & src/components)"]
         NextRouter --> HomeRoute["/ (Homepage & Hero Intake)"]
         NextRouter --> ServicesRoute["/services (Catalog & Estimator)"]
         NextRouter --> PackagesRoute["/packages (Tiers & Customizer)"]
-        NextRouter --> VendorRoute["/for-vendors (Partner Network)"]
+        NextRouter --> VendorRoute["/for-vendors (Partner Application)"]
         NextRouter --> DiwaliRoute["/diwali-consultation (Promo Advisory)"]
-        NextRouter --> LoginRoute["/login (Client/Partner Portal)"]
+        NextRouter --> LoginRoute["/login (Admin & Partner Authentication)"]
         NextRouter --> MetadataRoutes["/robots.txt & /sitemap.xml"]
+    end
+
+    subgraph MiddlewareLayer ["Edge/Server Request Boundary (src/middleware.ts)"]
+        NextRouter -->|"Protected Routes: /admin/*, /api/admin/*"| MiddlewareGuard["Middleware Session & Role Guard"]
+        MiddlewareGuard -->|"Public Exemption: /api/admin/auth/login"| AdminAuthRoute["Auth API Route"]
+        MiddlewareGuard -->|"Unauthenticated / Non-Admin API"| Reject401["HTTP 401 / 503 JSON"]
+        MiddlewareGuard -->|"Unauthenticated Page Request"| RedirectLogin["Redirect -> /login"]
+        MiddlewareGuard -->|"Verified app_metadata.role == 'admin'"| AdminLayoutRSC["Admin Layout Shell (RSC)"]
+    end
+
+    subgraph FrontendAdmin ["Concierge Operations Suite (src/app/admin)"]
+        AdminLayoutRSC --> AdminDash["/admin (Operations Dashboard)"]
+        AdminLayoutRSC --> AdminLeads["/admin/leads (Inquiries Queue & Dossier)"]
+        AdminLayoutRSC --> AdminVendors["/admin/vendors (Partner Register & CSV)"]
     end
 
     subgraph BackendAPI ["API & Route Handler Layer (src/app/api)"]
         HomeRoute -.->|"POST /api/leads"| LeadRoute["Route: /api/leads"]
         VendorRoute -.->|"POST /api/vendor-applications"| VendorRouteAPI["Route: /api/vendor-applications"]
         NextRouter -.->|"GET /api/health"| HealthRoute["Route: /api/health"]
+        LoginRoute -.->|"POST /api/admin/auth/login"| AdminLoginAPI["Route: /api/admin/auth/login"]
+        AdminDash -.->|"POST /api/admin/auth/logout"| AdminLogoutAPI["Route: /api/admin/auth/logout"]
         
-        LeadRoute --> RequestGuards["Request Guards (Rate Limit 5/10m, Size 50KB, RequestId)"]
-        VendorRouteAPI --> RequestGuards
+        LeadRoute --> PublicGuards["Public Guards (In-Memory Rate Limit 5/10m, Size 50KB, RequestId)"]
+        VendorRouteAPI --> PublicGuards
+        AdminLoginAPI --> AdminGuards["Admin Security Guards (CSRF/Origin, 8KB Size, Upstash Redis Rate Limit)"]
         
-        RequestGuards --> ValidationLayer["Validation Layer (src/lib/backend/validation)"]
-        ValidationLayer --> ServiceLayer["Business Service Layer (LeadService & VendorService)"]
+        PublicGuards --> ValidationLayer["Validation Layer (src/lib/backend/validation)"]
+        AdminGuards --> AuthLogic["Supabase Auth Verification & Anti-Enumeration Defense"]
+        ValidationLayer --> ServiceLayer["Business Service Layer (Lead, Vendor, Admin Services)"]
+        AdminDash --> ServiceLayer
+        AdminLeads --> ServiceLayer
+        AdminVendors --> ServiceLayer
+        
         ServiceLayer --> Deduplicator["In-Memory Deduplicator (30s Sliding Window)"]
-        ServiceLayer --> RepoBoundary["Repository Boundary (ILeadRepository, IVendorRepository)"]
+        ServiceLayer --> RepoBoundary["Repository Boundary (ILeadRepository, IVendorRepository, IDashboardRepository)"]
         ServiceLayer --> DeliveryBoundary["Delivery Notifier Boundary (IDeliveryNotifier)"]
+    end
+
+    subgraph Persistence ["Persistence & Caching Infrastructure"]
+        RepoBoundary -->|"Production: Service Role Key"| SupabaseStore["Supabase PostgreSQL (leads, vendor_applications)"]
+        RepoBoundary -.->|"Dev / Test Fallback"| InMemoryStore["In-Memory Store Singletons"]
+        AdminGuards -->|"Atomic Lua Scripting"| UpstashRedis["Upstash Redis (Multi-Layer IP/Account Lockouts)"]
     end
 
     subgraph Integrations ["Integrations & External Dispatch (src/lib/mailer.ts)"]
@@ -123,11 +155,44 @@ landing/
 │   ├── payment-logos/                     # UPI, GPay, PhonePe, Paytm, Cred vector icons
 │   └── videos/                            # Consultation walkthrough videos (mp4)
 ├── src/
+│   ├── middleware.ts                      # Edge/Node middleware protecting /admin & /api/admin
 │   ├── app/                               # Next.js 16 App Router hierarchy
+│   │   ├── admin/                         # Protected Concierge Operations Suite
+│   │   │   ├── AdminHeader.tsx            # Header with breadcrumbs & mobile drawer toggle
+│   │   │   ├── AdminShell.tsx             # Responsive layout & sidebar wrapper
+│   │   │   ├── AdminSidebar.tsx           # Official logo navigation sidebar
+│   │   │   ├── LogoutButton.tsx           # CSRF-safe admin session termination button
+│   │   │   ├── admin.module.css           # Dashboard metrics & activity styling
+│   │   │   ├── admin-shell.module.css     # Shell, drawer, and sidebar styles
+│   │   │   ├── layout.tsx                 # Protected admin RSC boundary with requireAdminSession
+│   │   │   ├── page.tsx                   # Operations Dashboard executive summary
+│   │   │   ├── leads/                     # Celebration Inquiries queue
+│   │   │   │   ├── LeadsWorkspace.tsx     # 2-pane inquiry list & client dossier
+│   │   │   │   ├── leads.module.css       # Scoped leads workspace styles
+│   │   │   │   └── page.tsx               # Server page fetching via adminLeadService
+│   │   │   └── vendors/                   # Partner Applications Register
+│   │   │       ├── VendorsWorkspace.tsx   # Paginated register & slide-over drawer
+│   │   │       ├── vendor-helpers.ts      # CSV builder, formula sanitize, URL sanitizers
+│   │   │       ├── vendors.module.css     # Scoped vendor register styles
+│   │   │       ├── __tests__/
+│   │   │       │   └── vendor-helpers.test.ts # Tests for sanitizers and CSV generator
+│   │   │       └── page.tsx               # Server page fetching via adminVendorService
 │   │   ├── api/                           # Serverless Route Handlers
+│   │   │   ├── admin/
+│   │   │   │   └── auth/
+│   │   │   │       ├── login/route.ts     # POST rate-limited admin authentication
+│   │   │   │       ├── logout/route.ts    # POST admin session sign-out
+│   │   │   │       └── __tests__/
+│   │   │   │           ├── login-route.test.ts  # Security & rate-limiting tests
+│   │   │   │           ├── logout-route.test.ts # Session revocation tests
+│   │   │   │           └── middleware.test.ts   # Route protection tests
 │   │   │   ├── health/route.ts            # GET application liveness & health check
-│   │   │   ├── leads/route.ts             # POST celebration lead capture
-│   │   │   └── vendor-applications/route.ts # POST partner application capture
+│   │   │   ├── leads/
+│   │   │   │   ├── route.ts               # POST celebration lead capture
+│   │   │   │   └── __tests__/             # Lead API integration tests
+│   │   │   └── vendor-applications/
+│   │   │       ├── route.ts               # POST partner application capture
+│   │   │       └── __tests__/             # Vendor API integration tests
 │   │   ├── diwali-consultation/           # Special 1-on-1 advisory promotion route
 │   │   ├── for-vendors/                   # Vendor partner network route
 │   │   ├── login/                         # Client & Partner portal login route
@@ -162,28 +227,46 @@ landing/
 │   │       └── DiwaliCtaDiya.module.css   # Diya positioning, warm glow & 3.8s flame sway animation
 │   └── lib/                               # Shared server & backend infrastructure
 │       ├── backend/                       # Layered backend architecture
+│       │   ├── auth/
+│       │   │   ├── require-admin.ts       # Server authorization checking app_metadata.role
+│       │   │   └── __tests__/             # Role boundary tests
+│       │   ├── config/
+│       │   │   ├── env.ts                 # Runtime environment variable validation
+│       │   │   └── __tests__/             # Environment validation tests
 │       │   ├── constants/allowlists.ts    # Authoritative canonical form allowlists
-│       │   ├── deduplication/             # 15s sliding window in-memory deduplicator
+│       │   ├── deduplication/
+│       │   │   ├── deduplicator.ts        # 30s sliding window in-memory deduplicator
+│       │   │   └── __tests__/             # Deduplication tests
+│       │   ├── http/
+│       │   │   ├── origin.ts              # CSRF / Origin / Sec-Fetch-Site validation
+│       │   │   └── __tests__/             # Origin validation tests
 │       │   ├── integrations/              # Delivery notifier interfaces & adapters
 │       │   ├── logger/logger.ts           # PII-safe structured logger with phone/email masking
 │       │   ├── repositories/              # Repository interfaces, in-memory & Supabase stores
-│       │   │   ├── dashboard-repository.interface.ts # Dashboard aggregation contracts & metrics types
+│       │   │   ├── dashboard-repository.interface.ts # Dashboard aggregation contracts
 │       │   │   ├── in-memory-lead-repository.ts
 │       │   │   ├── in-memory-vendor-repository.ts
 │       │   │   ├── lead-repository.interface.ts
-│       │   │   ├── supabase-dashboard-repository.ts # Real Supabase dashboard queries (No fake fallback)
+│       │   │   ├── supabase-dashboard-repository.ts  # Supabase dashboard queries (No fake fallback)
 │       │   │   ├── supabase-lead-repository.ts
 │       │   │   ├── supabase-vendor-repository.ts
-│       │   │   └── vendor-repository.interface.ts
-│       │   ├── services/                  # Business domain services (Lead, Vendor, Dashboard)
-│       │   │   ├── admin-dashboard-service.ts # Dashboard aggregation orchestration & date formatters
+│       │   │   ├── vendor-repository.interface.ts
+│       │   │   └── __tests__/             # Repository tests
+│       │   ├── services/                  # Business domain services
+│       │   │   ├── admin-dashboard-service.ts # Dashboard aggregation orchestration
+│       │   │   ├── admin-lead-service.ts      # Leads queue data orchestration
+│       │   │   ├── admin-vendor-service.ts    # Vendor register data orchestration
 │       │   │   ├── lead-service.ts
-│       │   │   └── vendor-service.ts
-│       │   ├── supabase/client.ts         # Server-only Supabase admin client module
+│       │   │   ├── vendor-service.ts
+│       │   │   └── __tests__/             # Service unit tests
+│       │   ├── supabase/
+│       │   │   ├── client.ts              # Server-only Supabase admin client (Service Role)
+│       │   │   └── server.ts              # Server Supabase client using @supabase/ssr
 │       │   ├── utils/request-id.ts        # Correlation ID generator & header extractor
 │       │   └── validation/                # Server-side validation schemas (phone, date, url)
+│       │       └── __tests__/             # Validation schemas unit tests
 │       ├── mailer.ts                      # Multi-provider zero-dependency email dispatcher
-│       └── rate-limit.ts                  # In-memory IP rate limiter & header extractor
+│       └── rate-limit.ts                  # Hybrid rate limiter (In-memory public + Upstash Redis admin)
 ├── supabase/                              # Version-controlled Supabase migrations
 │   └── migrations/                        # PostgreSQL DDL migrations (tables, RLS, indexes)
 ├── .env.example                           # Sanitized environment variable template
@@ -207,26 +290,37 @@ landing/
 | `/packages` | Page (Static) | [`src/app/packages/page.tsx`](file:///d:/Persional-projects/landing/src/app/packages/page.tsx) | Curated tiered package explorer with interactive [`PackageCustomizer`](file:///d:/Persional-projects/landing/src/components/PackageCustomizer.tsx) and side-by-side [`PackageComparison`](file:///d:/Persional-projects/landing/src/components/PackageComparison.tsx). |
 | `/for-vendors` | Page (Static) | [`src/app/for-vendors/page.tsx`](file:///d:/Persional-projects/landing/src/app/for-vendors/page.tsx) | Partner acquisition landing page with value props and multi-category [`VendorApplicationForm`](file:///d:/Persional-projects/landing/src/components/VendorApplicationForm.tsx). |
 | `/diwali-consultation` | Page (Static) | [`src/app/diwali-consultation/page.tsx`](file:///d:/Persional-projects/landing/src/app/diwali-consultation/page.tsx) | High-intent promotional landing page for 1-on-1 strategy consultations at ₹2,999 (regular ₹5,000). |
-| `/login` | Page (Static) | [`src/app/login/page.tsx`](file:///d:/Persional-projects/landing/src/app/login/page.tsx) | Client and vendor portal authentication page. Features client-side validation and simulated staging status notices. |
-| `/robots.txt` | Metadata | [`src/app/robots.ts`](file:///d:/Persional-projects/landing/src/app/robots.ts) | Dynamic SEO robot instructions allowing all crawling except `/api/` endpoints. |
+| `/login` | Page (Static) | [`src/app/login/page.tsx`](file:///d:/Persional-projects/landing/src/app/login/page.tsx) | Client & Partner portal authentication page. Features client-side validation and authenticates directly against `/api/admin/auth/login`. |
+| `/admin` | Page (RSC) | [`src/app/admin/page.tsx`](file:///d:/Persional-projects/landing/src/app/admin/page.tsx) | Executive concierge operations dashboard. Displays 4 key metric cards, 5-stage intake pipeline, chronological activity feed, and upcoming celebrations table. |
+| `/admin/leads` | Page (RSC) | [`src/app/admin/leads/page.tsx`](file:///d:/Persional-projects/landing/src/app/admin/leads/page.tsx) | Operational celebration inquiries queue. Features 2-pane master-detail view, search, city/occasion filtering, sorting, deep client dossier, and WhatsApp/Call actions. |
+| `/admin/vendors` | Page (RSC) | [`src/app/admin/vendors/page.tsx`](file:///d:/Persional-projects/landing/src/app/admin/vendors/page.tsx) | Operational vendor partner application register. Features category/city/experience filtering, slide-over detail drawer, and formula-injection-safe CSV export. |
+| `/robots.txt` | Metadata | [`src/app/robots.ts`](file:///d:/Persional-projects/landing/src/app/robots.ts) | Dynamic SEO robot instructions allowing all crawling except `/api/` and `/admin/` endpoints. |
 | `/sitemap.xml` | Metadata | [`src/app/sitemap.ts`](file:///d:/Persional-projects/landing/src/app/sitemap.ts) | Dynamic XML sitemap indexing all canonical public routes with priority ratings. |
 | `/api/health` | API (Dynamic) | [`src/app/api/health/route.ts`](file:///d:/Persional-projects/landing/src/app/api/health/route.ts) | GET endpoint for application health and uptime verification (`{ status: "healthy", timestamp, version }`). |
 | `/api/leads` | API (Dynamic) | [`src/app/api/leads/route.ts`](file:///d:/Persional-projects/landing/src/app/api/leads/route.ts) | POST endpoint for celebration inquiries. Rate limited (5/10m), 50KB capped, deduplicated, validated, dispatches email/webhook. |
 | `/api/vendor-applications` | API (Dynamic) | [`src/app/api/vendor-applications/route.ts`](file:///d:/Persional-projects/landing/src/app/api/vendor-applications/route.ts) | POST endpoint for vendor partner applications. Rate limited, deduplicated, validates portfolio URLs & category arrays. |
+| `/api/admin/auth/login` | API (Dynamic) | [`src/app/api/admin/auth/login/route.ts`](file:///d:/Persional-projects/landing/src/app/api/admin/auth/login/route.ts) | POST endpoint for admin authentication. Origin/CSRF guard, 8KB size ceiling, multi-layer Upstash Redis rate limiting with progressive cooldown, Supabase auth verification, strict `app_metadata.role === 'admin'` check, anti-enumeration response, and session cookie setting. |
+| `/api/admin/auth/logout` | API (Dynamic) | [`src/app/api/admin/auth/logout/route.ts`](file:///d:/Persional-projects/landing/src/app/api/admin/auth/logout/route.ts) | POST endpoint for admin session revocation. Origin guard, terminates Supabase session, clears cookies. |
 
 ---
 
 ## 6. Frontend Architecture
 
 ### 1. Server vs. Client Component Boundaries
-- **Server Components (RSC)**: All route entrypoints (`page.tsx`), `RootLayout`, `robots.ts`, `sitemap.ts`, `HowItWorks.tsx`, `Packages.tsx`, `ForVendors.tsx`, and `Footer.tsx` render as Server Components with zero hydration cost.
+- **Server Components (RSC)**:
+  - All public route entrypoints (`page.tsx`), `RootLayout`, `robots.ts`, `sitemap.ts`, `HowItWorks.tsx`, `Packages.tsx`, `ForVendors.tsx`, and `Footer.tsx`.
+  - **Admin Suite RSCs**: `src/app/admin/layout.tsx` (enforces `requireAdminSession`), `src/app/admin/page.tsx` (fetches dashboard summary), `src/app/admin/leads/page.tsx` (fetches inquiries queue), and `src/app/admin/vendors/page.tsx` (fetches partner applications).
 - **Client Components (`"use client"`)**:
   - [`Hero.tsx`](file:///d:/Persional-projects/landing/src/components/Hero.tsx): Multi-field form state, real-time Indian phone validation (`/^[6-9]\d{9}$/`), service multi-selection chips, submission spinner, and error banners.
   - [`Navbar.tsx`](file:///d:/Persional-projects/landing/src/components/Navbar.tsx): Mobile toggle menu state, active route highlighting via `usePathname()`.
   - [`Services.tsx`](file:///d:/Persional-projects/landing/src/components/Services.tsx): 3D CSS flip-card state (`transform-style: preserve-3d`) toggled via click or keyboard navigation (`Enter` / `Space`).
   - [`EventTypes.tsx`](file:///d:/Persional-projects/landing/src/components/EventTypes.tsx): Synchronized hover/click tab list updating active high-resolution editorial imagery on the left column.
   - [`PackageCustomizer.tsx`](file:///d:/Persional-projects/landing/src/components/PackageCustomizer.tsx) & [`ServiceEstimator.tsx`](file:///d:/Persional-projects/landing/src/components/ServiceEstimator.tsx): Dynamic arithmetic cost calculations based on guest counts, venue types, and add-on toggles.
-  - [`VendorApplicationForm.tsx`](file:///d:/Persional-projects/landing/src/components/VendorApplicationForm.tsx) & [`LoginForm.tsx`](file:///d:/Persional-projects/landing/src/components/LoginForm.tsx): Controlled inputs, field-level error validation, and interactive feedback notices.
+  - [`VendorApplicationForm.tsx`](file:///d:/Persional-projects/landing/src/components/VendorApplicationForm.tsx) & [`LoginForm.tsx`](file:///d:/Persional-projects/landing/src/components/LoginForm.tsx): Controlled inputs, field-level error validation, interactive feedback notices, and authentication handshakes.
+  - **Admin Client Workspaces**:
+    - [`AdminShell.tsx`](file:///d:/Persional-projects/landing/src/app/admin/AdminShell.tsx), [`AdminSidebar.tsx`](file:///d:/Persional-projects/landing/src/app/admin/AdminSidebar.tsx), [`AdminHeader.tsx`](file:///d:/Persional-projects/landing/src/app/admin/AdminHeader.tsx), [`LogoutButton.tsx`](file:///d:/Persional-projects/landing/src/app/admin/LogoutButton.tsx): Responsive navigation drawer state, active route highlighting, and session sign-out dispatch.
+    - [`LeadsWorkspace.tsx`](file:///d:/Persional-projects/landing/src/app/admin/leads/LeadsWorkspace.tsx): Interactive 2-pane master-detail inquiries list, search query, event/city filters, sort order, and client dossier inspection.
+    - [`VendorsWorkspace.tsx`](file:///d:/Persional-projects/landing/src/app/admin/vendors/VendorsWorkspace.tsx): Paginated partner registry, multi-filter dropdowns, slide-over detail drawer, and CSV export.
 
 ### 2. Styling Strategy
 - **Vanilla CSS Modules**: Every component is paired with a strictly scoped `.module.css` stylesheet. Class names are hashed by Next.js to eliminate global namespace collisions.
@@ -270,19 +364,54 @@ Eventsika incorporates an isolated, zero-layout-impact festive decoration engine
    - CTA Diya features a gentle 3.8s ease-in-out flame sway anchor-based animation.
    - Full `@media (prefers-reduced-motion: reduce)` support: disables all animations/sway and maintains warm static illumination.
 
+### 4. Concierge Operations Suite (Admin Portal Frontend)
+
+The administrative layer provides a dedicated operations console rooted in `src/app/admin/`:
+
+1. **Admin Layout Shell (`src/app/admin/AdminShell.tsx`, `AdminSidebar.tsx`, `AdminHeader.tsx`, `LogoutButton.tsx`)**:
+   - `AdminLayout` acts as a Server Component authorization boundary enforcing `await requireAdminSession()`, redirecting unauthorized traffic to `/login`.
+   - `AdminShell` provides the responsive two-column workspace shell with collapsible mobile drawer.
+   - `AdminSidebar` integrates official `<EventsikaLogo>` branding with navigation routing (`Dashboard`, `Leads`, `Vendors`, with inactive placeholders for `Analytics` and `Settings`).
+   - `LogoutButton` dispatches `POST /api/admin/auth/logout` with origin verification, clearing session cookies and redirecting to `/login`.
+
+2. **Operations Dashboard (`src/app/admin/page.tsx`)**:
+   - Renders 4 primary operational metrics: Total Leads, New Inquiries (Last 7 Days in Royal Maroon `#7F1010`), Operational Follow-ups, and Vendor Partners.
+   - Displays a 5-stage horizontal intake pipeline (Total Intake and New Inquiries with real database counts; Follow-up, In Progress, and Converted tagged with Phase 2 badges without fabricated data).
+   - Chronological merged activity feed and upcoming celebrations table (`event_date >= CURRENT_DATE`).
+
+3. **Celebration Leads Command Center (`src/app/admin/leads/LeadsWorkspace.tsx`)**:
+   - 2-pane master-detail operational queue: Left pane displays searchable and filterable inquiries (by occasion, city, and date/sort order) with `<48h` "Recent" and "Upcoming" status badges.
+   - Right pane presents a deep Client Dossier:
+     - Direct one-click communication triggers: `tel:+91...`, WhatsApp click-to-chat (`https://wa.me/91...`) with prefilled client greeting, and clipboard copy buttons for phone numbers and formatted inquiry summaries.
+     - Celebration specifications: Planned date, venue type, guest count, budget range, and verified WhatsApp consent.
+     - Service request grid with dynamic icon matching.
+     - Correlation metadata audit trail: inquiry ID, correlation `X-Request-Id`, and submission timestamp.
+
+4. **Vendor Partner Register (`src/app/admin/vendors/VendorsWorkspace.tsx`)**:
+   - Paginated operational registry (10 entries per page) tracking incoming partnership applications (strictly an applicant intake register, NOT an approved vendor CRM).
+   - Filterable by service category, city, experience tier, and search query.
+   - Slide-over detail drawer inspecting applicant contact info, offered service categories, verified experience, digital portfolio link, and submission request ID.
+   - Action buttons for WhatsApp chat, direct call, safe email mailto, and full application summary copy.
+   - RFC 4180 CSV export with spreadsheet formula injection defense (CWE-1236 in `vendor-helpers.ts`).
+
 ---
 
 ## 7. Backend Architecture
 
-### 5-Layer Backend Architecture (Day 2 Hardened)
-The backend is structured into a clean, database-agnostic layered architecture colocated within the Next.js App Router project:
+### 6-Layer Backend Architecture
+
+The backend is structured into a clean, layered architecture colocated within the Next.js App Router project:
 
 ```
 HTTP Request
     ↓
-Route Handler (src/app/api/.../route.ts)
+Middleware Layer (src/middleware.ts) — Route Protection & Session Checks
     ↓
-Validation & Sanitization Layer (src/lib/backend/validation/)
+HTTP Routing & Protocol Layer (src/app/api/.../route.ts)
+    ↓
+HTTP Guard Layer (src/lib/backend/http/origin.ts & utils/request-id.ts)
+    ↓
+Validation & Config Layer (src/lib/backend/validation/ & config/env.ts)
     ↓
 Business Service Layer (src/lib/backend/services/)
     ↓
@@ -290,33 +419,41 @@ Repository Interface / Persistence Boundary (src/lib/backend/repositories/)
     ↓
 Delivery / Integration Boundary (src/lib/backend/integrations/)
     ↓
-Safe Standardized HTTP Response ({ success, message })
+Standardized HTTP Contract Response ({ success, data | error })
 ```
 
 #### Layer Responsibilities:
 
-1. **HTTP Routing & Protocol Layer (`src/app/api/`)**:
-   - `src/app/api/health/route.ts`: Minimal liveness check returning `{ status: "healthy", timestamp, version }`.
-   - `src/app/api/leads/route.ts` & `src/app/api/vendor-applications/route.ts`: Extracts request context, generates correlation ID (`X-Request-Id`), evaluates IP rate limiting (5 req / 10 min window), enforces 50 KB payload size limit, delegates validation and service execution, and returns standardized response contracts.
-2. **Validation & Allowlist Layer (`src/lib/backend/validation/`)**:
+1. **Middleware & Protocol Layer (`src/middleware.ts` & `src/app/api/`)**:
+   - `src/middleware.ts`: Inspects protected paths `["/admin/:path*", "/api/admin/:path*"]`. Exempts `/api/admin/auth/login`. Rejects unauthenticated API calls with 401 JSON, redirects unauthorized browser requests to `/login`, and handles missing configuration with 503 JSON.
+   - `src/app/api/health/route.ts`: Liveness check returning `{ status: "healthy", timestamp, version }`.
+   - `src/app/api/leads/route.ts` & `src/app/api/vendor-applications/route.ts`: Public lead and partner application intake.
+   - `src/app/api/admin/auth/login/route.ts` & `src/app/api/admin/auth/logout/route.ts`: Admin session authentication and termination.
+2. **HTTP Guard & Security Layer (`src/lib/backend/http/` & `src/lib/rate-limit.ts`)**:
+   - `origin.ts`: Validates `Origin`, `Referer`, and `Sec-Fetch-Site` headers against canonical domains to defeat CSRF.
+   - `request-id.ts`: Generates or extracts correlation IDs (`X-Request-Id`) across the lifecycle.
+   - `rate-limit.ts`: Public intake routes use in-memory sliding window rate limiting (5 req / 10 min); admin login routes use `@upstash/redis` multi-layer rate limiting (IP, Account, Combo) with progressive cooldown tiers (15m, 30m, 60m) and atomic Lua script execution.
+3. **Validation & Allowlist Layer (`src/lib/backend/validation/` & `config/`)**:
    - Canonical option allowlists defined in `src/lib/backend/constants/allowlists.ts` (`CITY_OPTIONS`, `EVENT_TYPE_OPTIONS`, `GUEST_COUNT_OPTIONS`, `VENUE_TYPE_OPTIONS`, `SERVICE_OPTIONS`, `BUDGET_OPTIONS`, `VENDOR_CATEGORIES`, `VENDOR_EXPERIENCE_TIERS`).
    - `phone.ts`: Normalizes and validates Indian mobile phone formats (`/^[6-9]\d{9}$/` or `+91`/`0` prefixes).
    - `date.ts`: Validates `YYYY-MM-DD` calendar dates, enforces non-past dates, and caps forward planning dates at 24 months (730 days).
    - `url.ts`: Enforces valid URL/domain syntax and blocks unsafe protocols (`javascript:`, `data:`, `file:`).
    - `lead-schema.ts` & `vendor-schema.ts`: Comprehensive schema validation returning typed inputs or descriptive safe error messages.
-3. **Business Service Layer (`src/lib/backend/services/`)**:
-   - `LeadService` & `VendorService`: Own domain workflow orchestration.
-   - Handles silent bot honeypot filtering (`isBot: true`).
-   - Coordinates rapid duplicate submission suppression via `deduplicator.ts` (30-second sliding memory window).
-   - Coordinates decoupled repository persistence.
-   - Coordinates decoupled external delivery notifications.
-4. **Repository / Persistence Boundary (`src/lib/backend/repositories/`)**:
-   - `ILeadRepository` & `IVendorRepository`: Abstract TypeScript interface contracts.
-   - `InMemoryLeadRepository` & `InMemoryVendorRepository`: Zero-dependency in-memory persistence boundaries for Day 2; database engine selection is deferred to Day 7.
-5. **Delivery / Integration Boundary (`src/lib/backend/integrations/`)**:
+   - `env.ts`: Validates critical server environment variables (`validateEnv()`) at startup.
+4. **Business Service Layer (`src/lib/backend/services/`)**:
+   - `LeadService` & `VendorService`: Coordinate validation, silent honeypot filtering (`isBot: true`), 30-second deduplication (`deduplicator.ts`), database persistence, and external notification dispatch.
+   - `AdminDashboardService`: Computes dashboard summaries, merged activity streams, and upcoming celebrations.
+   - `AdminLeadService`: Computes inquiries queue metrics (`totalLeads`, `newLeadsLast7Days`, `upcomingCelebrations`) and retrieves inquiry records.
+   - `AdminVendorService`: Computes vendor intake metrics (`totalApplications`, `newApplicationsLast7Days`, `experiencedApplicationsCount`, `portfolioLinkedCount`) and retrieves applicant records.
+5. **Repository / Persistence Boundary (`src/lib/backend/repositories/`)**:
+   - Abstract TypeScript interface contracts (`ILeadRepository`, `IVendorRepository`, `IDashboardRepository`).
+   - **Production Stores**: `SupabaseLeadRepository`, `SupabaseVendorRepository`, and `SupabaseDashboardRepository` persist to Supabase PostgreSQL.
+   - **Fallback Stores**: `InMemoryLeadRepository` and `InMemoryVendorRepository` provide in-memory fallback singletons strictly for isolated testing or unconfigured development.
+   - **Strict No-Fake-Fallback Policy**: If database queries fail in admin services, errors are surfaced cleanly to display safe operational notices rather than fabricating dummy metrics.
+6. **Delivery / Integration Boundary (`src/lib/backend/integrations/`)**:
    - `IDeliveryNotifier`: Abstract delivery interface.
    - `MailerDeliveryNotifier`: Adapts zero-dependency transactional dispatch in `src/lib/mailer.ts` (Resend, SendGrid, Webhooks).
-6. **PII-Safe Structured Logging (`src/lib/backend/logger/logger.ts`)**:
+7. **PII-Safe Structured Logging (`src/lib/backend/logger/logger.ts`)**:
    - Automatically masks phone numbers (`98****3210`), emails (`a***@domain.com`), and names.
    - Never logs full customer payloads in production.
    - Generates single-line JSON logs with correlation IDs (`X-Request-Id`).
@@ -326,7 +463,10 @@ Safe Standardized HTTP Response ({ success, message })
 ## 8. Database Architecture
 
 * **Current Status**: **Supabase PostgreSQL Production Architecture**.
-* **Design Philosophy**: Business service workflows interact exclusively through abstract repository interfaces (`ILeadRepository`, `IVendorRepository`). `SupabaseLeadRepository` and `SupabaseVendorRepository` provide durable PostgreSQL persistence, with graceful in-memory fallbacks when unconfigured.
+* **Design Philosophy**: Business service workflows interact exclusively through abstract repository interfaces (`ILeadRepository`, `IVendorRepository`, `IDashboardRepository`). `SupabaseLeadRepository`, `SupabaseVendorRepository`, and `SupabaseDashboardRepository` provide durable PostgreSQL persistence, with graceful in-memory fallbacks when unconfigured.
+* **Dual Supabase Client Architecture**:
+  - **Admin Database Client** ([`src/lib/backend/supabase/client.ts`](file:///d:/Persional-projects/landing/src/lib/backend/supabase/client.ts)): Server-only client initialized with `SUPABASE_SERVICE_ROLE_KEY`. Bypasses RLS to execute trusted backend queries. Never exposed to browser bundles.
+  - **Auth Session Client** ([`src/lib/backend/supabase/server.ts`](file:///d:/Persional-projects/landing/src/lib/backend/supabase/server.ts)): Server client initialized via `@supabase/ssr` with `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Reads and writes secure HttpOnly cookies across Next.js Server Components, Server Actions, and Route Handlers.
 * **Tables**:
   - `public.leads`: Bounded intake records with UUIDv4 primary keys, `user_name`, `user_phone`, `city`, `event_type`, `event_date` (`DATE`), `guest_count`, `venue_type`, `selected_services` (`TEXT[]`), `budget_range`, `whatsapp_consent` (`BOOLEAN`), and `request_id`.
   - `public.vendor_applications`: Partner applications with `business_name`, `contact_name`, `phone`, `email`, `city`, `experience`, `portfolio_url`, `categories` (`TEXT[]`), and `request_id`.
@@ -343,15 +483,28 @@ Safe Standardized HTTP Response ({ success, message })
 
 ## 9. Authentication & Authorization
 
-* **Current Status**: **Presentation Simulation Portal**.
-* **Route**: [`/login`](file:///d:/Persional-projects/landing/src/app/login/page.tsx) and component [`LoginForm.tsx`](file:///d:/Persional-projects/landing/src/components/LoginForm.tsx).
-* **Behavior**: 
-  - Validates client-side input formats (email/phone structure, minimum 6-character password).
-  - Simulates a 400ms verification delay.
-  - Displays an informative status notice: *"Login functionality will be available soon. The Eventsika client & vendor portal is currently undergoing final staging."*
-  - Provides direct operational routing to `care@eventsika.in` and `+91 78766 66056`.
-  - Includes interactive info banners for "Forgot Password?" and "Sign Up".
-* **Security Note**: No actual passwords, tokens, cookies, or user credentials are transmitted or persisted over the network.
+* **Current Status**: **Production Supabase SSR Authentication & Strict Admin RBAC**.
+* **Primary Entrypoint**: [`/login`](file:///d:/Persional-projects/landing/src/app/login/page.tsx) and component [`LoginForm.tsx`](file:///d:/Persional-projects/landing/src/components/LoginForm.tsx).
+* **Authentication Handshake**:
+  - Client form executes input validation and dispatches `POST /api/admin/auth/login` with email and password.
+  - The route handler invokes `supabase.auth.signInWithPassword` via [`createSupabaseServerClient()`](file:///d:/Persional-projects/landing/src/lib/backend/supabase/server.ts), attaching session cookies via `@supabase/ssr`.
+* **Authoritative Server Role Verification**:
+  - Authorization is verified exclusively through [`requireAdminSession()`](file:///d:/Persional-projects/landing/src/lib/backend/auth/require-admin.ts).
+  - **Strict Role Check**: Checks `user.app_metadata?.role === "admin"`.
+  - **Zero Trust on Client Metadata**: Never trusts `user_metadata`, request body, client headers, or unverified cookies for role determination.
+  - If authenticated user lacks the `admin` role, the session is immediately terminated via `supabase.auth.signOut()` and rejected with a generic 401 response.
+* **Edge & Route Guard (`src/middleware.ts`)**:
+  - Matches `["/admin/:path*", "/api/admin/:path*"]`.
+  - Explicitly exempts public login route `/api/admin/auth/login`.
+  - Unauthenticated or non-admin API requests are rejected with `401 Unauthorized` JSON.
+  - Unauthenticated page visits to `/admin/*` are automatically redirected to `/login`.
+  - If Supabase environment variables are unconfigured, returns `503 Service Unavailable` JSON for API requests or redirects pages to `/login`.
+* **Anti-Enumeration Defense**:
+  - Unified error response: Always returns `401 Invalid email or password.` for invalid password, nonexistent accounts, and authenticated non-admin accounts alike.
+  - Prevents attackers from distinguishing between valid and invalid emails or admin vs. non-admin privileges.
+* **Session Termination**:
+  - Dispatched via [`POST /api/admin/auth/logout`](file:///d:/Persional-projects/landing/src/app/api/admin/auth/logout/route.ts).
+  - Revokes Supabase session on server and clears authentication cookies.
 
 ---
 
@@ -359,19 +512,50 @@ Safe Standardized HTTP Response ({ success, message })
 
 ### 1. HTTP Security Headers
 Configured globally in [`next.config.ts`](file:///d:/Persional-projects/landing/next.config.ts) for all routes `/(.*)`:
-- `X-Frame-Options: SAMEORIGIN` (Defends against clickjacking attacks)
-- `X-Content-Type-Options: nosniff` (Prevents MIME-type sniffing vulnerabilities)
-- `Referrer-Policy: strict-origin-when-cross-origin` (Protects user privacy on cross-origin requests)
-- `Permissions-Policy: camera=(), microphone=(), geolocation=()` (Restricts unauthorized browser hardware access)
-- `poweredByHeader: false` (Suppresses `X-Powered-By: Next.js` fingerprinting)
+- `Content-Security-Policy`: Strict policy (`getCspDirectives()`) specifying `default-src 'self'`, `script-src 'self' 'unsafe-inline'` (`'unsafe-eval'` restricted strictly to development), `style-src 'self' 'unsafe-inline'`, `img-src 'self' data:`, `font-src 'self' data:`, `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'self'`, and `upgrade-insecure-requests` in production.
+- `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload` (enforced in production).
+- `X-Frame-Options: SAMEORIGIN` (Defends against clickjacking attacks).
+- `X-Content-Type-Options: nosniff` (Prevents MIME-type sniffing vulnerabilities).
+- `Referrer-Policy: strict-origin-when-cross-origin` (Protects user privacy on cross-origin requests).
+- `Permissions-Policy: camera=(), microphone=(), geolocation=()` (Restricts unauthorized browser hardware access).
+- `poweredByHeader: false` (Suppresses `X-Powered-By: Next.js` fingerprinting).
 
-### 2. XSS & Injection Defenses
+### 2. Origin & CSRF Protection
+- Server-side origin verification via [`src/lib/backend/http/origin.ts`](file:///d:/Persional-projects/landing/src/lib/backend/http/origin.ts) (`isAllowedOrigin`).
+- Verifies `Origin` and `Referer` headers against canonical domains on all sensitive POST routes (`/api/admin/auth/login`, `/api/admin/auth/logout`).
+- Cross-origin POST attempts are blocked with HTTP 403.
+- Enforces HTTP POST-only (405 for GET/PUT/DELETE/PATCH).
+
+### 3. Payload Ceilings & Malicious Input Defense
+- `/api/admin/auth/login`: Capped at **8 KB** payload size (413).
+- `/api/leads` & `/api/vendor-applications`: Capped at **50 KB** payload size (413).
+- Strict prototype pollution defense rejecting `__proto__`, `constructor`, or `prototype` keys.
+- Null-byte injection guards rejecting `\0` in email and password strings.
+- RFC 5321 email length bounds (254 chars) and password length bounds (6 to 1024 chars).
+
+### 4. Distributed Multi-Layer Rate Limiter (`src/lib/rate-limit.ts`)
+- **Public Routes** (`/api/leads`, `/api/vendor-applications`): In-memory sliding window limiter (5 requests / 10 min window) with automated stale record cleanup.
+- **Admin Authentication** (`/api/admin/auth/login`): Production-grade distributed rate limiting backed by `@upstash/redis`:
+  - **Layer 1 (IP)**: Client IP rate limiting with spoofing-resistant IP extraction prioritizing trusted reverse proxy headers (`cf-connecting-ip`, `x-real-ip`).
+  - **Layer 2 (Account)**: Targeted email rate limiting using fixed-length SHA-256 hashes (`eventsika:admin:acc:<sha256>`).
+  - **Layer 3 (Combo)**: Combined IP + Account locking.
+  - **Progressive Cooldown Tiers**: Tier 1 (5 failures → 15m), Tier 2 (10 failures → 30m), Tier 3 (15+ failures → 60m).
+  - **Observation Window**: Counter retention extends to $\text{cooldown} + \text{15m}$, ensuring subsequent failures accumulate into higher tiers upon repeated abuse.
+  - **Atomic Lua Scripts**: `CHECK_LIMIT_LUA` and `RECORD_FAILURE_LUA` eliminate race conditions and parallel bypass attacks.
+  - **Fail-Closed Security**: In `production`, missing Redis credentials or datastore timeouts return HTTP 503, preventing silent fallback to unthrottled states.
+
+### 5. Spreadsheet Formula Injection Defense (CWE-1236)
+- [`src/app/admin/vendors/vendor-helpers.ts`](file:///d:/Persional-projects/landing/src/app/admin/vendors/vendor-helpers.ts) (`sanitizeCsvCell`): Neutralizes formula execution by prefixing dangerous characters (`=`, `+`, `-`, `@`) with a leading single quote before CSV generation.
+- Validates and sanitizes email addresses for `mailto:` links, rejecting CR/LF characters to prevent header injection.
+- Enforces strict `http:` and `https:` protocol validation on external portfolio URLs, blocking `javascript:`, `data:`, and `file:` schemes.
+
+### 6. XSS & Injection Defenses
 - All dynamic fields interpolated into HTML emails in [`mailer.ts`](file:///d:/Persional-projects/landing/src/lib/mailer.ts) pass through `escapeHtml()` replacing `&`, `<`, `>`, `"`, and `'`.
 - Schema.org JSON-LD scripts in [`layout.tsx`](file:///d:/Persional-projects/landing/src/app/layout.tsx) use native `JSON.stringify` serialization with static object constants.
 
-### 3. Secrets Management
-- **Zero Secrets in Source Code**: No private API keys or credentials exist in git.
-- **Server Scoping**: All API keys (`RESEND_API_KEY`, `SENDGRID_API_KEY`, `LEAD_WEBHOOK_URL`) are read exclusively in server execution contexts (`mailer.ts`) and never prefixed with `NEXT_PUBLIC_`.
+### 7. Secrets Management
+- **Zero Secrets in Source Code**: No private API keys, database secrets, or Redis tokens exist in git.
+- **Server Scoping**: Privileged keys (`SUPABASE_SERVICE_ROLE_KEY`, `UPSTASH_REDIS_REST_TOKEN`, `RESEND_API_KEY`, `SENDGRID_API_KEY`) are executed exclusively in server contexts and never prefixed with `NEXT_PUBLIC_`.
 - **Git Ignore**: `.env.local` is strictly excluded in `.gitignore`.
 
 ---
@@ -525,6 +709,25 @@ sequenceDiagram
 
   # Option 3: Custom Webhook URL
   LEAD_WEBHOOK_URL=https://...
+
+  # ==============================================================================
+  # Supabase Configuration
+  # ==============================================================================
+  # Supabase Project Endpoint
+  SUPABASE_URL=https://your-project-id.supabase.co
+
+  # Public Authentication / Publishable Key (Client/SSR Session Cookies)
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_publishable_anon_key_here
+
+  # Server-Only Privileged Key (CRITICAL: Database persistence only, NEVER expose to browser)
+  SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+
+  # ==============================================================================
+  # Upstash Redis Configuration (Distributed Admin Rate Limiting)
+  # ==============================================================================
+  # Server-only configuration. NEVER prefix with NEXT_PUBLIC_.
+  UPSTASH_REDIS_REST_URL=https://your-upstash-redis-url.upstash.io
+  UPSTASH_REDIS_REST_TOKEN=your_upstash_rest_token_here
   ```
 
 ---
@@ -537,7 +740,12 @@ sequenceDiagram
   - `npm run build`: Executes production build and type-checking.
   - `npm run start`: Starts production standalone server.
   - `npm run lint`: Runs ESLint 9 checks (`eslint-config-next`).
-* **Pre-Commit Verification**: Always run `npx tsc --noEmit` and `npm run lint` before committing any code changes.
+  - `npm test`: Executes all Vitest test suites once (`vitest run`).
+  - `npm run test:watch`: Runs Vitest in interactive watch mode.
+* **Automated Test Architecture**:
+  - Vitest test framework covering 21 test suites (169 passing tests).
+  - Tests co-located in `__tests__/` subdirectories across route handlers, security boundaries, rate limiting, validation schemas, repositories, services, and helper sanitizers.
+* **Pre-Commit Verification**: Always run `npx tsc --noEmit`, `npm test`, and `npm run lint` before committing any code changes.
 
 ---
 
@@ -575,10 +783,10 @@ The repository includes 6 purpose-built skills located in [`.agents/skills/`](fi
 | :--- | :--- | :--- | :--- |
 | **ADR-01** | **Pure CSS Modules over Tailwind CSS** | Provides complete typographic control, exact bespoke color rendering, zero utility bloat, and clean component colocation. | All styling must be written in scoped `*.module.css` files using CSS custom properties. |
 | **ADR-02** | **Zero-Dependency Native Email Dispatch** | External SDKs (Nodemailer, heavy client wrappers) add unnecessary bundle weight and maintenance overhead in serverless. | `mailer.ts` uses native `fetch` against Resend / SendGrid REST APIs. |
-| **ADR-03** | **In-Memory Rate Limiting** | Avoids requiring external Redis/Upstash infrastructure during early production launch while mitigating brute-force abuse. | `rate-limit.ts` provides sliding window throttling with automated 5-minute cleanup cycles. |
+| **ADR-03** | **Hybrid Rate Limiting Architecture** | Balances zero-infrastructure simplicity for public intake forms with hardened, distributed abuse prevention for privileged administrative authentication. | Public endpoints (`/api/leads`, `/api/vendor-applications`) use in-memory sliding window throttling; `/api/admin/auth/login` uses `@upstash/redis` with atomic Lua scripts, multi-layer lockouts, and fail-closed production semantics. |
 | **ADR-04** | **Direct SVG Fill Transitions for Logo** | CSS `filter: hue-rotate()` interpolates through intermediate rainbow hues (green/blue) when transitioning gold to crimson. | Logo vector paths use explicit `transition: fill` with 180° emblem rotation and stationary wordmark. |
 | **ADR-05** | **React Compiler Enabled** | Automates memoization and re-render optimizations in React 19 without manual `useMemo`/`useCallback` clutter. | Enabled via `reactCompiler: true` in `next.config.ts`. |
-| **ADR-06** | **Presentation Login Portal** | Client portal dashboard is undergoing staging; users need clear guidance and immediate direct assistance rather than dead ends. | `/login` validates input and provides explicit support links to `care@eventsika.in`. |
+| **ADR-06** | **Production Admin Authentication & SSR Session Management** | Replaced presentation mock with genuine server-authenticated administrative session management. | `/login` handshakes with `/api/admin/auth/login`, sets HttpOnly `@supabase/ssr` cookies, enforces `app_metadata.role === 'admin'`, and redirects to `/admin`. |
 | **ADR-07** | **Canonical WebP Asset Optimization & Lazy-Loading** | High-resolution raster images (PNGs/JPEGs) bloat initial page load. Next.js `<Image>` provides default viewport lazy-loading. | All photographic assets use high-fidelity WebP (quality ~85). Below-the-fold media uses deferred loading with poster preview frames. |
 
 ---
@@ -609,7 +817,7 @@ These areas can be iterated on and refined with standard pre-commit verification
 
 1. **Resolved: Next.js 16 Scroll Behavior**: Added `data-scroll-behavior="smooth"` to `<html>` in `src/app/layout.tsx` to align with App Router smooth scroll transition standards.
 2. **Legacy `page.module.css`**: Contains default boilerplate CSS from initial `create-next-app` initialization. Unused by current components but retained to avoid unnecessary breaking diffs.
-3. **In-Memory Rate Limiting Scope**: Memory state is per Node process. When deployed across multiple distributed serverless instances, rate limits are enforced on a per-instance basis rather than globally (sufficient for current traffic; upgrade to Redis when scaling).
+3. **Public Route Rate Limiting Scope**: In-memory rate limiting for public endpoints (`/api/leads`, `/api/vendor-applications`) is per Node process. Sufficient for current traffic; upgrade public routes to Redis if horizontal autoscaling is deployed. (Admin auth is already distributed via Upstash Redis).
 
 ---
 
@@ -623,17 +831,24 @@ These areas can be iterated on and refined with standard pre-commit verification
 - [x] Interactive Celebration Service Cost Estimator & Accordion FAQ (`/services`).
 - [x] Vendor Partner Network application form & acquisition portal (`/for-vendors`).
 - [x] Seasonal 1-on-1 Strategy Session promotion landing page (`/diwali-consultation`).
-- [x] Client & Partner presentation login portal (`/login`).
+- [x] Client & Partner portal authentication with Supabase SSR session cookies (`/login`).
+- [x] Concierge Operations Suite with Executive Operations Dashboard (`/admin`).
+- [x] Celebration Leads Command Center with 2-pane inquiry queue and client dossier (`/admin/leads`).
+- [x] Vendor Partner Application Register with slide-over drawer and injection-safe CSV export (`/admin/vendors`).
+- [x] Edge/Node route protection middleware (`src/middleware.ts`) enforcing `app_metadata.role === 'admin'`.
+- [x] Distributed multi-layer rate limiter with Upstash Redis and atomic Lua scripts (`rate-limit.ts`).
 - [x] Zero-dependency multi-adapter notification mailer (`mailer.ts`).
-- [x] In-memory sliding window IP rate limiting & honeypot anti-spam protection (`rate-limit.ts`).
-- [x] Hardened HTTP security headers (`X-Frame-Options`, `X-Content-Type-Options`, `Permissions-Policy`).
+- [x] Supabase PostgreSQL durable persistence for leads and partner applications.
+- [x] Hardened HTTP security headers (`CSP`, `HSTS`, `X-Frame-Options`, `X-Content-Type-Options`, `Permissions-Policy`).
 - [x] Dynamic SEO generation (`robots.ts`, `sitemap.ts`, Schema.org JSON-LD).
+- [x] Vitest automated testing suite with 21 test files and 169 passing tests.
 
 ---
 
 ## 24. Current Project State
 
 * **Build Health**: Clean TypeScript compilation (`0 errors`), valid ESLint 9 checks.
+* **Test Health**: 21 Vitest test suites passing (169 tests passing with zero failures).
 * **Development Server**: Fully operational and active on `http://localhost:3000`.
 * **Current Operational Priority**: Maintaining rock-solid landing page performance, zero-regression changes, and pristine architectural documentation.
 
@@ -692,6 +907,25 @@ Every AI agent working in the Eventsika repository must adhere to the following 
 ---
 
 ## 28. Change Log
+
+### 2026-09-08
+- **Admin Incoming Partner Application Register (`/admin/vendors`)**:
+  - **Terminology & Scope Clarification**: Formally defined `/admin/vendors` as strictly an incoming partner intake application register for concierge review and outbound vetting, NOT an approved vendor CRM or booking directory.
+  - **Backend & Repository Architecture**: Implemented `AdminVendorService` (`src/lib/backend/services/admin-vendor-service.ts`) and `SupabaseAdminVendorRepository` (`src/lib/backend/repositories/supabase-admin-vendor-repository.ts`) backed by `IAdminVendorRepository` contract.
+  - **Concierge Review Experience**: Built `/admin/vendors` (`src/app/admin/vendors/page.tsx`) featuring 5 status breakdown cards (Total Received, New Inquiries, Under Review, Contacted, Rejected), multi-parameter search/filters (category, status, query), tabular application listing, and deep-dive applicant drawer with business credentials, portfolio/social links, notes history, and status progression controls.
+  - **CSV Export & Formula Injection Defense**: Implemented secure CSV export with RFC 4180 compliance and CWE-1236 Formula Injection sanitization (prefixing dangerous characters `=`, `+`, `-`, `@`, `\t`, `\r` with `'`).
+  - **Visual & Component Polish**: Scoped styling with `src/app/admin/vendors/vendors.module.css` matching Sand/Ivory/Crimson luxury tokens, responsive layouts, and zero external icon bloat.
+- **Admin Leads Command Center (`/admin/leads`)**:
+  - **Full Inquiry Lifecycle**: Implemented `/admin/leads` (`src/app/admin/leads/page.tsx`) backed by `AdminLeadService` and `SupabaseAdminLeadRepository` for high-touch celebration concierge operations.
+  - **Lead Management Tools**: Status progression (New, In Review, Contacted, Qualified, Converted, Archived), priority indicators, internal concierge notes tracking, and celebration date categorization.
+  - **Client Detail Drawer & Direct Actions**: Detailed lead drawer showing event date, guest count, budget bracket, package selection, and one-click direct WhatsApp contact trigger (`wa.me`).
+  - **Protected Export**: Search, filtering, and formula-injection-safe CSV export.
+- **Package Customizer Experience & CSS Standard Compliance**:
+  - Refined `src/components/PackageCustomizer.tsx` and `src/components/PackageCustomizer.module.css` with WebP photography and synchronized consultation modal integration.
+  - Fixed CSS compatibility warning on `.stepperInput` by adding standard `appearance: textfield;` directly after `-moz-appearance: textfield;`.
+- **Vitest Test Suite Expansion & Comprehensive Verification**:
+  - Expanded test coverage to 21 test suites and 169 automated tests with zero failures across rate limiting, authentication, API routes, security guards, repositories, and services.
+  - Verified clean TypeScript compilation (`0 errors`) and clean ESLint 9 validation.
 
 ### 2026-09-03
 - **Distributed Admin Rate Limiting & Progressive Escalation Fix (`src/lib/rate-limit.ts`)**:
@@ -765,10 +999,10 @@ Every AI agent working in the Eventsika repository must adhere to the following 
 ## 29. Final Verification
 
 - **Repository Inspected**: YES (All files, routes, components, and configs verified from source)
-- **Architecture Verified**: YES (5-layer backend flow, Supabase PostgreSQL persistence, RSC boundaries, Mailer & Rate Limiter confirmed)
+- **Architecture Verified**: YES (6-layer backend flow, Supabase PostgreSQL persistence, Supabase SSR Auth & RBAC session cookies, Distributed Rate Limiting via Upstash Redis, Concierge Operations Suite confirmed)
 - **Secrets Excluded**: YES (Zero API keys, credentials, or private values included)
 - **Existing Agent Tooling Preserved**: YES (All 6 skills in `.agents/skills/` and MCP configurations intact)
-- **Application Code Modified**: YES (Supabase database integration & intake migration)
+- **Application Code Modified**: NO (Documentation synchronization only; prior CSS compatibility fix in `PackageCustomizer.module.css`)
 - **Brain.md Generated From Actual Codebase**: YES
-- **Verification Timestamp**: `2026-09-01T15:55:00+05:30`
+- **Verification Timestamp**: `2026-09-08T13:50:00+05:30`
 
