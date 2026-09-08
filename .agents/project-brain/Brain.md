@@ -166,6 +166,13 @@ landing/
 │   │   │   ├── admin-shell.module.css     # Shell, drawer, and sidebar styles
 │   │   │   ├── layout.tsx                 # Protected admin RSC boundary with requireAdminSession
 │   │   │   ├── page.tsx                   # Operations Dashboard executive summary
+│   │   │   ├── analytics/                 # Executive Celebration Analytics & Insights
+│   │   │   │   ├── AnalyticsWorkspace.tsx # Interactive dashboard, tabs & date filter
+│   │   │   │   ├── IndiaDemandMap.tsx     # Realistic geographic India demand map with states
+│   │   │   │   ├── LeadSourcesDonut.tsx   # SVG attribution ring & transparent notes
+│   │   │   │   ├── analytics.module.css   # Scoped luxury analytics styles
+│   │   │   │   ├── indiaMapData.ts        # Static geographic vector data for 36 states/UTs
+│   │   │   │   └── page.tsx               # Server page fetching via adminAnalyticsService
 │   │   │   ├── leads/                     # Celebration Inquiries queue
 │   │   │   │   ├── LeadsWorkspace.tsx     # 2-pane inquiry list & client dossier
 │   │   │   │   ├── leads.module.css       # Scoped leads workspace styles
@@ -243,16 +250,19 @@ landing/
 │       │   ├── integrations/              # Delivery notifier interfaces & adapters
 │       │   ├── logger/logger.ts           # PII-safe structured logger with phone/email masking
 │       │   ├── repositories/              # Repository interfaces, in-memory & Supabase stores
+│       │   │   ├── analytics-repository.interface.ts # Analytics data contracts & DTOs
 │       │   │   ├── dashboard-repository.interface.ts # Dashboard aggregation contracts
 │       │   │   ├── in-memory-lead-repository.ts
 │       │   │   ├── in-memory-vendor-repository.ts
 │       │   │   ├── lead-repository.interface.ts
+│       │   │   ├── supabase-analytics-repository.ts  # Analytics queries via Promise.all()
 │       │   │   ├── supabase-dashboard-repository.ts  # Supabase dashboard queries (No fake fallback)
 │       │   │   ├── supabase-lead-repository.ts
 │       │   │   ├── supabase-vendor-repository.ts
 │       │   │   ├── vendor-repository.interface.ts
 │       │   │   └── __tests__/             # Repository tests
 │       │   ├── services/                  # Business domain services
+│       │   │   ├── admin-analytics-service.ts # Analytics derivations & error boundary
 │       │   │   ├── admin-dashboard-service.ts # Dashboard aggregation orchestration
 │       │   │   ├── admin-lead-service.ts      # Leads queue data orchestration
 │       │   │   ├── admin-vendor-service.ts    # Vendor register data orchestration
@@ -292,6 +302,7 @@ landing/
 | `/diwali-consultation` | Page (Static) | [`src/app/diwali-consultation/page.tsx`](file:///d:/Persional-projects/landing/src/app/diwali-consultation/page.tsx) | High-intent promotional landing page for 1-on-1 strategy consultations at ₹2,999 (regular ₹5,000). |
 | `/login` | Page (Static) | [`src/app/login/page.tsx`](file:///d:/Persional-projects/landing/src/app/login/page.tsx) | Client & Partner portal authentication page. Features client-side validation and authenticates directly against `/api/admin/auth/login`. |
 | `/admin` | Page (RSC) | [`src/app/admin/page.tsx`](file:///d:/Persional-projects/landing/src/app/admin/page.tsx) | Executive concierge operations dashboard. Displays 4 key metric cards, 5-stage intake pipeline, chronological activity feed, and upcoming celebrations table. |
+| `/admin/analytics` | Page (RSC) | [`src/app/admin/analytics/page.tsx`](file:///d:/Persional-projects/landing/src/app/admin/analytics/page.tsx) | Executive celebration analytics ("Celebrations in Focus"). Features date filtering (`7d`, `30d`, `year`, `all`), India demand heatmap, top cities ranking, celebration trends, lead journey funnel, lead sources donut, and operational signals. |
 | `/admin/leads` | Page (RSC) | [`src/app/admin/leads/page.tsx`](file:///d:/Persional-projects/landing/src/app/admin/leads/page.tsx) | Operational celebration inquiries queue. Features 2-pane master-detail view, search, city/occasion filtering, sorting, deep client dossier, and WhatsApp/Call actions. |
 | `/admin/vendors` | Page (RSC) | [`src/app/admin/vendors/page.tsx`](file:///d:/Persional-projects/landing/src/app/admin/vendors/page.tsx) | Operational vendor partner application register. Features category/city/experience filtering, slide-over detail drawer, and formula-injection-safe CSV export. |
 | `/robots.txt` | Metadata | [`src/app/robots.ts`](file:///d:/Persional-projects/landing/src/app/robots.ts) | Dynamic SEO robot instructions allowing all crawling except `/api/` and `/admin/` endpoints. |
@@ -309,7 +320,7 @@ landing/
 ### 1. Server vs. Client Component Boundaries
 - **Server Components (RSC)**:
   - All public route entrypoints (`page.tsx`), `RootLayout`, `robots.ts`, `sitemap.ts`, `HowItWorks.tsx`, `Packages.tsx`, `ForVendors.tsx`, and `Footer.tsx`.
-  - **Admin Suite RSCs**: `src/app/admin/layout.tsx` (enforces `requireAdminSession`), `src/app/admin/page.tsx` (fetches dashboard summary), `src/app/admin/leads/page.tsx` (fetches inquiries queue), and `src/app/admin/vendors/page.tsx` (fetches partner applications).
+  - **Admin Suite RSCs**: `src/app/admin/layout.tsx` (enforces `requireAdminSession`), `src/app/admin/page.tsx` (fetches dashboard summary), `src/app/admin/analytics/page.tsx` (fetches operational analytics), `src/app/admin/leads/page.tsx` (fetches inquiries queue), and `src/app/admin/vendors/page.tsx` (fetches partner applications).
 - **Client Components (`"use client"`)**:
   - [`Hero.tsx`](file:///d:/Persional-projects/landing/src/components/Hero.tsx): Multi-field form state, real-time Indian phone validation (`/^[6-9]\d{9}$/`), service multi-selection chips, submission spinner, and error banners.
   - [`Navbar.tsx`](file:///d:/Persional-projects/landing/src/components/Navbar.tsx): Mobile toggle menu state, active route highlighting via `usePathname()`.
@@ -319,6 +330,7 @@ landing/
   - [`VendorApplicationForm.tsx`](file:///d:/Persional-projects/landing/src/components/VendorApplicationForm.tsx) & [`LoginForm.tsx`](file:///d:/Persional-projects/landing/src/components/LoginForm.tsx): Controlled inputs, field-level error validation, interactive feedback notices, and authentication handshakes.
   - **Admin Client Workspaces**:
     - [`AdminShell.tsx`](file:///d:/Persional-projects/landing/src/app/admin/AdminShell.tsx), [`AdminSidebar.tsx`](file:///d:/Persional-projects/landing/src/app/admin/AdminSidebar.tsx), [`AdminHeader.tsx`](file:///d:/Persional-projects/landing/src/app/admin/AdminHeader.tsx), [`LogoutButton.tsx`](file:///d:/Persional-projects/landing/src/app/admin/LogoutButton.tsx): Responsive navigation drawer state, active route highlighting, and session sign-out dispatch.
+    - [`AnalyticsWorkspace.tsx`](file:///d:/Persional-projects/landing/src/app/admin/analytics/AnalyticsWorkspace.tsx): Interactive celebration analytics, date preset dropdown, tab navigation, SVG demand map tooltips, and attribution donut.
     - [`LeadsWorkspace.tsx`](file:///d:/Persional-projects/landing/src/app/admin/leads/LeadsWorkspace.tsx): Interactive 2-pane master-detail inquiries list, search query, event/city filters, sort order, and client dossier inspection.
     - [`VendorsWorkspace.tsx`](file:///d:/Persional-projects/landing/src/app/admin/vendors/VendorsWorkspace.tsx): Paginated partner registry, multi-filter dropdowns, slide-over detail drawer, and CSV export.
 
@@ -835,20 +847,21 @@ These areas can be iterated on and refined with standard pre-commit verification
 - [x] Concierge Operations Suite with Executive Operations Dashboard (`/admin`).
 - [x] Celebration Leads Command Center with 2-pane inquiry queue and client dossier (`/admin/leads`).
 - [x] Vendor Partner Application Register with slide-over drawer and injection-safe CSV export (`/admin/vendors`).
+- [x] Executive Celebration Analytics & Insights with demand heatmap, celebration trends, and attribution donut (`/admin/analytics`).
 - [x] Edge/Node route protection middleware (`src/middleware.ts`) enforcing `app_metadata.role === 'admin'`.
 - [x] Distributed multi-layer rate limiter with Upstash Redis and atomic Lua scripts (`rate-limit.ts`).
 - [x] Zero-dependency multi-adapter notification mailer (`mailer.ts`).
 - [x] Supabase PostgreSQL durable persistence for leads and partner applications.
 - [x] Hardened HTTP security headers (`CSP`, `HSTS`, `X-Frame-Options`, `X-Content-Type-Options`, `Permissions-Policy`).
 - [x] Dynamic SEO generation (`robots.ts`, `sitemap.ts`, Schema.org JSON-LD).
-- [x] Vitest automated testing suite with 21 test files and 169 passing tests.
+- [x] Vitest automated testing suite with 22 test files and 173 passing tests.
 
 ---
 
 ## 24. Current Project State
 
 * **Build Health**: Clean TypeScript compilation (`0 errors`), valid ESLint 9 checks.
-* **Test Health**: 21 Vitest test suites passing (169 tests passing with zero failures).
+* **Test Health**: 22 Vitest test suites passing (173 tests passing with zero failures).
 * **Development Server**: Fully operational and active on `http://localhost:3000`.
 * **Current Operational Priority**: Maintaining rock-solid landing page performance, zero-regression changes, and pristine architectural documentation.
 
@@ -909,6 +922,13 @@ Every AI agent working in the Eventsika repository must adhere to the following 
 ## 28. Change Log
 
 ### 2026-09-08
+- **Executive Celebration Analytics & Insights (`/admin/analytics`)**:
+  - **Interface & Visual Realization**: Transformed `/admin/analytics` into a high-fidelity luxury analytics workspace faithfully translating the approved Stitch visual reference (`ed72c7815f2c428191b964d81e4b6442`). Features an eyebrow brand heading (*"Executive Intelligence"*, *"Celebrations in Focus"*), custom date preset selector (`7d`, `30d`, `year`, `all`), 6 horizontal domain navigation tabs (Overview active, 5 Phase 2 placeholders), 12-month demand heatmap matrix, 5 celebration trend metrics, 2-column market intelligence (Lead Journey Funnel with explicit Phase 2 pipeline status + Lead Sources donut with transparent website intake attribution), and 4 operational signals.
+  - **India Geographic Market Map (`IndiaDemandMap.tsx`, `indiaMapData.ts`)**: Upgraded to an authentic vector geographic India map featuring authentic geographic India state/UT boundary paths sourced from the inspected geographic SVG dataset and stored locally (36 states/UTs, 0 external dependencies, 0 network map calls), warm ivory fill, hairline sand borders, calibrated market nodes (`Delhi NCR` with pulsing active ring, `Mumbai`, `Kolkata`, `Bengaluru`), accessible keyboard interactions, and interactive tooltips.
+  - **Attribution & Data Integrity**: Accurately reports that 100% of currently recorded leads originate from the Eventsika website intake form, explicitly noting that acquisition/source attribution and downstream pipeline stages (Contacted, Qualified, Converted) are Phase 2 capabilities (as `public.leads` has no `status` or `source` column).
+  - **Backend & Repository Architecture**: Implemented `IAnalyticsRepository` interface (`analytics-repository.interface.ts`), `SupabaseAnalyticsRepository` (`supabase-analytics-repository.ts`) executing 4 independent Supabase queries concurrently using `Promise.all()`, and `AdminAnalyticsService` (`admin-analytics-service.ts`) with application-side aggregation, safe growth delta calculations, and structured error boundary.
+  - **Vendor Metrics Date Range Synchronization**: Vendor application counts and growth metrics strictly respect the selected analytics date range, querying current and prior periods identically to lead metrics.
+  - **Automated Testing & Type Safety**: Added comprehensive Vitest unit tests in `src/lib/backend/services/__tests__/admin-analytics-service.test.ts` bringing test coverage to 22 test suites and 173 passing tests. 100% clean TypeScript compilation and ESLint 9 validation.
 - **Admin Incoming Partner Application Register (`/admin/vendors`)**:
   - **Terminology & Scope Clarification**: Formally defined `/admin/vendors` as strictly an incoming partner intake application register for concierge review and outbound vetting, NOT an approved vendor CRM or booking directory.
   - **Backend & Repository Architecture**: Implemented `AdminVendorService` (`src/lib/backend/services/admin-vendor-service.ts`) and `SupabaseAdminVendorRepository` (`src/lib/backend/repositories/supabase-admin-vendor-repository.ts`) backed by `IAdminVendorRepository` contract.
@@ -1002,7 +1022,7 @@ Every AI agent working in the Eventsika repository must adhere to the following 
 - **Architecture Verified**: YES (6-layer backend flow, Supabase PostgreSQL persistence, Supabase SSR Auth & RBAC session cookies, Distributed Rate Limiting via Upstash Redis, Concierge Operations Suite confirmed)
 - **Secrets Excluded**: YES (Zero API keys, credentials, or private values included)
 - **Existing Agent Tooling Preserved**: YES (All 6 skills in `.agents/skills/` and MCP configurations intact)
-- **Application Code Modified**: NO (Documentation synchronization only; prior CSS compatibility fix in `PackageCustomizer.module.css`)
+- **Application Code Modified**: YES (Implemented `/admin/analytics` page, components, styles, backend repository, service, and unit tests)
 - **Brain.md Generated From Actual Codebase**: YES
-- **Verification Timestamp**: `2026-09-08T13:50:00+05:30`
+- **Verification Timestamp**: `2026-09-08T16:08:01+05:30`
 

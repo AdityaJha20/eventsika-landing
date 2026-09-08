@@ -546,9 +546,9 @@
     "semantic_hash": "8db4431a22d08517bbd9e9553a1c3f31"
   },
   ".agents/project-brain/Brain.md": {
-    "mtime": 1788855590.4275157,
-    "seen": 1788855642.4273376,
-    "ast_hash": "49d1b952f273465261bb7ccfa43cc7f7",
+    "mtime": 1788863887.3334577,
+    "seen": 1788864637.8394449,
+    "ast_hash": "0e95cdb23acff927cbd642035c1f449c",
     "semantic_hash": ""
   },
   ".agents/rules/graphify.md": {
@@ -682,5 +682,59 @@
     "seen": 1788769815.0891838,
     "ast_hash": "62fc5098376f430569b7e266cf1d0bd6",
     "semantic_hash": "62fc5098376f430569b7e266cf1d0bd6"
+  },
+  "src/app/admin/analytics/AnalyticsWorkspace.tsx": {
+    "mtime": 1788858766.743451,
+    "seen": 1788858861.2933886,
+    "ast_hash": "b76ee2d9cae8852f0377c17631ac6438",
+    "semantic_hash": ""
+  },
+  "src/app/admin/analytics/IndiaDemandMap.tsx": {
+    "mtime": 1788864353.071184,
+    "seen": 1788864637.812932,
+    "ast_hash": "077b32215987010ef0519b6d1496e2dd",
+    "semantic_hash": ""
+  },
+  "src/app/admin/analytics/LeadSourcesDonut.tsx": {
+    "mtime": 1788858744.3246863,
+    "seen": 1788858861.2933886,
+    "ast_hash": "5f9ac020863c606ea299a70b2ed61125",
+    "semantic_hash": ""
+  },
+  "src/app/admin/analytics/page.tsx": {
+    "mtime": 1788858773.147408,
+    "seen": 1788858861.2933886,
+    "ast_hash": "eb2d5da0a5f4265cf1baadcefa4d8b5e",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/repositories/analytics-repository.interface.ts": {
+    "mtime": 1788858650.5469086,
+    "seen": 1788858861.3115437,
+    "ast_hash": "5cb24bbe0dfadd422f00e7bc55c4f742",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/repositories/supabase-analytics-repository.ts": {
+    "mtime": 1788858829.1308868,
+    "seen": 1788858861.3128603,
+    "ast_hash": "5f27ddd111069a46fc59eabc31a9d404",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/services/__tests__/admin-analytics-service.test.ts": {
+    "mtime": 1788858689.0558002,
+    "seen": 1788858861.313861,
+    "ast_hash": "9b1d12ec7971416d78eb31b2b92b0633",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/services/admin-analytics-service.ts": {
+    "mtime": 1788858674.451902,
+    "seen": 1788858861.3148618,
+    "ast_hash": "c85f5ad8a61592de3d977cce07df8500",
+    "semantic_hash": ""
+  },
+  "src/app/admin/analytics/indiaMapData.ts": {
+    "mtime": 1788862869.5316832,
+    "seen": 1788863190.7931464,
+    "ast_hash": "6fdc59e99070fbb17e88be6972baaf9c",
+    "semantic_hash": ""
   }
 }
