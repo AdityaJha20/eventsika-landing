@@ -295,7 +295,7 @@ export default function ServicesPage() {
               customized moodboard, curated menu, and timeline tailored to your
               family&apos;s taste.
             </p>
-            <Link href="/#plan-event" className={styles.consultationCta}>
+            <Link href="/diwali-consultation" className={styles.consultationCta}>
               Book a Free Consultation
             </Link>
           </div>
