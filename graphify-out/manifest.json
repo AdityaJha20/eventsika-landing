@@ -30,10 +30,10 @@
     "semantic_hash": "03f5d0bc843a15a4568ce0913027fae7"
   },
   "src/app/admin/AdminSidebar.tsx": {
-    "mtime": 1788422694.5338807,
-    "seen": 1788611791.4320893,
-    "ast_hash": "73437c7022dc47704b8a6bf35378b6d9",
-    "semantic_hash": "73437c7022dc47704b8a6bf35378b6d9"
+    "mtime": 1788936385.6082006,
+    "seen": 1788936448.8013642,
+    "ast_hash": "50fdfb0a6ace1058c60a6727e58bc055",
+    "semantic_hash": ""
   },
   "src/app/admin/LogoutButton.tsx": {
     "mtime": 1788348232.4359128,
