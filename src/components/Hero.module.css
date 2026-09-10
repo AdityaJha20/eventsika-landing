@@ -45,7 +45,7 @@
 /* Content Container */
 .container {
   position: relative;
-  z-index: 2;
+  z-index: 3;
   width: 100%;
   max-width: var(--max-width);
   margin: 0 auto;

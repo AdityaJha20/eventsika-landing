@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import HeroFireworks from "./HeroFireworks";
 import styles from "./Hero.module.css";
 
 const CITY_OPTIONS = [
@@ -214,6 +215,9 @@ export default function Hero() {
         />
         <div className={styles.imageOverlay} />
       </div>
+
+      {/* Decorative Fireworks Layer */}
+      <HeroFireworks />
 
       <div className={styles.container}>
         {/* Left Column: Marketing Copy */}
