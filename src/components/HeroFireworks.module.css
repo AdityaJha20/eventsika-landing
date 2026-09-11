@@ -9,6 +9,7 @@
   pointer-events: none;
   z-index: 2;
   overflow: hidden;
+  opacity: 0.5;
 }
 
 .fireworksCanvas {

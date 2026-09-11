@@ -10,9 +10,9 @@
 | :--- | :--- |
 | **Project Name** | Eventsika (`landing`) |
 | **Document Path** | [`.agents/project-brain/Brain.md`](file:///d:/Persional-projects/landing/.agents/project-brain/Brain.md) |
-| **Brain Version** | `1.2.0` |
+| **Brain Version** | `1.3.0` |
 | **Creation Date** | `2026-08-30` |
-| **Last Verified** | `2026-09-08` |
+| **Last Verified** | `2026-09-11` |
 | **Target Framework** | Next.js `16.3.0` (React `19.2.8`, App Router) |
 | **Primary Domain** | `https://eventsika.in` |
 | **Support Inbox** | `care@eventsika.in` |
@@ -48,11 +48,12 @@ All dependencies and versions are verified directly from `package.json` and proj
 | **React Compiler** | `1.0.0` | Build Optimization | `babel-plugin-react-compiler` enabled via `reactCompiler: true` in `next.config.ts` |
 | **Styling** | Vanilla CSS | Design System | Pure CSS Modules (`*.module.css`) + CSS Custom Properties. **Zero Tailwind**. |
 | **Typography** | `next/font/google` | Font Management | `Playfair Display` (Serif) & `Inter` (Sans-serif) with CSS variable injection |
+| **Animation Runtime** | `@lottiefiles/dotlottie-web: 0.80.0` | Vector Celebration Animation | Canvas-based rendering, local WASM player (`/animation/dotlottie-player.wasm`), local `.lottie` container, reduced-motion listener, zero external CDN calls |
 | **Database & Auth** | `@supabase/supabase-js: ^2.112.4`<br>`@supabase/ssr: ^0.12.5` | Persistence & Sessions | PostgreSQL database persistence, server-side session cookies, RLS policies |
 | **Distributed Cache / Rate Limiter** | `@upstash/redis: ^1.38.3` | Distributed Abuse Prevention | Atomic Redis Lua scripts for multi-layer admin auth rate limiting; fails closed in prod |
 | **Rate Limiter (Public)** | In-Memory Map | Public Intake Defense | Sliding window IP rate limiter with automated 5-minute cleanup cycles (`rate-limit.ts`) |
 | **ESLint** | `^9` | Linting & Standards | Flat config format (`eslint.config.mjs`) using `eslint-config-next: 16.3.0` |
-| **Test Framework** | `vitest: ^4.1.11` | Automated Testing | Unit & integration test suites (21 test files, 169 tests passing) |
+| **Test Framework** | `vitest: ^4.1.11` | Automated Testing | Unit & integration test suites (22 test files, 173 tests passing) |
 | **Mailer Engine** | Native Fetch | Backend Dispatch | Zero-dependency REST dispatchers for Resend, SendGrid, and Custom Webhooks |
 
 ---
@@ -66,13 +67,14 @@ graph TD
     Client["Browser / Client (Desktop & Mobile)"] --> NextRouter["Next.js 16 App Router (RootLayout)"]
     
     subgraph FrontendPublic ["Public Presentation Layer (src/app & src/components)"]
-        NextRouter --> HomeRoute["/ (Homepage & Hero Intake)"]
-        NextRouter --> ServicesRoute["/services (Catalog & Estimator)"]
+        NextRouter --> HomeRoute["/ (Homepage, Hero Intake & Decorative Fireworks)"]
+        NextRouter --> ServicesRoute["/services (Catalog, Estimator & FAQs)"]
         NextRouter --> PackagesRoute["/packages (Tiers & Customizer)"]
         NextRouter --> VendorRoute["/for-vendors (Partner Application)"]
         NextRouter --> DiwaliRoute["/diwali-consultation (Promo Advisory)"]
         NextRouter --> LoginRoute["/login (Admin & Partner Authentication)"]
         NextRouter --> MetadataRoutes["/robots.txt & /sitemap.xml"]
+        ServicesRoute -.->|"Consultation CTA"| DiwaliRoute
     end
 
     subgraph MiddlewareLayer ["Edge/Server Request Boundary (src/middleware.ts)"]
@@ -87,6 +89,7 @@ graph TD
         AdminLayoutRSC --> AdminDash["/admin (Operations Dashboard)"]
         AdminLayoutRSC --> AdminLeads["/admin/leads (Inquiries Queue & Dossier)"]
         AdminLayoutRSC --> AdminVendors["/admin/vendors (Partner Register & CSV)"]
+        AdminLayoutRSC --> AdminAnalytics["/admin/analytics (Celebration Analytics & Insights)"]
     end
 
     subgraph BackendAPI ["API & Route Handler Layer (src/app/api)"]
@@ -106,6 +109,7 @@ graph TD
         AdminDash --> ServiceLayer
         AdminLeads --> ServiceLayer
         AdminVendors --> ServiceLayer
+        AdminAnalytics --> ServiceLayer
         
         ServiceLayer --> Deduplicator["In-Memory Deduplicator (30s Sliding Window)"]
         ServiceLayer --> RepoBoundary["Repository Boundary (ILeadRepository, IVendorRepository, IDashboardRepository)"]
@@ -148,11 +152,20 @@ landing/
 │       ├── project-memory/SKILL.md        # Memory MCP knowledge graph governance
 │       └── security-audit/SKILL.md        # Evidence-based security audit
 ├── public/                                # Static public assets (Zero build bundling)
+│   ├── animation/                         # Lottie animation assets & local WebAssembly player
+│   │   ├── Fireworks.lottie               # Compact dotLottie vector celebration archive (2 KB)
+│   │   └── dotlottie-player.wasm          # Local WebAssembly player runtime (1.2 MB, zero CDN)
 │   ├── images/                            # WebP/PNG photography, event types & services
 │   │   ├── packages/                      # Tiered package imagery (jpg)
 │   │   ├── services/                      # Original PNG & optimized WebP service card assets
+│   │   ├── service-decor-styling.png      # Service 01 photography (Decor & Styling)
+│   │   ├── service-catering-cuisine.png   # Service 02 photography (Catering & Cuisine)
+│   │   ├── service-rituals-blessings.png  # Service 03 photography (Rituals & Blessings)
+│   │   ├── service-entertainment-performers.png # Service 04 photography (Entertainment & Performers)
+│   │   ├── service-photography-films.png  # Service 05 photography (Photography & Films)
+│   │   ├── service-invitations-details.webp # Service 06 photography (Invitations & Favours)
 │   │   └── eventsika-official-logo.png    # Official brand logo asset
-│   ├── payment-logos/                     # UPI, GPay, PhonePe, Paytm, Cred vector icons
+│   ├── payment-logos/                     # UPI, GPay, PhonePe, Paytm, Cred vector icons (Trust display)
 │   └── videos/                            # Consultation walkthrough videos (mp4)
 ├── src/
 │   ├── middleware.ts                      # Edge/Node middleware protecting /admin & /api/admin
@@ -160,7 +173,7 @@ landing/
 │   │   ├── admin/                         # Protected Concierge Operations Suite
 │   │   │   ├── AdminHeader.tsx            # Header with breadcrumbs & mobile drawer toggle
 │   │   │   ├── AdminShell.tsx             # Responsive layout & sidebar wrapper
-│   │   │   ├── AdminSidebar.tsx           # Official logo navigation sidebar
+│   │   │   ├── AdminSidebar.tsx           # Official logo navigation sidebar (Dashboard, Leads, Vendors, Analytics)
 │   │   │   ├── LogoutButton.tsx           # CSRF-safe admin session termination button
 │   │   │   ├── admin.module.css           # Dashboard metrics & activity styling
 │   │   │   ├── admin-shell.module.css     # Shell, drawer, and sidebar styles
@@ -216,6 +229,7 @@ landing/
 │   │   ├── Footer.tsx / .module.css       # Global footer & navigation directory
 │   │   ├── ForVendors.tsx / .module.css   # Homepage vendor partner section
 │   │   ├── Hero.tsx / .module.css         # Hero banner & primary lead intake form
+│   │   ├── HeroFireworks.tsx / .module.css # Decorative fireworks canvas with dotLottie WASM runtime
 │   │   ├── HowItWorks.tsx / .module.css   # 3-step celebration process overview
 │   │   ├── LoginForm.tsx / .module.css    # Portal login component & validation
 │   │   ├── Navbar.tsx / .module.css       # Global header, navigation, & animated SVG logo
@@ -296,7 +310,7 @@ landing/
 | Route | Type | Component / File | Purpose & Key Interactions |
 | :--- | :--- | :--- | :--- |
 | `/` | Page (Static) | [`src/app/page.tsx`](file:///d:/Persional-projects/landing/src/app/page.tsx) | Main landing page. Contains Hero intake form (`#plan-event`), How It Works, Services, Event Types, Packages, and Vendor preview. |
-| `/services` | Page (Static) | [`src/app/services/page.tsx`](file:///d:/Persional-projects/landing/src/app/services/page.tsx) | Comprehensive celebration service directory with pricing, feature breakdowns, dynamic [`ServiceEstimator`](file:///d:/Persional-projects/landing/src/components/ServiceEstimator.tsx), and [`ServicesFAQ`](file:///d:/Persional-projects/landing/src/components/ServicesFAQ.tsx). |
+| `/services` | Page (Static) | [`src/app/services/page.tsx`](file:///d:/Persional-projects/landing/src/app/services/page.tsx) | Comprehensive celebration service directory with 6 curated service categories (01 Decor & Styling, 02 Catering & Cuisine, 03 Rituals & Blessings, 04 Entertainment & Performers, 05 Photography & Films, 06 Invitations & Favours), dynamic [`ServiceEstimator`](file:///d:/Persional-projects/landing/src/components/ServiceEstimator.tsx), [`ServicesFAQ`](file:///d:/Persional-projects/landing/src/components/ServicesFAQ.tsx), and consultation CTA routing to `/diwali-consultation`. |
 | `/packages` | Page (Static) | [`src/app/packages/page.tsx`](file:///d:/Persional-projects/landing/src/app/packages/page.tsx) | Curated tiered package explorer with interactive [`PackageCustomizer`](file:///d:/Persional-projects/landing/src/components/PackageCustomizer.tsx) and side-by-side [`PackageComparison`](file:///d:/Persional-projects/landing/src/components/PackageComparison.tsx). |
 | `/for-vendors` | Page (Static) | [`src/app/for-vendors/page.tsx`](file:///d:/Persional-projects/landing/src/app/for-vendors/page.tsx) | Partner acquisition landing page with value props and multi-category [`VendorApplicationForm`](file:///d:/Persional-projects/landing/src/components/VendorApplicationForm.tsx). |
 | `/diwali-consultation` | Page (Static) | [`src/app/diwali-consultation/page.tsx`](file:///d:/Persional-projects/landing/src/app/diwali-consultation/page.tsx) | High-intent promotional landing page for 1-on-1 strategy consultations at ₹2,999 (regular ₹5,000). |
@@ -323,6 +337,7 @@ landing/
   - **Admin Suite RSCs**: `src/app/admin/layout.tsx` (enforces `requireAdminSession`), `src/app/admin/page.tsx` (fetches dashboard summary), `src/app/admin/analytics/page.tsx` (fetches operational analytics), `src/app/admin/leads/page.tsx` (fetches inquiries queue), and `src/app/admin/vendors/page.tsx` (fetches partner applications).
 - **Client Components (`"use client"`)**:
   - [`Hero.tsx`](file:///d:/Persional-projects/landing/src/components/Hero.tsx): Multi-field form state, real-time Indian phone validation (`/^[6-9]\d{9}$/`), service multi-selection chips, submission spinner, and error banners.
+  - [`HeroFireworks.tsx`](file:///d:/Persional-projects/landing/src/components/HeroFireworks.tsx): Canvas-based dotLottie animation player, local WASM runtime, responsive opacity (0.5 desktop, 0.75 mobile), non-blocking pointer events, and reduced-motion listener.
   - [`Navbar.tsx`](file:///d:/Persional-projects/landing/src/components/Navbar.tsx): Mobile toggle menu state, active route highlighting via `usePathname()`.
   - [`Services.tsx`](file:///d:/Persional-projects/landing/src/components/Services.tsx): 3D CSS flip-card state (`transform-style: preserve-3d`) toggled via click or keyboard navigation (`Enter` / `Space`).
   - [`EventTypes.tsx`](file:///d:/Persional-projects/landing/src/components/EventTypes.tsx): Synchronized hover/click tab list updating active high-resolution editorial imagery on the left column.
@@ -376,14 +391,55 @@ Eventsika incorporates an isolated, zero-layout-impact festive decoration engine
    - CTA Diya features a gentle 3.8s ease-in-out flame sway anchor-based animation.
    - Full `@media (prefers-reduced-motion: reduce)` support: disables all animations/sway and maintains warm static illumination.
 
-### 4. Concierge Operations Suite (Admin Portal Frontend)
+### 4. Hero Fireworks Decorative Animation Layer
+
+Eventsika features a high-performance, non-blocking decorative celebratory fireworks animation in the homepage hero:
+
+```
+┌────────────────────────────────────────────────────────┐
+│ <section className={styles.hero}>                      │
+│   ├── <div className={styles.imageContainer}> (z: 1)   │
+│   │     └── Background Image & Gradient Overlay        │
+│   ├── <HeroFireworks /> (z: 2, pointer-events: none)   │
+│   │     └── <canvas className={styles.fireworksCanvas}>│
+│   └── <div className={styles.container}> (z: 3, locked)│
+│         ├── Left Column (Headline, Copy, CTA buttons)  │
+│         └── Right Column (Lead Intake Planning Form)   │
+└────────────────────────────────────────────────────────┘
+```
+
+#### Key Architecture & Governance Rules:
+1. **Component Location**: Implemented in [`src/components/HeroFireworks.tsx`](file:///d:/Persional-projects/landing/src/components/HeroFireworks.tsx) with scoped styling in [`HeroFireworks.module.css`](file:///d:/Persional-projects/landing/src/components/HeroFireworks.module.css).
+2. **Layer Priority & Z-Index Hierarchy**:
+   - **Background Layer (`z-index: 1`)**: High-resolution celebration backdrop image with cream gradient overlay.
+   - **Fireworks Layer (`z-index: 2`)**: Positioned absolutely in the hero's left visual field (`width: 58%; max-width: 820px; height: 100%; transform: translateY(-20%);`).
+   - **Foreground Content (`z-index: 3`)**: Marketing typography, CTA buttons, and interactive `#plan-event` consultation card sit strictly above the fireworks layer.
+3. **Interactive Safety (`pointer-events: none`)**: Both `.fireworksLayer` and `.fireworksCanvas` enforce `pointer-events: none`. All clicks, text selection, button taps, and form inputs pass through completely unobstructed.
+4. **Local Runtime & Zero-CDN Policy**:
+   - Uses `@lottiefiles/dotlottie-web: 0.80.0` rendering onto an HTML `<canvas>` element.
+   - Explicitly directs the WebAssembly player to a local binary via `DotLottie.setWasmUrl("/animation/dotlottie-player.wasm")` (1.2 MB). This permanently eliminates external CDN roundtrips (unpkg/jsdelivr), protects user privacy, and adheres to strict `Content-Security-Policy`.
+   - The animation payload `/animation/Fireworks.lottie` (2.0 KB) is loaded as an `ArrayBuffer` via local `fetch` with `AbortController` signal support.
+5. **Responsive Positioning & Opacity Behavior**:
+   - **Desktop**: Opacity `0.5` (subtle ambient celebratory atmosphere), positioned left-center with `transform: translateY(-20%)`.
+   - **Tablet (`max-width: 1024px`)**: Scaled to `width: 48%; max-width: 480px` to maintain safe clearance from the right-hand consultation card.
+   - **Mobile (`max-width: 768px`)**: Fixed height `280px` (or `240px` for `<= 480px`), opacity `0.75`, strictly confined to the upper visual area to prevent any visual distraction behind the intake form.
+6. **Accessibility & Motion Preferences**:
+   - Marked with `aria-hidden="true"` and `tabIndex={-1}` so screen readers treat it purely as decorative.
+   - Initialized with `autoplay: !mediaQuery.matches` where `mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)")`.
+   - Actively listens to `change` events on the media query to dynamically pause/play.
+   - In CSS, `@media (prefers-reduced-motion: reduce)` sets `.fireworksLayer { display: none; }` to halt rendering entirely.
+7. **Resource Lifecycle & Memory Hygiene**:
+   - `renderConfig: { autoResize: true, freezeOnOffscreen: true }` freezes the animation loop when scrolled out of view.
+   - Component unmount hook calls `abortController.abort()` to prevent unhandled fetch rejections and invokes `player.destroy()` to free canvas memory and WebAssembly worker resources cleanly in React 19 concurrent environments.
+
+### 5. Concierge Operations Suite (Admin Portal Frontend)
 
 The administrative layer provides a dedicated operations console rooted in `src/app/admin/`:
 
 1. **Admin Layout Shell (`src/app/admin/AdminShell.tsx`, `AdminSidebar.tsx`, `AdminHeader.tsx`, `LogoutButton.tsx`)**:
    - `AdminLayout` acts as a Server Component authorization boundary enforcing `await requireAdminSession()`, redirecting unauthorized traffic to `/login`.
    - `AdminShell` provides the responsive two-column workspace shell with collapsible mobile drawer.
-   - `AdminSidebar` integrates official `<EventsikaLogo>` branding with navigation routing (`Dashboard`, `Leads`, `Vendors`, with inactive placeholders for `Analytics` and `Settings`).
+   - `AdminSidebar` integrates official `<EventsikaLogo>` branding with navigation routing (`Dashboard`, `Leads`, `Vendors`, and active `Analytics`).
    - `LogoutButton` dispatches `POST /api/admin/auth/logout` with origin verification, clearing session cookies and redirecting to `/login`.
 
 2. **Operations Dashboard (`src/app/admin/page.tsx`)**:
@@ -602,17 +658,19 @@ Configured globally in [`next.config.ts`](file:///d:/Persional-projects/landing/
 
 All static assets reside in `public/` and are referenced using root-relative paths:
 
-### 1. Brand, Event Types & Packages
+### 1. Brand, Event Types, Services & Packages
 | Asset Path | Category | Usage / Location in Application |
 | :--- | :--- | :--- |
 | `/images/eventsika-official-logo.png` | Brand | High-resolution brand logo used in `LoginForm.tsx` and JSON-LD schema |
 | `/images/eventsika-official-logo.svg` | Brand | Scalable vector logo asset |
-| `/images/service-venue-decor.webp` | Services | Service 01 (Venue Decor) in `services/page.tsx` |
-| `/images/service-catering.webp` | Services | Service 02 (Gourmet Catering) in `services/page.tsx` |
-| `/images/service-photography.webp` | Services | Service 03 (Photography & Films) in `services/page.tsx` |
-| `/images/service-entertainment.webp` | Services | Service 04 (Entertainment & Performers) in `services/page.tsx` |
-| `/images/service-event-management.webp` | Services | Service 05 (Event Coordination) in `services/page.tsx` |
-| `/images/service-invitations-details.webp`| Services | Service 06 (Invitations & Stationery) in `services/page.tsx` |
+| `/animation/Fireworks.lottie` | Animation | Compact dotLottie vector celebration animation archive (2.0 KB) rendered in `HeroFireworks.tsx` |
+| `/animation/dotlottie-player.wasm` | Animation Runtime | Local WebAssembly player runtime binary (1.2 MB) for dotLottie engine; zero external CDN dependencies |
+| `/images/service-decor-styling.png` | Services | Service 01 photography (Decor & Styling) in `src/app/services/page.tsx` |
+| `/images/service-catering-cuisine.png` | Services | Service 02 photography (Catering & Cuisine) in `src/app/services/page.tsx` |
+| `/images/service-rituals-blessings.png` | Services | Service 03 photography (Rituals & Blessings) in `src/app/services/page.tsx` |
+| `/images/service-entertainment-performers.png` | Services | Service 04 photography (Entertainment & Performers) in `src/app/services/page.tsx` |
+| `/images/service-photography-films.png` | Services | Service 05 photography (Photography & Films) in `src/app/services/page.tsx` |
+| `/images/service-invitations-details.webp`| Services | Service 06 photography (Invitations & Favours) in `src/app/services/page.tsx` (retained WebP asset) |
 | `/images/event-diwali.webp` | Event Types | Event showcase 01 (Diwali Celebrations) in `EventTypes.tsx` |
 | `/images/event-birthday.webp.png` | Event Types | Event showcase 02 (Birthdays) |
 | `/images/event-anniversary.webp.png` | Event Types | Event showcase 03 (Anniversaries) |
@@ -628,7 +686,7 @@ All static assets reside in `public/` and are referenced using root-relative pat
 | `/images/packages/showroom-office.jpg` | Packages | Showroom & Office Launch package card |
 | `/images/packages/small-budget-wedding.jpg`| Packages | Small Budget Wedding package card |
 | `/images/vendor-network-final.webp` | Vendors | Editorial photography for `ForVendors.tsx` & `/for-vendors` |
-| `/payment-logos/*.svg` | Payment | UPI, GPay, PhonePe, Paytm, Amazon Pay, Cred icons |
+| `/payment-logos/*.svg` | Payment UI | Vector trust display badges (UPI, GPay, PhonePe, Paytm, Amazon Pay, Cred) on `/diwali-consultation` |
 | `/videos/eventsika-consultation-process.mp4` | Video | Consultation process video demonstration |
 
 ### 2. Service Card Assets (`public/images/services/`)
@@ -697,6 +755,17 @@ sequenceDiagram
 * **Schema.org Structured Data**:
   * JSON-LD Organization, WebSite, and BreadcrumbList schemas injected on public routes for rich Google search cards.
 * **Operational Inboxes**: All customer leads and vendor applications route to `care@eventsika.in`.
+* **Payment Architecture Status (PENDING ARCHITECTURE & DESIGN / NOT IMPLEMENTED)**:
+  * **Critical Architectural Distinction**: Presentation UI / Trust Indicators vs. Real Payment Infrastructure.
+  * **What Currently Exists**:
+    * Vector trust display logos in `public/payment-logos/*.svg` (UPI, Google Pay, PhonePe, Paytm, Amazon Pay, CRED) rendered as visual trust indicators on `/diwali-consultation`.
+    * Promotional offer pricing presentation on `/diwali-consultation` (`₹2,999` offer price vs. `₹5,000` original).
+    * Inert client action button (`<button type="button" className={styles.primaryCtaBtn}>`) displaying consultation pricing.
+  * **What Does NOT Exist**:
+    * Zero payment gateway SDKs or integrations (Razorpay, Cashfree, Stripe, PayU are completely absent from codebase).
+    * Zero payment API route handlers or webhook receivers (e.g. `/api/payments/*` does not exist).
+    * Zero database tables for orders, payments, invoices, or transactions in Supabase.
+  * **Status**: Full payment infrastructure is under architectural design and tracked strictly as **PENDING WORK**. No payment processing capability is currently active.
 
 ---
 
@@ -755,7 +824,7 @@ sequenceDiagram
   - `npm test`: Executes all Vitest test suites once (`vitest run`).
   - `npm run test:watch`: Runs Vitest in interactive watch mode.
 * **Automated Test Architecture**:
-  - Vitest test framework covering 21 test suites (169 passing tests).
+  - Vitest test framework covering 22 test suites (173 passing tests).
   - Tests co-located in `__tests__/` subdirectories across route handlers, security boundaries, rate limiting, validation schemas, repositories, services, and helper sanitizers.
 * **Pre-Commit Verification**: Always run `npx tsc --noEmit`, `npm test`, and `npm run lint` before committing any code changes.
 
@@ -800,6 +869,8 @@ The repository includes 6 purpose-built skills located in [`.agents/skills/`](fi
 | **ADR-05** | **React Compiler Enabled** | Automates memoization and re-render optimizations in React 19 without manual `useMemo`/`useCallback` clutter. | Enabled via `reactCompiler: true` in `next.config.ts`. |
 | **ADR-06** | **Production Admin Authentication & SSR Session Management** | Replaced presentation mock with genuine server-authenticated administrative session management. | `/login` handshakes with `/api/admin/auth/login`, sets HttpOnly `@supabase/ssr` cookies, enforces `app_metadata.role === 'admin'`, and redirects to `/admin`. |
 | **ADR-07** | **Canonical WebP Asset Optimization & Lazy-Loading** | High-resolution raster images (PNGs/JPEGs) bloat initial page load. Next.js `<Image>` provides default viewport lazy-loading. | All photographic assets use high-fidelity WebP (quality ~85). Below-the-fold media uses deferred loading with poster preview frames. |
+| **ADR-08** | **Local dotLottie WebAssembly Player for Hero Celebration Animation** | Adding festive celebratory visual motion to homepage hero while strictly avoiding third-party CDN roundtrips (unpkg/jsdelivr), CSP violations, and render-blocking scripts. | Uses `@lottiefiles/dotlottie-web: 0.80.0` with self-hosted `/animation/dotlottie-player.wasm` and `/animation/Fireworks.lottie`. Enforces `pointer-events: none`, `aria-hidden="true"`, and honors `prefers-reduced-motion: reduce`. |
+| **ADR-09** | **Decoupling Services Marketing Editorial Copy from Backend Database Contracts** | Customer-facing service categories and marketing descriptions evolve to suit presentation appeal and festive offerings without invalidating historical leads or breaking intake allowlists. | Editorial copy, pricing displays, and photography on `/services` are decoupled from canonical backend definitions (`SERVICE_OPTIONS` in `allowlists.ts`). Customer inquiry form submissions remain standard and validated against backend allowlists. |
 
 ---
 
@@ -828,8 +899,10 @@ These areas can be iterated on and refined with standard pre-commit verification
 ## 22. Known Issues & Technical Debt
 
 1. **Resolved: Next.js 16 Scroll Behavior**: Added `data-scroll-behavior="smooth"` to `<html>` in `src/app/layout.tsx` to align with App Router smooth scroll transition standards.
-2. **Legacy `page.module.css`**: Contains default boilerplate CSS from initial `create-next-app` initialization. Unused by current components but retained to avoid unnecessary breaking diffs.
-3. **Public Route Rate Limiting Scope**: In-memory rate limiting for public endpoints (`/api/leads`, `/api/vendor-applications`) is per Node process. Sufficient for current traffic; upgrade public routes to Redis if horizontal autoscaling is deployed. (Admin auth is already distributed via Upstash Redis).
+2. **Next.js 16 Proxy Convention Notice**: Next.js 16 deprecates the `middleware` file convention in favor of `proxy`. Codemod migration (`npx @next/codemod@canary middleware-to-proxy .`) is tracked for canary-to-stable transition.
+3. **Payment Processing Infrastructure Pending**: Payment logos and pricing displays on `/diwali-consultation` are visual presentation trust indicators. Genuine payment gateway infrastructure, order generation, and transaction webhooks are currently in the architectural design phase.
+4. **Legacy `page.module.css`**: Contains default boilerplate CSS from initial `create-next-app` initialization. Unused by current components but retained to avoid unnecessary breaking diffs.
+5. **Public Route Rate Limiting Scope**: In-memory rate limiting for public endpoints (`/api/leads`, `/api/vendor-applications`) is per Node process. Sufficient for current traffic; upgrade public routes to Redis if horizontal autoscaling is deployed. (Admin auth is already distributed via Upstash Redis).
 
 ---
 
@@ -837,6 +910,9 @@ These areas can be iterated on and refined with standard pre-commit verification
 
 - [x] Full-stack Next.js 16 App Router celebration landing platform.
 - [x] High-conversion interactive Hero celebration inquiry form with real-time validation.
+- [x] Decorative Fireworks dotLottie hero animation layer with local WASM player, canvas rendering, responsive opacity, and reduced-motion support.
+- [x] Refreshed high-fidelity Services page (`/services`) with 6 updated service categories and photographic imagery.
+- [x] Services page consultation CTA routing directly to `/diwali-consultation`.
 - [x] Interactive 3D flip-card services showcase with responsive touch and keyboard support.
 - [x] Dynamic 2-column interactive event occasions showcase (`EventTypes.tsx`).
 - [x] Interactive Package Customizer and side-by-side Package Comparison matrix (`/packages`).
@@ -848,6 +924,7 @@ These areas can be iterated on and refined with standard pre-commit verification
 - [x] Celebration Leads Command Center with 2-pane inquiry queue and client dossier (`/admin/leads`).
 - [x] Vendor Partner Application Register with slide-over drawer and injection-safe CSV export (`/admin/vendors`).
 - [x] Executive Celebration Analytics & Insights with demand heatmap, celebration trends, and attribution donut (`/admin/analytics`).
+- [x] Streamlined Admin sidebar navigation removing inactive Settings link, retaining active links (`Dashboard`, `Leads`, `Vendors`, `Analytics`).
 - [x] Edge/Node route protection middleware (`src/middleware.ts`) enforcing `app_metadata.role === 'admin'`.
 - [x] Distributed multi-layer rate limiter with Upstash Redis and atomic Lua scripts (`rate-limit.ts`).
 - [x] Zero-dependency multi-adapter notification mailer (`mailer.ts`).
@@ -860,7 +937,7 @@ These areas can be iterated on and refined with standard pre-commit verification
 
 ## 24. Current Project State
 
-* **Build Health**: Clean TypeScript compilation (`0 errors`), valid ESLint 9 checks.
+* **Build Health**: Clean TypeScript compilation (`0 errors`), valid ESLint 9 checks, successful Next.js 16.3.0 standalone production build.
 * **Test Health**: 22 Vitest test suites passing (173 tests passing with zero failures).
 * **Development Server**: Fully operational and active on `http://localhost:3000`.
 * **Current Operational Priority**: Maintaining rock-solid landing page performance, zero-regression changes, and pristine architectural documentation.
@@ -920,6 +997,23 @@ Every AI agent working in the Eventsika repository must adhere to the following 
 ---
 
 ## 28. Change Log
+
+### 2026-09-11
+- **Hero Decorative Fireworks Animation Integration (`src/components/HeroFireworks.*`)**:
+  - **Local dotLottie Runtime**: Integrated `@lottiefiles/dotlottie-web: 0.80.0` rendering directly onto an HTML `<canvas>` element inside the homepage hero.
+  - **Zero-CDN Architecture**: Configured player to use local WebAssembly runtime binary `public/animation/dotlottie-player.wasm` (1.2 MB) via `DotLottie.setWasmUrl()`, completely avoiding external CDN requests (unpkg/jsdelivr), preventing CSP violations, and maximizing offline reliability.
+  - **Self-Hosted Vector Asset**: Added compact celebration animation archive `public/animation/Fireworks.lottie` (2.0 KB), fetched locally as an `ArrayBuffer` with `AbortController` cancellation for clean React 19 lifecycle unmounting.
+  - **Visual Refinement & Responsive Layering**: Layered non-intrusively between hero background (`z-index: 1`) and foreground typography/intake card (`z-index: 3`) at `z-index: 2`. Positioned at `width: 58%; max-width: 820px; transform: translateY(-20%)` with opacity `0.5` on desktop (`0.75` on mobile `<= 768px` at height `280px` / `240px`).
+  - **Accessibility & Interactive Protection**: Enforced `pointer-events: none` on layer and canvas ensuring zero click interception. Marked container `aria-hidden="true"`, dynamic `prefers-reduced-motion: reduce` detection pauses playback and sets CSS `display: none`.
+- **Services Page Editorial & Imagery Refresh (`src/app/services/page.tsx`)**:
+  - **Six Curated Service Categories**: Updated `/services` presentation to showcase 6 editorial categories: 01 Decor & Styling, 02 Catering & Cuisine, 03 Rituals & Blessings, 04 Entertainment & Performers, 05 Photography & Films, 06 Invitations & Favours.
+  - **Photographic Assets (`public/images/`)**: Integrated dedicated photography (`service-decor-styling.png`, `service-catering-cuisine.png`, `service-rituals-blessings.png`, `service-entertainment-performers.png`, `service-photography-films.png`), retaining `service-invitations-details.webp` for Invitations & Favours.
+  - **Backend Allowlist Stability**: Decoupled editorial marketing copy from backend canonical allowlists; canonical `SERVICE_OPTIONS` in `src/lib/backend/constants/allowlists.ts` remains intact with zero database breaking changes.
+  - **Consultation CTA Routing**: Routed "Book a Free Consultation" CTA button directly to `/diwali-consultation` to optimize conversion towards 1-on-1 strategy sessions.
+- **Admin Navigation Clean-Up (`src/app/admin/AdminSidebar.tsx`)**:
+  - Removed inactive Settings link from `AdminSidebar.tsx`, aligning sidebar exclusively with live operational routes: Dashboard (`/admin`), Leads (`/admin/leads`), Vendors (`/admin/vendors`), and Analytics (`/admin/analytics`).
+- **Forensic Brain.md Synchronization (v1.3.0)**:
+  - Synchronized `Brain.md` to reflect active repository state, documented fireworks runtime, services photography, CTA routing, payment architecture status (distinguishing UI presentation from pending payment infrastructure), and verified 22 test suites (173 passing tests).
 
 ### 2026-09-08
 - **Executive Celebration Analytics & Insights (`/admin/analytics`)**:
@@ -1018,11 +1112,13 @@ Every AI agent working in the Eventsika repository must adhere to the following 
 
 ## 29. Final Verification
 
-- **Repository Inspected**: YES (All files, routes, components, and configs verified from source)
-- **Architecture Verified**: YES (6-layer backend flow, Supabase PostgreSQL persistence, Supabase SSR Auth & RBAC session cookies, Distributed Rate Limiting via Upstash Redis, Concierge Operations Suite confirmed)
+- **Repository Inspected**: YES (All files, routes, components, assets, and configs verified from source)
+- **Architecture Verified**: YES (6-layer backend flow, Supabase PostgreSQL persistence, Supabase SSR Auth & RBAC session cookies, Distributed Rate Limiting via Upstash Redis, Concierge Operations Suite, Hero Fireworks dotLottie Layer, Services refresh confirmed)
 - **Secrets Excluded**: YES (Zero API keys, credentials, or private values included)
 - **Existing Agent Tooling Preserved**: YES (All 6 skills in `.agents/skills/` and MCP configurations intact)
-- **Application Code Modified**: YES (Implemented `/admin/analytics` page, components, styles, backend repository, service, and unit tests)
+- **Application Code Modified by Documentation Task**: NO (Pure documentation synchronization; pre-existing uncommitted working tree modifications in `src/app/services/page.tsx` and `src/components/HeroFireworks.module.css` were forensically inspected and left untouched)
 - **Brain.md Generated From Actual Codebase**: YES
-- **Verification Timestamp**: `2026-09-08T16:08:01+05:30`
+- **Verification Timestamp**: `2026-09-11T13:10:00+05:30`
+
+
 

@@ -192,9 +192,8 @@ export default function ServicesPage() {
               return (
                 <article
                   key={service.title}
-                  className={`${styles.serviceItem} ${
-                    isReverse ? styles.serviceItemReverse : ""
-                  }`}
+                  className={`${styles.serviceItem} ${isReverse ? styles.serviceItemReverse : ""
+                    }`}
                   aria-labelledby={`service-heading-${index + 1}`}
                 >
                   {/* Service Photography */}
