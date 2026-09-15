@@ -121,4 +121,23 @@ export class SupabaseConsultationRepository implements IConsultationRepository {
 
     return this.mapRowToRecord(data);
   }
+
+  async detachStaleSlotHold(slotId: string): Promise<number> {
+    const client = this.getClient();
+    const { data, error } = await client
+      .from("consultations")
+      .update({
+        status: "draft",
+        slot_id: null,
+      })
+      .eq("slot_id", slotId)
+      .eq("status", "slot_held")
+      .select("id");
+
+    if (error) {
+      throw new Error(`Database error detaching stale slot hold: ${error.message}`);
+    }
+
+    return (data || []).length;
+  }
 }

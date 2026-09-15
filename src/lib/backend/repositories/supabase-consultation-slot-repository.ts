@@ -117,4 +117,100 @@ export class SupabaseConsultationSlotRepository implements IConsultationSlotRepo
 
     return this.mapRowToRecord(data);
   }
+
+  async getAvailableSlots(startTime: string, endTime: string): Promise<ConsultationSlotRecord[]> {
+    const client = this.getClient();
+    const nowIso = new Date().toISOString();
+    const { data, error } = await client
+      .from("consultation_slots")
+      .select("*")
+      .gte("start_time", startTime)
+      .lte("end_time", endTime)
+      .or(`status.eq.available,and(status.eq.reserved,reserved_until.lt.${nowIso})`)
+      .order("start_time", { ascending: true });
+
+    if (error) {
+      throw new Error(`Database error querying available consultation slots: ${error.message}`);
+    }
+
+    return (data || []).map((row) => this.mapRowToRecord(row));
+  }
+
+  async bulkCreateSlots(slots: CreateConsultationSlotInput[]): Promise<ConsultationSlotRecord[]> {
+    if (slots.length === 0) return [];
+    const client = this.getClient();
+    const payload = slots.map((s) => ({
+      start_time: s.startTime,
+      end_time: s.endTime,
+      status: s.status || "available",
+      reserved_until: s.reservedUntil || null,
+      reservation_token: s.reservationToken || null,
+    }));
+
+    const { data, error } = await client
+      .from("consultation_slots")
+      .upsert(payload, { onConflict: "start_time", ignoreDuplicates: true })
+      .select("*");
+
+    if (error) {
+      throw new Error(`Database error bulk creating consultation slots: ${error.message}`);
+    }
+
+    return (data || []).map((row) => this.mapRowToRecord(row));
+  }
+
+  async reserveSlot(
+    slotId: string,
+    reservationToken: string,
+    holdDurationMinutes: number = 15
+  ): Promise<ConsultationSlotRecord | null> {
+    const client = this.getClient();
+    const { data, error } = await client.rpc("reserve_consultation_slot", {
+      p_slot_id: slotId,
+      p_reservation_token: reservationToken,
+      p_hold_duration_minutes: holdDurationMinutes,
+    });
+
+    if (error) {
+      throw new Error(`Database error reserving consultation slot: ${error.message}`);
+    }
+
+    if (!data || !(data as Record<string, unknown>).id) {
+      return null;
+    }
+
+    return this.mapRowToRecord(data as Record<string, unknown>);
+  }
+
+  async releaseSlot(slotId: string, reservationToken: string): Promise<boolean> {
+    const client = this.getClient();
+    const { data, error } = await client.rpc("release_consultation_slot", {
+      p_slot_id: slotId,
+      p_reservation_token: reservationToken,
+    });
+
+    if (error) {
+      throw new Error(`Database error releasing consultation slot: ${error.message}`);
+    }
+
+    return Boolean(data && (data as Record<string, unknown>).id);
+  }
+
+  async confirmSlot(slotId: string, reservationToken: string): Promise<ConsultationSlotRecord | null> {
+    const client = this.getClient();
+    const { data, error } = await client.rpc("confirm_consultation_slot", {
+      p_slot_id: slotId,
+      p_reservation_token: reservationToken,
+    });
+
+    if (error) {
+      throw new Error(`Database error confirming consultation slot: ${error.message}`);
+    }
+
+    if (!data || !(data as Record<string, unknown>).id) {
+      return null;
+    }
+
+    return this.mapRowToRecord(data as Record<string, unknown>);
+  }
 }

@@ -26,4 +26,11 @@ export interface IConsultationRepository {
       slotId?: string | null;
     }
   ): Promise<ConsultationRecord>;
+
+  /**
+   * Detaches any prior stale consultation holding a slot:
+   * transitions consultations with matching slotId and status = 'slot_held'
+   * to status = 'draft' and slot_id = null.
+   */
+  detachStaleSlotHold(slotId: string): Promise<number>;
 }

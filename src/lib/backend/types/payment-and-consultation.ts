@@ -271,3 +271,58 @@ export interface CreateWebhookEventInput {
 
 export const DEFAULT_CONSULTATION_PRICE_PAISE = 299900; // ₹2,999 in integer paise
 export const CONSULTATION_DURATION_MINUTES = 60;
+export const CONSULTATION_BUFFER_MINUTES = 30;
+export const CONSULTATION_TIMEZONE = "Asia/Kolkata";
+export const MIN_BOOKING_LEAD_TIME_HOURS = 24;
+export const ROLLING_AVAILABILITY_DAYS = 30;
+export const RESERVATION_HOLD_DURATION_MINUTES = 15;
+
+export interface DailySlotTimeConfig {
+  startHour: number;
+  startMinute: number;
+  endHour: number;
+  endMinute: number;
+}
+
+export const DAILY_CONSULTATION_SLOTS_IST: readonly DailySlotTimeConfig[] = [
+  { startHour: 10, startMinute: 0, endHour: 11, endMinute: 0 },
+  { startHour: 11, startMinute: 30, endHour: 12, endMinute: 30 },
+  { startHour: 14, startMinute: 0, endHour: 15, endMinute: 0 },
+  { startHour: 15, startMinute: 30, endHour: 16, endMinute: 30 },
+  { startHour: 17, startMinute: 0, endHour: 18, endMinute: 0 },
+  { startHour: 18, startMinute: 30, endHour: 19, endMinute: 30 },
+] as const;
+
+// ==============================================================================
+// 8. Step 2 Booking & Slot Engine Contracts
+// ==============================================================================
+
+export type BookingServiceErrorCode =
+  | "SLOT_UNAVAILABLE"
+  | "SLOT_PAST_LEAD_TIME"
+  | "INVALID_SLOT"
+  | "VALIDATION_ERROR"
+  | "DATABASE_ERROR";
+
+export interface AvailableSlotDto {
+  id: string;
+  startTime: string; // ISO UTC
+  endTime: string;   // ISO UTC
+}
+
+export interface SlotReservationSuccess {
+  success: true;
+  consultationId: string;
+  slotId: string;
+  reservationToken: string;
+  reservedUntil: string; // ISO UTC
+  expiresInSeconds: number;
+}
+
+export interface SlotReservationFailure {
+  success: false;
+  error: BookingServiceErrorCode;
+  message: string;
+}
+
+export type SlotReservationResult = SlotReservationSuccess | SlotReservationFailure;
