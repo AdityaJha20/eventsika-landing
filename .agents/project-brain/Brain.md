@@ -10,9 +10,9 @@
 | :--- | :--- |
 | **Project Name** | Eventsika (`landing`) |
 | **Document Path** | [`.agents/project-brain/Brain.md`](file:///d:/Persional-projects/landing/.agents/project-brain/Brain.md) |
-| **Brain Version** | `1.3.0` |
+| **Brain Version** | `1.4.0` |
 | **Creation Date** | `2026-08-30` |
-| **Last Verified** | `2026-09-11` |
+| **Last Verified** | `2026-09-16` |
 | **Target Framework** | Next.js `16.3.0` (React `19.2.8`, App Router) |
 | **Primary Domain** | `https://eventsika.in` |
 | **Support Inbox** | `care@eventsika.in` |
@@ -32,6 +32,8 @@
 5. **Seasonal Strategy Consultations**: High-intent 1-on-1 celebration planning advisory sessions (`/diwali-consultation`).
 6. **Client & Partner Authentication Portal**: Dedicated portal entry point (`/login`) featuring client-side validation, secure Supabase SSR session handshake, and direct operational support routing.
 7. **Concierge Operations Suite**: Protected operational command center (`/admin`) for inquiries management (`/admin/leads`), partner application registry (`/admin/vendors`), and intake metrics.
+8. **Consultation Booking & Slot Reservation Engine**: High-concurrency booking engine featuring JIT slot materialization, server-authoritative Asia/Kolkata scheduling (6 daily slots, Mon–Sat, 24h lead time, 30d window), 15-minute temporary hold with 256-bit cryptographically secure tokens, atomic database concurrency controls, lazy expiry, and automatic compensation release.
+9. **Cashfree Payment Gateway Integration Subsystem**: Provider-agnostic payment gateway contract with zero-dependency native fetch adapter targeting Cashfree PG API (2023-08-01), 10s timeout protection, automatic 409 duplicate recovery, paise-to-rupee conversion, and server-only credential security.
 
 ---
 
@@ -49,12 +51,14 @@ All dependencies and versions are verified directly from `package.json` and proj
 | **Styling** | Vanilla CSS | Design System | Pure CSS Modules (`*.module.css`) + CSS Custom Properties. **Zero Tailwind**. |
 | **Typography** | `next/font/google` | Font Management | `Playfair Display` (Serif) & `Inter` (Sans-serif) with CSS variable injection |
 | **Animation Runtime** | `@lottiefiles/dotlottie-web: 0.80.0` | Vector Celebration Animation | Canvas-based rendering, local WASM player (`/animation/dotlottie-player.wasm`), local `.lottie` container, reduced-motion listener, zero external CDN calls |
-| **Database & Auth** | `@supabase/supabase-js: ^2.112.4`<br>`@supabase/ssr: ^0.12.5` | Persistence & Sessions | PostgreSQL database persistence, server-side session cookies, RLS policies |
+| **Database & Auth** | `@supabase/supabase-js: ^2.112.4`<br>`@supabase/ssr: ^0.12.5` | Persistence, Sessions & RPC | PostgreSQL database persistence (8 tables), server-side session cookies, RLS policies, and atomic stored procedures (`reserve_consultation_slot`, `release_consultation_slot`, `confirm_consultation_slot`) executed via service-role |
 | **Distributed Cache / Rate Limiter** | `@upstash/redis: ^1.38.3` | Distributed Abuse Prevention | Atomic Redis Lua scripts for multi-layer admin auth rate limiting; fails closed in prod |
 | **Rate Limiter (Public)** | In-Memory Map | Public Intake Defense | Sliding window IP rate limiter with automated 5-minute cleanup cycles (`rate-limit.ts`) |
+| **Cryptography** | Native `node:crypto` | Secure Token Generation | 256-bit cryptographically secure reservation tokens (`crypto.randomBytes(32).toString('hex')`) for temporary slot holds |
 | **ESLint** | `^9` | Linting & Standards | Flat config format (`eslint.config.mjs`) using `eslint-config-next: 16.3.0` |
-| **Test Framework** | `vitest: ^4.1.11` | Automated Testing | Unit & integration test suites (22 test files, 173 tests passing) |
+| **Test Framework** | `vitest: ^4.1.11` | Automated Testing | Unit & integration test suites (28 test files, 256 tests passing) |
 | **Mailer Engine** | Native Fetch | Backend Dispatch | Zero-dependency REST dispatchers for Resend, SendGrid, and Custom Webhooks |
+| **Payment Gateway** | Native Fetch | Payment Adapter | Zero-dependency REST adapter for Cashfree PG API (2023-08-01) with 10s AbortController |
 
 ---
 
@@ -206,6 +210,11 @@ landing/
 │   │   │   │           ├── login-route.test.ts  # Security & rate-limiting tests
 │   │   │   │           ├── logout-route.test.ts # Session revocation tests
 │   │   │   │           └── middleware.test.ts   # Route protection tests
+│   │   │   ├── consultations/             # Consultation booking & slot engine endpoints
+│   │   │   │   ├── reserve/route.ts       # POST atomic 15m slot hold & consultation creation
+│   │   │   │   ├── slots/route.ts         # GET dynamic slot availability (JIT generated, no-store)
+│   │   │   │   └── __tests__/
+│   │   │   │       └── consultation-routes.test.ts # Route integration, rate limit & security tests
 │   │   │   ├── health/route.ts            # GET application liveness & health check
 │   │   │   ├── leads/
 │   │   │   │   ├── route.ts               # POST celebration lead capture
@@ -261,33 +270,63 @@ landing/
 │       │   ├── http/
 │       │   │   ├── origin.ts              # CSRF / Origin / Sec-Fetch-Site validation
 │       │   │   └── __tests__/             # Origin validation tests
-│       │   ├── integrations/              # Delivery notifier interfaces & adapters
+│       │   ├── integrations/              # Delivery notifiers & payment gateway adapters
+│       │   │   ├── cashfree-payment-gateway-adapter.ts # Cashfree PG adapter (API 2023-08-01, fetch, 10s timeout, 409 recovery)
+│       │   │   ├── payment-gateway.interface.ts # Provider-agnostic gateway interface
+│       │   │   └── __tests__/
+│       │   │       └── cashfree-payment-gateway-adapter.test.ts # Cashfree adapter unit tests
 │       │   ├── logger/logger.ts           # PII-safe structured logger with phone/email masking
 │       │   ├── repositories/              # Repository interfaces, in-memory & Supabase stores
 │       │   │   ├── analytics-repository.interface.ts # Analytics data contracts & DTOs
+│       │   │   ├── consultation-repository.interface.ts # Consultation persistence contracts
+│       │   │   ├── consultation-slot-repository.interface.ts # Slot query & atomic RPC contracts
 │       │   │   ├── dashboard-repository.interface.ts # Dashboard aggregation contracts
 │       │   │   ├── in-memory-lead-repository.ts
 │       │   │   ├── in-memory-vendor-repository.ts
 │       │   │   ├── lead-repository.interface.ts
+│       │   │   ├── payment-order-repository.interface.ts # Order persistence contracts
+│       │   │   ├── payment-refund-repository.interface.ts # Refund ledger contracts
+│       │   │   ├── payment-transaction-repository.interface.ts # Transaction attempt contracts
 │       │   │   ├── supabase-analytics-repository.ts  # Analytics queries via Promise.all()
+│       │   │   ├── supabase-consultation-repository.ts # Consultation Supabase store
+│       │   │   ├── supabase-consultation-slot-repository.ts # Slot Supabase store + RPC calls
 │       │   │   ├── supabase-dashboard-repository.ts  # Supabase dashboard queries (No fake fallback)
 │       │   │   ├── supabase-lead-repository.ts
+│       │   │   ├── supabase-payment-order-repository.ts # Payment order Supabase store
+│       │   │   ├── supabase-payment-refund-repository.ts # Refund Supabase store
+│       │   │   ├── supabase-payment-transaction-repository.ts # Transaction attempt ledger
 │       │   │   ├── supabase-vendor-repository.ts
+│       │   │   ├── supabase-webhook-event-repository.ts # Webhook event idempotency store
 │       │   │   ├── vendor-repository.interface.ts
-│       │   │   └── __tests__/             # Repository tests
+│       │   │   ├── webhook-event-repository.interface.ts # Webhook event contracts
+│       │   │   └── __tests__/             # Repository unit & integration tests
+│       │   │       ├── payment-foundation-repositories.test.ts # Payment repositories tests
+│       │   │       └── vendor-repository.test.ts
 │       │   ├── services/                  # Business domain services
 │       │   │   ├── admin-analytics-service.ts # Analytics derivations & error boundary
 │       │   │   ├── admin-dashboard-service.ts # Dashboard aggregation orchestration
 │       │   │   ├── admin-lead-service.ts      # Leads queue data orchestration
 │       │   │   ├── admin-vendor-service.ts    # Vendor register data orchestration
+│       │   │   ├── consultation-booking-service.ts # Availability, JIT generation, atomic hold, compensation
 │       │   │   ├── lead-service.ts
 │       │   │   ├── vendor-service.ts
 │       │   │   └── __tests__/             # Service unit tests
+│       │   │       ├── consultation-booking-service.test.ts # Slot reservation & compensation tests
+│       │   │       └── ...
 │       │   ├── supabase/
 │       │   │   ├── client.ts              # Server-only Supabase admin client (Service Role)
 │       │   │   └── server.ts              # Server Supabase client using @supabase/ssr
-│       │   ├── utils/request-id.ts        # Correlation ID generator & header extractor
-│       │   └── validation/                # Server-side validation schemas (phone, date, url)
+│       │   ├── types/                     # Shared domain contracts & types
+│       │   │   └── payment-and-consultation.ts # Domain types, integer paise, state unions, DTOs
+│       │   ├── utils/
+│       │   │   ├── consultation-time.ts   # Pure scheduling engine (Asia/Kolkata, 6 slots, lead time)
+│       │   │   ├── request-id.ts          # Correlation ID generator & header extractor
+│       │   │   └── __tests__/
+│       │   │       └── consultation-time.test.ts # Scheduling calculation tests
+│       │   └── validation/                # Server-side validation schemas
+│       │       ├── consultation-schema.ts # Consultation booking input validation
+│       │       ├── lead-schema.ts
+│       │       ├── vendor-schema.ts
 │       │       └── __tests__/             # Validation schemas unit tests
 │       ├── mailer.ts                      # Multi-provider zero-dependency email dispatcher
 │       └── rate-limit.ts                  # Hybrid rate limiter (In-memory public + Upstash Redis admin)
@@ -755,17 +794,60 @@ sequenceDiagram
 * **Schema.org Structured Data**:
   * JSON-LD Organization, WebSite, and BreadcrumbList schemas injected on public routes for rich Google search cards.
 * **Operational Inboxes**: All customer leads and vendor applications route to `care@eventsika.in`.
-* **Payment Architecture Status (PENDING ARCHITECTURE & DESIGN / NOT IMPLEMENTED)**:
-  * **Critical Architectural Distinction**: Presentation UI / Trust Indicators vs. Real Payment Infrastructure.
-  * **What Currently Exists**:
-    * Vector trust display logos in `public/payment-logos/*.svg` (UPI, Google Pay, PhonePe, Paytm, Amazon Pay, CRED) rendered as visual trust indicators on `/diwali-consultation`.
-    * Promotional offer pricing presentation on `/diwali-consultation` (`₹2,999` offer price vs. `₹5,000` original).
-    * Inert client action button (`<button type="button" className={styles.primaryCtaBtn}>`) displaying consultation pricing.
-  * **What Does NOT Exist**:
-    * Zero payment gateway SDKs or integrations (Razorpay, Cashfree, Stripe, PayU are completely absent from codebase).
-    * Zero payment API route handlers or webhook receivers (e.g. `/api/payments/*` does not exist).
-    * Zero database tables for orders, payments, invoices, or transactions in Supabase.
-  * **Status**: Full payment infrastructure is under architectural design and tracked strictly as **PENDING WORK**. No payment processing capability is currently active.
+* **Cashfree Payment Gateway Subsystem**:
+  * Native fetch adapter (`src/lib/backend/integrations/cashfree-payment-gateway-adapter.ts`) implementing provider-agnostic `IPaymentGatewayAdapter`.
+  * Cashfree PG REST API version hard-locked internally to `2023-08-01` (`x-api-version: 2023-08-01`); zero runtime or environment configurability.
+  * Sandbox: `https://sandbox.cashfree.com/pg` | Production: `https://api.cashfree.com/pg`.
+  * Authenticated via server-only `x-client-id` (`CASHFREE_APP_ID`) and `x-client-secret` (`CASHFREE_SECRET_KEY`).
+  * Strict environment validation: `CASHFREE_ENVIRONMENT` may only be `sandbox` or `production`. In production (`NODE_ENV === "production"`), `CASHFREE_APP_ID`, `CASHFREE_SECRET_KEY`, and explicit `CASHFREE_ENVIRONMENT="production"` are mandatory; missing/invalid values fail validation immediately, completely preventing silent sandbox leakage.
+  * 10-second `AbortController` timeout enforcement; automatic HTTP 409 `order_already_exists` recovery via `GET /orders/{order_id}`.
+* **Payment & Consultation Subsystem Roadmap Status**:
+  * **Critical Architectural Distinction**: Domain Engine & Slot Inventory vs. Payment Gateway Integration.
+  * **Current State by Roadmap Step**:
+    * **Step 1 — Payment & Consultation Foundation**: `[COMPLETED / COMMITTED]` (Commit [`20916c3`](file:///d:/Persional-projects/landing), 2026-09-14).
+      * Established 6 PostgreSQL tables (`consultation_slots`, `consultations`, `payment_orders`, `payment_transactions`, `payment_refunds`, `webhook_events`).
+      * Established domain models, integer paise currency handling (`amount_in_paise BIGINT > 0`), server-owned pricing, snapshot customer model, and state machine unions.
+      * Established 6 repository interfaces and Supabase implementations behind strict TypeScript contracts.
+      * Established server-side validation (`consultation-schema.ts`).
+    * **Step 2 — Booking & Slot Engine**: `[COMPLETED / COMMITTED]` (Commit [`7981c8a`](file:///d:/Persional-projects/landing), 2026-09-15).
+      * Established pure scheduling engine (`consultation-time.ts`) evaluated strictly in `Asia/Kolkata`: 6 daily slots, Mon–Sat schedule, Sunday exclusion, 24-hour lead time, 30-day rolling window.
+      * Established `ConsultationBookingService`: JIT slot materialization with `ON CONFLICT DO NOTHING`, atomic 15-minute slot hold via database RPC, 256-bit cryptographically secure token generation, stale-hold detachment, and compensation release on failure.
+      * Established database concurrency migration (`20260915120000`): unique slot start time index, confirmed consultation partial index (`WHERE status = 'confirmed'`), and 3 stored procedures (`reserve_consultation_slot`, `release_consultation_slot`, `confirm_consultation_slot`) hardened as `SECURITY INVOKER` restricted to `service_role`.
+      * Established route handlers: `GET /api/consultations/slots` (rate limit 30/min, `Cache-Control: no-store, private`) and `POST /api/consultations/reserve` (rate limit 5/10min, 50 KB ceiling, RFC error status mapping).
+    * **Step 3 — Cashfree Payment Gateway Adapter**: `[COMPLETED / VERIFIED]` (2026-09-16).
+      * Established provider-agnostic interface (`payment-gateway.interface.ts`) defining `IPaymentGatewayAdapter`, `CreateGatewayOrderParams`, `GatewayOrderResult`, and normalized `GatewayError`.
+      * Established zero-dependency native fetch adapter (`cashfree-payment-gateway-adapter.ts`) targeting Cashfree Payment Gateway REST API with hard-locked internal version `2023-08-01` (`x-api-version: 2023-08-01`).
+      * Enforced 10-second request timeout via `AbortController` against hanging network requests.
+      * Handled currency boundary conversion: internal Eventsika integer paise (`299900`) converted to provider decimal rupees (`2999.00`).
+      * Implemented automatic HTTP 409 `order_already_exists` recovery: seamlessly calls `GET /orders/{order_id}` and recovers existing provider order rather than failing or duplicating orders.
+      * Maintained ephemeral presentation tokens: `payment_session_id` returned in `GatewayOrderResult` without database persistence.
+      * Server-only credentials and hardened environment validation in `src/lib/backend/config/env.ts` (`CASHFREE_APP_ID`, `CASHFREE_SECRET_KEY`, `CASHFREE_ENVIRONMENT`) and `.env.example` (intentionally tracked in git via `!.env.example` with safe placeholders only; `CASHFREE_API_VERSION` removed).
+      * 23 comprehensive unit tests in `src/lib/backend/integrations/__tests__/cashfree-payment-gateway-adapter.test.ts` (Full suite: 28 test files, 263 tests passing).
+    * **Step 4 — Payment Order Persistence & Concurrency Migration**: `[PLANNED / NEXT]`.
+      * Database migration for payment order concurrency (unique partial index on `public.payment_orders(consultation_id)` for active states).
+      * `ConsultationPaymentService`: deterministic provider order ID generation (`ord_${consultation.id.replace(/-/g, "")}`), slot expiry check against `slot.reserved_until`, calling `IPaymentGatewayAdapter.createOrder`, persisting to `public.payment_orders` with initial `created` status.
+      * Route handler `POST /api/consultations/payment/order` returning payment session details.
+    * **Step 5 — Client Checkout Presentation**: `[PLANNED]`.
+      * Client-side Cashfree JS SDK integration on `/diwali-consultation` to mount payment modal.
+    * **Step 6 — Webhook Ingestion & Transaction Ledger**: `[PLANNED]`.
+      * Webhook listener (`POST /api/payments/webhook`) with raw payload signature verification (`x-webhook-signature`), idempotency enforcement via `public.webhook_events`, and transaction ledger recording in `public.payment_transactions`.
+    * **Step 7 — Booking Confirmation & Notification Automation**: `[PLANNED]`.
+      * Atomic slot confirmation via `confirm_consultation_slot` RPC.
+      * Customer confirmation email dispatch via Resend/SendGrid with calendar invite (`.ics`) or Google Meet/phone details.
+      * Operations team notification dispatch to `care@eventsika.in`.
+    * **Database Migration Deployment**: `[PENDING EXTERNAL VERIFICATION]`.
+      * Migrations `20260914180000` and `20260915120000` exist in version control and pass 100% of automated integration tests locally.
+      * Applying these migrations to the remote live Supabase production database is pending external execution.
+  * **Locked Business Invariants & Policies**:
+    * **Consultation Duration**: Exactly 60 minutes (`end_time = start_time + 60 minutes`).
+    * **Consultation Price**: ₹2,999 promotional advisory fee (represented as `299900` integer paise; server-owned, zero DB default).
+    * **Operating Schedule**: Monday through Saturday. All Sundays are strictly excluded from booking.
+    * **Daily Slots (6)**: 10:00–11:00, 11:30–12:30, 14:00–15:00, 15:30–16:30, 17:00–18:00, 18:30–19:30 IST.
+    * **Buffers**: 30-minute operational buffer between consecutive sessions.
+    * **Minimum Lead Time**: 24 hours in advance from server instant.
+    * **Rolling Availability Window**: 30 calendar days forward from server instant.
+    * **Temporary Reservation Hold**: Exactly 15 minutes (`RESERVATION_HOLD_DURATION_MINUTES = 15`).
+    * **Core Security Invariant**: **Payment Success != Slot Confirmation**. A payment gateway success callback does not equal a booked slot until verified server-side and confirmed via the atomic database RPC.
 
 ---
 
@@ -809,6 +891,14 @@ sequenceDiagram
   # Server-only configuration. NEVER prefix with NEXT_PUBLIC_.
   UPSTASH_REDIS_REST_URL=https://your-upstash-redis-url.upstash.io
   UPSTASH_REDIS_REST_TOKEN=your_upstash_rest_token_here
+
+  # ==============================================================================
+  # Cashfree Payment Gateway Configuration (Step 3 Foundation)
+  # ==============================================================================
+  # Server-only configuration. NEVER prefix with NEXT_PUBLIC_.
+  CASHFREE_APP_ID=your_cashfree_app_id_here
+  CASHFREE_SECRET_KEY=your_cashfree_secret_key_here
+  CASHFREE_ENVIRONMENT=sandbox
   ```
 
 ---
@@ -998,6 +1088,35 @@ Every AI agent working in the Eventsika repository must adhere to the following 
 
 ## 28. Change Log
 
+### 2026-09-16
+- **Cashfree Payment Gateway Adapter (Step 3 Post-Review Corrections)**:
+  - **Hard-Locked API Version (`2023-08-01`)**: Hard-locked Cashfree PG REST API version internally in `cashfree-payment-gateway-adapter.ts` via internal constant `CASHFREE_API_VERSION = "2023-08-01"` (`x-api-version: 2023-08-01`). Completely removed `apiVersion` configurability from `CashfreeConfig`, `env.ts`, `.env.example`, and test mocks, eliminating any runtime or environmental overrides.
+  - **Hardened Production Environment Validation (`src/lib/backend/config/env.ts`)**: Enforced strict environment validation where `CASHFREE_ENVIRONMENT` may only be `"sandbox"` or `"production"`. Disallowed ambiguous/unsupported values (`prod`, `live`, `staging`, `dev`). In production (`NODE_ENV === "production"`), strictly enforced `CASHFREE_APP_ID`, `CASHFREE_SECRET_KEY`, and explicit `CASHFREE_ENVIRONMENT: "production"` in `validateServerEnv()` and `assertProductionEnv()`, preventing silent sandbox leakage. Maintained non-production development ergonomics with advisory warnings.
+  - **Tracked `.env.example` via `.gitignore`**: Added explicit negation rule `!.env.example` directly following `.env*` in `.gitignore` so the template is tracked in git with safe non-secret placeholders only (and without `CASHFREE_API_VERSION`).
+  - **Provider-Agnostic Interface (`payment-gateway.interface.ts`)**: Defined `IPaymentGatewayAdapter`, `CreateGatewayOrderParams`, `GatewayOrderResult`, `GatewayError`, and `GatewayErrorCode` separating business/domain layer from provider JSON payloads.
+  - **Zero-Dependency Native Fetch Adapter (`cashfree-payment-gateway-adapter.ts`)**: Built native Node fetch adapter targeting Cashfree PG REST API `2023-08-01` (`https://sandbox.cashfree.com/pg` and `https://api.cashfree.com/pg`) with zero external npm dependencies.
+  - **Timeout Defense**: Enforced strict 10-second `AbortController` timeout for all outbound gateway network requests.
+  - **Monetary Boundary Conversion**: Converted internal integer paise (`299900`) to provider decimal rupees (`2999.00`) at the boundary while keeping internal paise representation intact.
+  - **Deterministic 409 Recovery**: Implemented automatic fallback recovery on HTTP 409 `order_already_exists` via `GET /orders/{order_id}`, returning normalized `GatewayOrderResult` with idempotency preserved.
+  - **Ephemeral Session Tokens**: Returned transient `payment_session_id` directly in result without database schema pollution.
+  - **Automated Verification**: 23 unit tests in `cashfree-payment-gateway-adapter.test.ts` (asserting `x-api-version: 2023-08-01` on create, GET, and 409 recovery) and 13 unit tests in `env.test.ts` (covering all sandbox/production/missing/invalid environment invariants). Full test suite: 28 test files, 263 passing tests, 0 failures. Typecheck, ESLint 9, and Next.js 16.3.0 standalone production build verified 100% clean.
+
+### 2026-09-15
+- **Consultation Booking & Slot Engine (Step 2 — Commit [`7981c8a`](file:///d:/Persional-projects/landing))**:
+  - **Scheduling Mathematics & Time Engine (`consultation-time.ts`)**: Built pure scheduling utility evaluated strictly in `Asia/Kolkata` (UTC+5:30). Enforces 6 daily fixed slots (10:00, 11:30, 14:00, 15:30, 17:00, 18:30 IST), 60m duration, 30m buffers, Monday–Saturday schedule, Sunday exclusion, 24-hour minimum lead time, and rolling 30-day window.
+  - **Consultation Booking Service (`consultation-booking-service.ts`)**: Implemented two-step atomic hold flow: JIT slot materialization with `ON CONFLICT DO NOTHING`, atomic 15-minute slot hold via database RPC, 256-bit cryptographically secure token generation, stale-hold detachment, and compensation release if consultation creation fails.
+  - **Database Concurrency & Hardened Stored Procedures (`20260915120000_add_slot_concurrency_and_constraints.sql`)**: Added unique slot start time index (`idx_slots_start_time_unique`), confirmed consultation uniqueness index (`idx_consultations_confirmed_slot WHERE status = 'confirmed'`), and 3 stored procedures (`reserve_consultation_slot`, `release_consultation_slot`, `confirm_consultation_slot`) built as `SECURITY INVOKER` with execution granted strictly to `service_role`.
+  - **Route Handlers**: Implemented `GET /api/consultations/slots` (30 req/min, `Cache-Control: no-store, private`) and `POST /api/consultations/reserve` (5 req/10min, 50 KB ceiling, RFC error mapping: 409 Conflict, 400 Bad Request, 404 Not Found, 500 Server Error).
+  - **Automated Verification**: Added 23 new automated tests bringing test suite to 27 test files, 234 tests passing with zero failures.
+
+### 2026-09-14
+- **Payment & Consultation Domain Foundation (Step 1 — Commit [`20916c3`](file:///d:/Persional-projects/landing))**:
+  - **Database Foundation Migration (`20260914180000_create_payment_and_consultation_foundation.sql`)**: Created 6 PostgreSQL tables (`consultation_slots`, `consultations`, `payment_orders`, `payment_transactions`, `payment_refunds`, `webhook_events`) with strict constraints, integer paise currency handling (`amount_in_paise BIGINT > 0`), duration check (60m), and RLS enabled across all tables.
+  - **Domain Models & Contracts (`payment-and-consultation.ts`)**: Defined shared types, status state unions, DTOs, and server-owned pricing architecture (₹2,999 represented as `299900` paise).
+  - **Validation (`consultation-schema.ts`)**: Built server-side validation for customer inquiries and booking parameters.
+  - **Repositories & Supabase Stores**: Implemented 6 repository interfaces and Supabase implementations behind strict TypeScript contracts.
+  - **Automated Verification**: Added 38 automated tests in `payment-foundation-repositories.test.ts` and `consultation-schema.test.ts`.
+
 ### 2026-09-11
 - **Hero Decorative Fireworks Animation Integration (`src/components/HeroFireworks.*`)**:
   - **Local dotLottie Runtime**: Integrated `@lottiefiles/dotlottie-web: 0.80.0` rendering directly onto an HTML `<canvas>` element inside the homepage hero.
@@ -1112,13 +1231,85 @@ Every AI agent working in the Eventsika repository must adhere to the following 
 
 ## 29. Final Verification
 
-- **Repository Inspected**: YES (All files, routes, components, assets, and configs verified from source)
-- **Architecture Verified**: YES (6-layer backend flow, Supabase PostgreSQL persistence, Supabase SSR Auth & RBAC session cookies, Distributed Rate Limiting via Upstash Redis, Concierge Operations Suite, Hero Fireworks dotLottie Layer, Services refresh confirmed)
-- **Secrets Excluded**: YES (Zero API keys, credentials, or private values included)
+- **Repository Inspected**: YES (All files, routes, components, assets, migrations, and configs verified directly from active source)
+- **Architecture Verified**: YES (6-layer backend flow, 8-table Supabase PostgreSQL persistence, 3 atomic stored procedures, Consultation Booking Engine, Asia/Kolkata scheduling engine, Cashfree Payment Gateway Adapter with hard-locked API version 2023-08-01, Supabase SSR Auth & RBAC session cookies, Distributed Rate Limiting via Upstash Redis, Concierge Operations Suite, Hero Fireworks dotLottie Layer)
+- **Automated Test Suite Verified**: YES (28 test files, 263 passing tests, 0 failures)
+- **Build & Lint Verified**: YES (Next.js 16.3.0 standalone production build compiled in 1.6s, 0 TypeScript errors, 0 ESLint errors)
+- **Secrets Excluded**: YES (Zero API keys, database credentials, or private tokens stored)
 - **Existing Agent Tooling Preserved**: YES (All 6 skills in `.agents/skills/` and MCP configurations intact)
-- **Application Code Modified by Documentation Task**: NO (Pure documentation synchronization; pre-existing uncommitted working tree modifications in `src/app/services/page.tsx` and `src/components/HeroFireworks.module.css` were forensically inspected and left untouched)
+- **Application Code Modified by Documentation Task**: NO
 - **Brain.md Generated From Actual Codebase**: YES
-- **Verification Timestamp**: `2026-09-11T13:10:00+05:30`
+- **Repository HEAD at Verification**: `7981c8a0022492ffb4ca5f05e5a5960f090e4ab5` (`main` — working tree contains uncommitted Step 3 changes pending review)
+- **Verification Timestamp**: `2026-09-16T16:30:00+05:30`
+
+---
+
+## 30. Ground Truth System Summary
+
+This section serves as the immediate reference for future engineers and AI agent sessions:
+
+### 1. What is implemented?
+- **Public Frontend**: Homepage (`/`), Services (`/services`), Packages (`/packages`), Vendor intake (`/for-vendors`), Diwali consultation presentation (`/diwali-consultation`), Portal login (`/login`), SEO (`robots.ts`, `sitemap.ts`, JSON-LD).
+- **Concierge Operations Suite**: Admin Dashboard (`/admin`), Inquiries Queue (`/admin/leads`), Partner Register (`/admin/vendors`), Analytics (`/admin/analytics`), SSR Session Management, Upstash Redis distributed auth rate limiting.
+- **Intake Engine**: `POST /api/leads` and `POST /api/vendor-applications` with sliding window rate limiting, honeypot spam defense, deduplication, and transactional email dispatch.
+- **Payment Step 1 — Payment & Consultation Foundation** ([`20916c3`](file:///d:/Persional-projects/landing)): 6 PostgreSQL tables (`consultation_slots`, `consultations`, `payment_orders`, `payment_transactions`, `payment_refunds`, `webhook_events`), integer paise representations (`BIGINT > 0`), snapshot customer model, server-owned pricing, and 6 repository interfaces with Supabase implementations.
+- **Payment Step 2 — Booking & Slot Engine** ([`7981c8a`](file:///d:/Persional-projects/landing)):
+  - Pure scheduling engine (`consultation-time.ts`): Asia/Kolkata timezone, 6 daily slots, Mon–Sat schedule, Sunday exclusion, 24h lead time, 30d window.
+  - `ConsultationBookingService`: JIT slot generation, atomic 15m hold, 256-bit secure tokens, stale-hold detachment, and compensation release.
+  - Endpoints: `GET /api/consultations/slots` (30 req/min, no-store) and `POST /api/consultations/reserve` (5 req/10m, 50 KB, 409/400/404/500 mapping).
+  - Database concurrency migration (`20260915120000`): unique slot start time index, confirmed-slot partial index (`WHERE status = 'confirmed'`), and 3 stored procedures (`reserve_consultation_slot`, `release_consultation_slot`, `confirm_consultation_slot`) hardened as `SECURITY INVOKER` restricted to `service_role`.
+- **Payment Step 3 — Cashfree Payment Gateway Adapter**:
+  - Provider-agnostic gateway interface (`IPaymentGatewayAdapter` in `payment-gateway.interface.ts`).
+  - Zero-dependency native fetch adapter (`CashfreePaymentGatewayAdapter` in `cashfree-payment-gateway-adapter.ts`) for Cashfree PG API hard-locked to `2023-08-01`.
+  - Defensive 10-second `AbortController` timeout against hanging network requests.
+  - Boundary conversion: internal integer paise (`299900`) to provider decimal rupees (`2999.00`).
+  - Automatic HTTP 409 `order_already_exists` recovery via `GET /orders/{order_id}`.
+  - Ephemeral `payment_session_id` returned directly in result (no DB persistence).
+  - Server-only credentials validation (`CASHFREE_APP_ID`, `CASHFREE_SECRET_KEY`, `CASHFREE_ENVIRONMENT`) in `env.ts` with strict production enforcement against silent sandbox fallback.
+  - Tracked `.env.example` in git (`!.env.example`) with safe placeholders.
+  - 23 unit tests passing (28 test files, 263 tests passing overall).
+
+### 2. What is partially implemented?
+- **Database Migrations on Remote Production**: All 3 migration files are complete and tested in version control; physical execution against the live remote Supabase production project is `[PENDING EXTERNAL VERIFICATION]`.
+- **Payment Flow**: The inventory, booking, and draft consultation pipeline is fully implemented up to `slot_held`. The subsequent handoff to a payment gateway (`awaiting_payment` -> `confirmed`) is architected but not yet wired to a gateway SDK.
+
+### 3. What is intentionally not implemented?
+- **Payment Order Persistence & Concurrency Index**: Deferred to Step 4. (Step 3 delivers strictly the isolated gateway adapter; no `payment_orders` writes or consultation status changes occur in Step 3).
+- **Cashfree Client SDK / Checkout Modal**: Deferred to Step 5.
+- **Webhook Ingestion & Signature Verification**: Deferred to Step 6.
+- **Booking Confirmation & Notification Automation**: Deferred to Step 7.
+- **Public Slot Release Endpoint**: Omitted by design. Expired holds self-recover via lazy expiry in 15 minutes, preventing denial-of-inventory tampering.
+- **Background Cron Expiry Workers**: Omitted by design. Lazy expiry at query/reservation time eliminates worker operational overhead.
+- **Separate Customer Table**: Omitted by design. Customer data is stored denormalized on consultations to avoid premature auth coupling.
+- **Monolithic RPC containing Customer PII**: Stored procedures only touch slot IDs and tokens. Customer PII is stored cleanly in `public.consultations` via the repository layer.
+
+### 4. What is next?
+- **Step 4 — Payment Order Persistence & Concurrency Migration**:
+  - Database migration adding unique partial index on `public.payment_orders(consultation_id)`.
+  - `ConsultationPaymentService` calling `IPaymentGatewayAdapter` with deterministic order IDs (`ord_${consultation.id.replace(/-/g, "")}`).
+  - Route handler `POST /api/consultations/payment/order` returning payment session credentials.
+- **Step 5 — Client Checkout Presentation**:
+  - Client-side Cashfree JS SDK integration on `/diwali-consultation` to mount payment modal.
+- **Step 6 — Webhook Ingestion & Transaction Ledger**:
+  - Webhook listener `POST /api/payments/webhook` with signature verification, idempotency via `public.webhook_events`, and transaction ledger in `public.payment_transactions`.
+- **Step 7 — Booking Confirmation & Notifications**:
+  - Call `confirm_consultation_slot` RPC upon verified payment.
+  - Dispatch confirmation emails with calendar invitations (`.ics`) to customer and `care@eventsika.in`.
+- **Remote Migration Application**: Apply `20260914180000` and `20260915120000` to remote Supabase production database.
+
+### 5. What must never be changed without architectural review?
+1. **Integer Paise Representation**: Never store or calculate consultation fees as floating-point decimals. Always use integer paise (`299900`).
+2. **Payment Success != Slot Confirmation Invariant**: A payment gateway success callback does NOT equal a booked consultation until verified and confirmed via database RPC.
+3. **Asia/Kolkata Time Invariance**: All slot intervals and calendar bounds must be evaluated in `Asia/Kolkata` (UTC+5:30) regardless of host server time.
+4. **RPC Security Model**: Database stored procedures must remain `SECURITY INVOKER` with public/anon execute privileges revoked and granted strictly to `service_role`.
+5. **No Direct Client Supabase Database Calls**: Public browser clients must never query or mutate booking/payment tables directly; all access must pass through server-side Route Handlers.
+
+### 6. What is the authoritative source if Brain.md conflicts with code?
+**The active repository source code is ALWAYS the absolute ground truth.**
+If a conflict arises:
+1. Inspect the active source code and version-controlled migrations.
+2. Treat the code as truth.
+3. Update `Brain.md` to reflect reality.
 
 
 

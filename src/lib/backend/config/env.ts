@@ -18,6 +18,14 @@ export interface EnvValidationResult {
   warnings: string[];
 }
 
+export interface CashfreeConfig {
+  appId?: string;
+  secretKey?: string;
+  environment: "sandbox" | "production";
+  baseUrl: string;
+  isConfigured: boolean;
+}
+
 export interface ServerConfig {
   supabase: {
     url: string;
@@ -36,6 +44,7 @@ export interface ServerConfig {
     sendgridApiKey?: string;
     webhookUrl?: string;
   };
+  cashfree: CashfreeConfig;
   siteUrl: string;
   isProduction: boolean;
   isDevelopment: boolean;
@@ -88,7 +97,33 @@ export function validateServerEnv(
     if (!isNonEmptyString(env.UPSTASH_REDIS_REST_TOKEN)) {
       missing.push("UPSTASH_REDIS_REST_TOKEN");
     }
+
+    // Cashfree Production Invariants
+    if (!isNonEmptyString(env.CASHFREE_APP_ID)) {
+      missing.push("CASHFREE_APP_ID");
+    }
+
+    if (!isNonEmptyString(env.CASHFREE_SECRET_KEY)) {
+      missing.push("CASHFREE_SECRET_KEY");
+    }
+
+    const cashfreeEnvRaw = (env.CASHFREE_ENVIRONMENT || "").trim().toLowerCase();
+    if (!cashfreeEnvRaw) {
+      missing.push("CASHFREE_ENVIRONMENT (must be 'production' in production)");
+    } else if (cashfreeEnvRaw !== "production") {
+      missing.push(
+        `CASHFREE_ENVIRONMENT (invalid value '${env.CASHFREE_ENVIRONMENT}'; must be 'production' in production)`
+      );
+    }
   } else {
+    // Non-production checks
+    const cashfreeEnvRaw = (env.CASHFREE_ENVIRONMENT || "").trim().toLowerCase();
+    if (cashfreeEnvRaw && cashfreeEnvRaw !== "sandbox" && cashfreeEnvRaw !== "production") {
+      missing.push(
+        `CASHFREE_ENVIRONMENT (invalid value '${env.CASHFREE_ENVIRONMENT}'; must be 'sandbox' or 'production')`
+      );
+    }
+
     // Non-production advisory checks
     if (!isNonEmptyString(env.SUPABASE_SERVICE_ROLE_KEY)) {
       warnings.push(
@@ -101,6 +136,14 @@ export function validateServerEnv(
     ) {
       warnings.push(
         "UPSTASH_REDIS credentials unconfigured; rate limiters will use in-memory fallback in dev/test."
+      );
+    }
+    if (
+      !isNonEmptyString(env.CASHFREE_APP_ID) ||
+      !isNonEmptyString(env.CASHFREE_SECRET_KEY)
+    ) {
+      warnings.push(
+        "Cashfree payment gateway credentials (CASHFREE_APP_ID, CASHFREE_SECRET_KEY) are unconfigured; live gateway execution will require credentials."
       );
     }
   }
@@ -158,6 +201,38 @@ export function getServerConfig(
     ? env.UPSTASH_REDIS_REST_TOKEN.trim()
     : undefined;
 
+  const cashfreeAppId = isNonEmptyString(env.CASHFREE_APP_ID)
+    ? env.CASHFREE_APP_ID.trim()
+    : undefined;
+
+  const cashfreeSecretKey = isNonEmptyString(env.CASHFREE_SECRET_KEY)
+    ? env.CASHFREE_SECRET_KEY.trim()
+    : undefined;
+
+  const cashfreeEnvRaw = (env.CASHFREE_ENVIRONMENT || "").trim().toLowerCase();
+  let cashfreeEnvironment: "sandbox" | "production";
+
+  if (cashfreeEnvRaw === "production") {
+    cashfreeEnvironment = "production";
+  } else if (cashfreeEnvRaw === "sandbox") {
+    cashfreeEnvironment = "sandbox";
+  } else if (!cashfreeEnvRaw && !isProduction) {
+    cashfreeEnvironment = "sandbox";
+  } else if (!cashfreeEnvRaw && isProduction) {
+    // In production without explicit environment setting, resolve strictly to production
+    // to prevent any possibility of silent sandbox leakage
+    cashfreeEnvironment = "production";
+  } else {
+    throw new Error(
+      `Invalid CASHFREE_ENVIRONMENT: "${env.CASHFREE_ENVIRONMENT}". Must be "sandbox" or "production".`
+    );
+  }
+
+  const cashfreeBaseUrl =
+    cashfreeEnvironment === "production"
+      ? "https://api.cashfree.com/pg"
+      : "https://sandbox.cashfree.com/pg";
+
   return {
     supabase: {
       url: supabaseUrl,
@@ -185,6 +260,13 @@ export function getServerConfig(
       webhookUrl: isNonEmptyString(env.LEAD_WEBHOOK_URL)
         ? env.LEAD_WEBHOOK_URL.trim()
         : undefined,
+    },
+    cashfree: {
+      appId: cashfreeAppId,
+      secretKey: cashfreeSecretKey,
+      environment: cashfreeEnvironment,
+      baseUrl: cashfreeBaseUrl,
+      isConfigured: Boolean(cashfreeAppId && cashfreeSecretKey),
     },
     siteUrl: isNonEmptyString(env.NEXT_PUBLIC_SITE_URL)
       ? env.NEXT_PUBLIC_SITE_URL.trim()
