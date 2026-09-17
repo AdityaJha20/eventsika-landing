@@ -12,10 +12,10 @@
     "semantic_hash": "4312cb6c3ed5e491019236ec9a8fd36a"
   },
   "package.json": {
-    "mtime": 1788437087.3520403,
-    "seen": 1788611791.4320893,
-    "ast_hash": "07753628586089be3f0a0ebe37fdca59",
-    "semantic_hash": "07753628586089be3f0a0ebe37fdca59"
+    "mtime": 1789042611.3019905,
+    "seen": 1789555144.1931367,
+    "ast_hash": "f313bdf0fe4b09aba8e32c5eb0642f78",
+    "semantic_hash": ""
   },
   "src/app/admin/AdminHeader.tsx": {
     "mtime": 1788348251.7112322,
@@ -156,10 +156,10 @@
     "semantic_hash": "34883e255882cfba1ce808bb67dc151c"
   },
   "src/app/services/page.tsx": {
-    "mtime": 1787047208.7279773,
-    "seen": 1788611791.4320893,
-    "ast_hash": "ffb869889ebcc46e478f5c6fc7955f55",
-    "semantic_hash": "ffb869889ebcc46e478f5c6fc7955f55"
+    "mtime": 1788974470.258324,
+    "seen": 1789555144.202432,
+    "ast_hash": "25ac462cba2d630d79fa698ff35c4e7a",
+    "semantic_hash": ""
   },
   "src/app/sitemap.ts": {
     "mtime": 1786966775.6831317,
@@ -186,10 +186,10 @@
     "semantic_hash": "11d2721f8ab68e0ce9152a42595e9d5b"
   },
   "src/components/Hero.tsx": {
-    "mtime": 1788331906.0396347,
-    "seen": 1788611791.4320893,
-    "ast_hash": "aa6a20ec15bf7fb9fd1ae72e96d8a636",
-    "semantic_hash": "aa6a20ec15bf7fb9fd1ae72e96d8a636"
+    "mtime": 1789042880.9248152,
+    "seen": 1789555144.2036347,
+    "ast_hash": "375afde15fbcbc4566e18f0baed6546e",
+    "semantic_hash": ""
   },
   "src/components/HowItWorks.tsx": {
     "mtime": 1787987978.5419593,
@@ -300,10 +300,10 @@
     "semantic_hash": "29d981b14bb3e373a92f584f5f7fbbea"
   },
   "src/lib/backend/config/env.ts": {
-    "mtime": 1788522161.8362403,
-    "seen": 1788611791.4320893,
-    "ast_hash": "311b1cfa9201fe97ac630c2357b51f0d",
-    "semantic_hash": "311b1cfa9201fe97ac630c2357b51f0d"
+    "mtime": 1789554403.5606596,
+    "seen": 1789555144.2090364,
+    "ast_hash": "a91baf805a587e91979695ad3325f198",
+    "semantic_hash": ""
   },
   "src/lib/backend/constants/allowlists.ts": {
     "mtime": 1788247813.1752715,
@@ -546,9 +546,9 @@
     "semantic_hash": "8db4431a22d08517bbd9e9553a1c3f31"
   },
   ".agents/project-brain/Brain.md": {
-    "mtime": 1788863887.3334577,
-    "seen": 1788864637.8394449,
-    "ast_hash": "0e95cdb23acff927cbd642035c1f449c",
+    "mtime": 1789555122.407462,
+    "seen": 1789555144.222449,
+    "ast_hash": "b555ec306c52ddf075e899e04169c8dc",
     "semantic_hash": ""
   },
   ".agents/rules/graphify.md": {
@@ -735,6 +735,168 @@
     "mtime": 1788862869.5316832,
     "seen": 1788863190.7931464,
     "ast_hash": "6fdc59e99070fbb17e88be6972baaf9c",
+    "semantic_hash": ""
+  },
+  "src/app/api/consultations/__tests__/consultation-routes.test.ts": {
+    "mtime": 1789456746.891517,
+    "seen": 1789555144.200056,
+    "ast_hash": "d369e4479f40c10a60355ef71c41d474",
+    "semantic_hash": ""
+  },
+  "src/app/api/consultations/reserve/route.ts": {
+    "mtime": 1789456595.6711342,
+    "seen": 1789555144.200056,
+    "ast_hash": "03d91553e210c47ce92d211f86ca01da",
+    "semantic_hash": ""
+  },
+  "src/app/api/consultations/slots/route.ts": {
+    "mtime": 1789456547.6656694,
+    "seen": 1789555144.200056,
+    "ast_hash": "9f3ddba0205a626d147364d89819a631",
+    "semantic_hash": ""
+  },
+  "src/components/HeroFireworks.tsx": {
+    "mtime": 1789043108.143849,
+    "seen": 1789555144.2036347,
+    "ast_hash": "6137a9b3798c42cd9e3c25bca68f3b44",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/integrations/__tests__/cashfree-payment-gateway-adapter.test.ts": {
+    "mtime": 1789554515.31181,
+    "seen": 1789555144.2101722,
+    "ast_hash": "b895998968fb50e59da72cfb78ad5a81",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/integrations/cashfree-payment-gateway-adapter.ts": {
+    "mtime": 1789554428.9461308,
+    "seen": 1789555144.2101722,
+    "ast_hash": "0c73cdb42778befd5170a679fac91890",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/integrations/payment-gateway.interface.ts": {
+    "mtime": 1789554372.9624834,
+    "seen": 1789555144.2101722,
+    "ast_hash": "74fa25eac97efe81d28a2261827ad330",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/repositories/__tests__/payment-foundation-repositories.test.ts": {
+    "mtime": 1789386412.7387247,
+    "seen": 1789555144.2113533,
+    "ast_hash": "a1e57106267572897db033328b97a726",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/repositories/consultation-repository.interface.ts": {
+    "mtime": 1789456879.939409,
+    "seen": 1789555144.2113533,
+    "ast_hash": "af06e3755227090bf316b2157100f452",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/repositories/consultation-slot-repository.interface.ts": {
+    "mtime": 1789456388.1652296,
+    "seen": 1789555144.2113533,
+    "ast_hash": "6c97d94ed8c1c2257861628f1e15cb6b",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/repositories/payment-order-repository.interface.ts": {
+    "mtime": 1789386326.5994215,
+    "seen": 1789555144.2124033,
+    "ast_hash": "fae5566617a0e84c662d11314fd74e28",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/repositories/payment-refund-repository.interface.ts": {
+    "mtime": 1789386337.3051753,
+    "seen": 1789555144.2124033,
+    "ast_hash": "ca7876247453c3c8e84f9f77136803ee",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/repositories/payment-transaction-repository.interface.ts": {
+    "mtime": 1789386331.4288332,
+    "seen": 1789555144.2124033,
+    "ast_hash": "2c84c7e387e6d44f9870fab3aceb8d1e",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/repositories/supabase-consultation-repository.ts": {
+    "mtime": 1789456887.4582326,
+    "seen": 1789555144.2137806,
+    "ast_hash": "8a0ed4fdff6d315aa18f998e211333d5",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/repositories/supabase-consultation-slot-repository.ts": {
+    "mtime": 1789456898.3808508,
+    "seen": 1789555144.2137806,
+    "ast_hash": "8358d65e5af0aeca7252aed4ef01c9c5",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/repositories/supabase-payment-order-repository.ts": {
+    "mtime": 1789387457.3890438,
+    "seen": 1789555144.2137806,
+    "ast_hash": "3c34d10b9d2f8863fe22ff83e09823ed",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/repositories/supabase-payment-refund-repository.ts": {
+    "mtime": 1789387478.2434318,
+    "seen": 1789555144.2137806,
+    "ast_hash": "3d30de41d32c11729ec99d818de3f366",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/repositories/supabase-payment-transaction-repository.ts": {
+    "mtime": 1789387465.08542,
+    "seen": 1789555144.2137806,
+    "ast_hash": "b629c8c3a4514b4c6e4d396c8500ca39",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/repositories/supabase-webhook-event-repository.ts": {
+    "mtime": 1789387490.415441,
+    "seen": 1789555144.2137806,
+    "ast_hash": "94b631d1ab2b5da6bbdff2f2dca7b288",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/repositories/webhook-event-repository.interface.ts": {
+    "mtime": 1789386344.2742765,
+    "seen": 1789555144.215207,
+    "ast_hash": "1a2191af1c4c8a703971d6a5761d8c78",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/services/__tests__/consultation-booking-service.test.ts": {
+    "mtime": 1789456822.4410317,
+    "seen": 1789555144.215207,
+    "ast_hash": "274629b24c93eb119ab1256ecaf88ea0",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/services/consultation-booking-service.ts": {
+    "mtime": 1789456506.26428,
+    "seen": 1789555144.2173324,
+    "ast_hash": "e0a7d65750581e7675f9b8533563696f",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/types/payment-and-consultation.ts": {
+    "mtime": 1789456904.3654678,
+    "seen": 1789555144.2173324,
+    "ast_hash": "fd0f84acf398dc5748b0f4128bd7519a",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/utils/__tests__/consultation-time.test.ts": {
+    "mtime": 1789456680.86665,
+    "seen": 1789555144.2173324,
+    "ast_hash": "b3ca91d29f1f5244b2c3daee3842b4bd",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/utils/consultation-time.ts": {
+    "mtime": 1789456673.9057038,
+    "seen": 1789555144.2173324,
+    "ast_hash": "24909fe5369bc3b4de590ade18ccb60b",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/validation/__tests__/consultation-schema.test.ts": {
+    "mtime": 1789386395.8566527,
+    "seen": 1789555144.2184756,
+    "ast_hash": "cfef6ddb7721de4b7fe44de3f3a545b5",
+    "semantic_hash": ""
+  },
+  "src/lib/backend/validation/consultation-schema.ts": {
+    "mtime": 1789386304.943778,
+    "seen": 1789555144.2194762,
+    "ast_hash": "72fc07f5b57fb363b35772fbe5784463",
     "semantic_hash": ""
   }
 }
