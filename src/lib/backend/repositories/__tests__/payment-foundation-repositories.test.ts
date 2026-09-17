@@ -263,6 +263,44 @@ describe("Payment Foundation Repositories Suite (Step 1)", () => {
       expect(order.gatewayOrderId).toBeNull();
       expect(order.status).toBe("created");
     });
+
+    it("fetches the latest payment order for a consultation ordered by created_at DESC", async () => {
+      const mockOrderRow = {
+        id: "order-uuid-latest",
+        consultation_id: "c-uuid-1",
+        gateway_order_id: "ord_gateway_123",
+        amount_in_paise: 299900,
+        currency: "INR",
+        status: "created",
+        expires_at: "2026-10-01T10:15:00.000Z",
+        paid_at: null,
+        request_id: "req_order_latest",
+        created_at: "2026-10-01T10:00:00.000Z",
+        updated_at: "2026-10-01T10:00:00.000Z",
+      };
+
+      const mockClient = {
+        from: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              order: vi.fn().mockReturnValue({
+                limit: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({ data: mockOrderRow, error: null }),
+                }),
+              }),
+            }),
+          }),
+        }),
+      } as unknown as SupabaseClient;
+
+      const repo = new SupabasePaymentOrderRepository(mockClient);
+      const order = await repo.getLatestOrderByConsultationId("c-uuid-1");
+
+      expect(order).not.toBeNull();
+      expect(order?.id).toBe("order-uuid-latest");
+      expect(order?.consultationId).toBe("c-uuid-1");
+      expect(order?.gatewayOrderId).toBe("ord_gateway_123");
+    });
   });
 
   // ============================================================================

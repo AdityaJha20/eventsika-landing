@@ -126,4 +126,21 @@ export class SupabasePaymentOrderRepository implements IPaymentOrderRepository {
 
     return this.mapRowToRecord(data);
   }
+
+  async getLatestOrderByConsultationId(consultationId: string): Promise<PaymentOrderRecord | null> {
+    const client = this.getClient();
+    const { data, error } = await client
+      .from("payment_orders")
+      .select("*")
+      .eq("consultation_id", consultationId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Database error fetching latest payment order for consultation: ${error.message}`);
+    }
+
+    return data ? this.mapRowToRecord(data) : null;
+  }
 }

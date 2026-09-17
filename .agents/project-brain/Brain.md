@@ -10,9 +10,9 @@
 | :--- | :--- |
 | **Project Name** | Eventsika (`landing`) |
 | **Document Path** | [`.agents/project-brain/Brain.md`](file:///d:/Persional-projects/landing/.agents/project-brain/Brain.md) |
-| **Brain Version** | `1.4.0` |
+| **Brain Version** | `1.5.0` |
 | **Creation Date** | `2026-08-30` |
-| **Last Verified** | `2026-09-16` |
+| **Last Verified** | `2026-09-17` |
 | **Target Framework** | Next.js `16.3.0` (React `19.2.8`, App Router) |
 | **Primary Domain** | `https://eventsika.in` |
 | **Support Inbox** | `care@eventsika.in` |
@@ -34,6 +34,7 @@
 7. **Concierge Operations Suite**: Protected operational command center (`/admin`) for inquiries management (`/admin/leads`), partner application registry (`/admin/vendors`), and intake metrics.
 8. **Consultation Booking & Slot Reservation Engine**: High-concurrency booking engine featuring JIT slot materialization, server-authoritative Asia/Kolkata scheduling (6 daily slots, Mon–Sat, 24h lead time, 30d window), 15-minute temporary hold with 256-bit cryptographically secure tokens, atomic database concurrency controls, lazy expiry, and automatic compensation release.
 9. **Cashfree Payment Gateway Integration Subsystem**: Provider-agnostic payment gateway contract with zero-dependency native fetch adapter targeting Cashfree PG API (2023-08-01), 10s timeout protection, automatic 409 duplicate recovery, paise-to-rupee conversion, and server-only credential security.
+10. **Secure Consultation Payment Order Creation Subsystem**: Gateway-First order creation engine enforcing locked ₹2,999 pricing, 120s reservation safety threshold, deterministic provider order ID generation (`ord_<hex>`), PostgreSQL 23505 unique conflict reconciliation, and atomic consultation status transition (`slot_held` → `awaiting_payment`).
 
 ---
 
@@ -54,9 +55,9 @@ All dependencies and versions are verified directly from `package.json` and proj
 | **Database & Auth** | `@supabase/supabase-js: ^2.112.4`<br>`@supabase/ssr: ^0.12.5` | Persistence, Sessions & RPC | PostgreSQL database persistence (8 tables), server-side session cookies, RLS policies, and atomic stored procedures (`reserve_consultation_slot`, `release_consultation_slot`, `confirm_consultation_slot`) executed via service-role |
 | **Distributed Cache / Rate Limiter** | `@upstash/redis: ^1.38.3` | Distributed Abuse Prevention | Atomic Redis Lua scripts for multi-layer admin auth rate limiting; fails closed in prod |
 | **Rate Limiter (Public)** | In-Memory Map | Public Intake Defense | Sliding window IP rate limiter with automated 5-minute cleanup cycles (`rate-limit.ts`) |
-| **Cryptography** | Native `node:crypto` | Secure Token Generation | 256-bit cryptographically secure reservation tokens (`crypto.randomBytes(32).toString('hex')`) for temporary slot holds |
+| **Cryptography** | Native `node:crypto` | Secure Token Generation & Timing Safety | 256-bit secure reservation tokens (`crypto.randomBytes(32)`) and timing-safe token verification (`crypto.timingSafeEqual`) |
 | **ESLint** | `^9` | Linting & Standards | Flat config format (`eslint.config.mjs`) using `eslint-config-next: 16.3.0` |
-| **Test Framework** | `vitest: ^4.1.11` | Automated Testing | Unit & integration test suites (28 test files, 256 tests passing) |
+| **Test Framework** | `vitest: ^4.1.11` | Automated Testing | Unit & integration test suites (31 test files, 323 tests passing) |
 | **Mailer Engine** | Native Fetch | Backend Dispatch | Zero-dependency REST dispatchers for Resend, SendGrid, and Custom Webhooks |
 | **Payment Gateway** | Native Fetch | Payment Adapter | Zero-dependency REST adapter for Cashfree PG API (2023-08-01) with 10s AbortController |
 
@@ -211,6 +212,9 @@ landing/
 │   │   │   │           ├── logout-route.test.ts # Session revocation tests
 │   │   │   │           └── middleware.test.ts   # Route protection tests
 │   │   │   ├── consultations/             # Consultation booking & slot engine endpoints
+│   │   │   │   ├── payment/               # Consultation payment order creation
+│   │   │   │   │   ├── order/route.ts     # POST create/recover Cashfree payment order (120s check, deterministic ord_<hex>)
+│   │   │   │   │   └── __tests__/         # Payment order route integration tests
 │   │   │   │   ├── reserve/route.ts       # POST atomic 15m slot hold & consultation creation
 │   │   │   │   ├── slots/route.ts         # GET dynamic slot availability (JIT generated, no-store)
 │   │   │   │   └── __tests__/
@@ -308,10 +312,12 @@ landing/
 │       │   │   ├── admin-lead-service.ts      # Leads queue data orchestration
 │       │   │   ├── admin-vendor-service.ts    # Vendor register data orchestration
 │       │   │   ├── consultation-booking-service.ts # Availability, JIT generation, atomic hold, compensation
+│       │   │   ├── consultation-payment-service.ts # Gateway-first payment order orchestration (120s safety, 23505 conflict recovery)
 │       │   │   ├── lead-service.ts
 │       │   │   ├── vendor-service.ts
 │       │   │   └── __tests__/             # Service unit tests
 │       │   │       ├── consultation-booking-service.test.ts # Slot reservation & compensation tests
+│       │   │       ├── consultation-payment-service.test.ts # Payment order orchestration & concurrency tests
 │       │   │       └── ...
 │       │   ├── supabase/
 │       │   │   ├── client.ts              # Server-only Supabase admin client (Service Role)
@@ -326,6 +332,7 @@ landing/
 │       │   └── validation/                # Server-side validation schemas
 │       │       ├── consultation-schema.ts # Consultation booking input validation
 │       │       ├── lead-schema.ts
+│       │       ├── payment-order-schema.ts # ConsultationId UUID & 64-hex token validation
 │       │       ├── vendor-schema.ts
 │       │       └── __tests__/             # Validation schemas unit tests
 │       ├── mailer.ts                      # Multi-provider zero-dependency email dispatcher
@@ -363,6 +370,9 @@ landing/
 | `/api/health` | API (Dynamic) | [`src/app/api/health/route.ts`](file:///d:/Persional-projects/landing/src/app/api/health/route.ts) | GET endpoint for application health and uptime verification (`{ status: "healthy", timestamp, version }`). |
 | `/api/leads` | API (Dynamic) | [`src/app/api/leads/route.ts`](file:///d:/Persional-projects/landing/src/app/api/leads/route.ts) | POST endpoint for celebration inquiries. Rate limited (5/10m), 50KB capped, deduplicated, validated, dispatches email/webhook. |
 | `/api/vendor-applications` | API (Dynamic) | [`src/app/api/vendor-applications/route.ts`](file:///d:/Persional-projects/landing/src/app/api/vendor-applications/route.ts) | POST endpoint for vendor partner applications. Rate limited, deduplicated, validates portfolio URLs & category arrays. |
+| `/api/consultations/slots` | API (Dynamic) | [`src/app/api/consultations/slots/route.ts`](file:///d:/Persional-projects/landing/src/app/api/consultations/slots/route.ts) | GET dynamic slot availability. Evaluated in `Asia/Kolkata` with JIT slot materialization, 30-day window, Mon–Sat schedule, 30 req/min rate limit, `Cache-Control: no-store, private`. |
+| `/api/consultations/reserve` | API (Dynamic) | [`src/app/api/consultations/reserve/route.ts`](file:///d:/Persional-projects/landing/src/app/api/consultations/reserve/route.ts) | POST atomic 15-minute slot hold and draft consultation creation. Rate limited (5/10m), 50KB ceiling, returns 256-bit cryptographically secure reservation token. |
+| `/api/consultations/payment/order` | API (Dynamic) | [`src/app/api/consultations/payment/order/route.ts`](file:///d:/Persional-projects/landing/src/app/api/consultations/payment/order/route.ts) | POST create or recover Cashfree payment order. Server-authoritative ₹2,999 pricing, 120s reservation safety threshold, deterministic order ID (`ord_<hex>`), PostgreSQL 23505 conflict reconciliation, transitions `slot_held` → `awaiting_payment`, returns `{ paymentSessionId }`. Rate limited (5/10m), 16KB ceiling, origin guard. |
 | `/api/admin/auth/login` | API (Dynamic) | [`src/app/api/admin/auth/login/route.ts`](file:///d:/Persional-projects/landing/src/app/api/admin/auth/login/route.ts) | POST endpoint for admin authentication. Origin/CSRF guard, 8KB size ceiling, multi-layer Upstash Redis rate limiting with progressive cooldown, Supabase auth verification, strict `app_metadata.role === 'admin'` check, anti-enumeration response, and session cookie setting. |
 | `/api/admin/auth/logout` | API (Dynamic) | [`src/app/api/admin/auth/logout/route.ts`](file:///d:/Persional-projects/landing/src/app/api/admin/auth/logout/route.ts) | POST endpoint for admin session revocation. Origin guard, terminates Supabase session, clears cookies. |
 
@@ -823,11 +833,14 @@ sequenceDiagram
       * Maintained ephemeral presentation tokens: `payment_session_id` returned in `GatewayOrderResult` without database persistence.
       * Server-only credentials and hardened environment validation in `src/lib/backend/config/env.ts` (`CASHFREE_APP_ID`, `CASHFREE_SECRET_KEY`, `CASHFREE_ENVIRONMENT`) and `.env.example` (intentionally tracked in git via `!.env.example` with safe placeholders only; `CASHFREE_API_VERSION` removed).
       * 23 comprehensive unit tests in `src/lib/backend/integrations/__tests__/cashfree-payment-gateway-adapter.test.ts` (Full suite: 28 test files, 263 tests passing).
-    * **Step 4 — Payment Order Persistence & Concurrency Migration**: `[PLANNED / NEXT]`.
-      * Database migration for payment order concurrency (unique partial index on `public.payment_orders(consultation_id)` for active states).
-      * `ConsultationPaymentService`: deterministic provider order ID generation (`ord_${consultation.id.replace(/-/g, "")}`), slot expiry check against `slot.reserved_until`, calling `IPaymentGatewayAdapter.createOrder`, persisting to `public.payment_orders` with initial `created` status.
-      * Route handler `POST /api/consultations/payment/order` returning payment session details.
-    * **Step 5 — Client Checkout Presentation**: `[PLANNED]`.
+    * **Step 4 — Secure Consultation Payment Order Creation**: `[COMPLETED / VERIFIED]` (2026-09-17).
+      * Established `getLatestOrderByConsultationId` in `IPaymentOrderRepository` and `SupabasePaymentOrderRepository` (`ORDER BY created_at DESC LIMIT 1`).
+      * Established server-side validation (`payment-order-schema.ts`): enforces UUIDv4 `consultationId`, exact 64-hex lowercase `reservationToken`, and rejects any client-provided amount, currency, status, or gateway order ID.
+      * Established `ConsultationPaymentService`: server-authoritative pricing (₹2,999 / 299900 paise, INR), 120-second reservation safety lifetime threshold ($remaining \ge 120s$; rejects $<120s$ with 410 `RESERVATION_EXPIRING_SOON`, $\le 0s$ with 410 `RESERVATION_EXPIRED`), timing-safe token verification (`crypto.timingSafeEqual`), deterministic provider order ID (`ord_` + `consultation.id.replace(/-/g, "")`), Gateway-First Cashfree call via `IPaymentGatewayAdapter`, post-gateway reservation re-check, PostgreSQL 23505 unique conflict reconciliation on `idx_orders_gateway_order_id`, and atomic consultation transition (`slot_held` → `awaiting_payment`). Within the Step 4 payment-order creation pathway, a consultation deterministically maps to one gateway order ID, and the existing unique gateway_order_id constraint prevents duplicate insertion through that pathway. `CreatePaymentOrderSuccess` returns internal service-layer transaction context (`orderId`, `amountInPaise`, `currency`), while the production route consumes strictly `paymentSessionId`.
+      * Established route handler `POST /api/consultations/payment/order`: POST-only, origin protection via `isAllowedOrigin`, 16 KB payload ceiling, IP rate limiting (5 req / 10m), `X-Request-Id` correlation, and sanitized error mapping.
+      * Zero database migrations (reused existing `idx_orders_gateway_order_id` uniqueness guarantee), zero new npm dependencies, zero client paymentSessionId DB persistence.
+      * 59 automated tests across 4 test suites: `payment-order-schema.test.ts` (10), `consultation-payment-service.test.ts` (25), `payment-order-route.test.ts` (23), and `payment-foundation-repositories.test.ts` (1 updated). Full test suite: 31 test files, 323 tests passing.
+    * **Step 5 — Client Checkout Presentation**: `[PLANNED / NEXT]`.
       * Client-side Cashfree JS SDK integration on `/diwali-consultation` to mount payment modal.
     * **Step 6 — Webhook Ingestion & Transaction Ledger**: `[PLANNED]`.
       * Webhook listener (`POST /api/payments/webhook`) with raw payload signature verification (`x-webhook-signature`), idempotency enforcement via `public.webhook_events`, and transaction ledger recording in `public.payment_transactions`.
@@ -847,6 +860,10 @@ sequenceDiagram
     * **Minimum Lead Time**: 24 hours in advance from server instant.
     * **Rolling Availability Window**: 30 calendar days forward from server instant.
     * **Temporary Reservation Hold**: Exactly 15 minutes (`RESERVATION_HOLD_DURATION_MINUTES = 15`).
+    * **Reservation Safety Threshold for Payment**: Minimum 120 seconds of remaining hold lifetime required before contacting Cashfree. If remaining $\le 0s$, return `RESERVATION_EXPIRED` (410). If $0 < remaining < 120s$, return `RESERVATION_EXPIRING_SOON` (410). No gateway order created.
+    * **Deterministic Provider Order ID**: Cashfree merchant order ID is strictly `ord_` + `consultation.id` with hyphens stripped (36 chars). Same consultation always maps to the same Cashfree order.
+    * **Gateway-First Flow**: Cashfree create/recover $\rightarrow$ DB insert $\rightarrow$ Consultation `slot_held` $\rightarrow$ `awaiting_payment`.
+    * **Post-Gateway Expiry Protection**: If hold expires during gateway roundtrip, payment order persistence and session exposure are blocked.
     * **Core Security Invariant**: **Payment Success != Slot Confirmation**. A payment gateway success callback does not equal a booked slot until verified server-side and confirmed via the atomic database RPC.
 
 ---
@@ -1088,6 +1105,22 @@ Every AI agent working in the Eventsika repository must adhere to the following 
 
 ## 28. Change Log
 
+### 2026-09-17
+- **Secure Consultation Payment Order Creation (Step 4 — Implementation & Verification)**:
+  - **Repository Layer (`payment-order-repository.interface.ts`, `supabase-payment-order-repository.ts`)**: Added `getLatestOrderByConsultationId(consultationId: string): Promise<PaymentOrderRecord | null>` to interface and implemented via Supabase ordering by `created_at DESC` with `.limit(1).maybeSingle()`.
+  - **Server-Authoritative Validation (`payment-order-schema.ts`)**: Built schema validating strictly `{ consultationId, reservationToken }`. Enforces standard UUIDv4 format, exact 64-hex lowercase token regex (`/^[0-9a-f]{64}$/`), and strictly rejects client-provided amounts, currencies, statuses, gateway order IDs, or extra payload fields.
+  - **Business Orchestrator (`consultation-payment-service.ts`)**:
+    - Server-authoritative locked pricing: ₹2,999 (`299900` integer paise, `INR`).
+    - 120-Second Reservation Safety Rule: Calculates server-side remaining hold lifetime ($remaining \ge 120s$). Returns 410 `RESERVATION_EXPIRING_SOON` if $0 < remaining < 120s$, 410 `RESERVATION_EXPIRED` if $\le 0s$, blocking gateway communication before it occurs.
+    - Timing-Safe Token Comparison: Validates byte length and executes `crypto.timingSafeEqual` against the stored reservation token hash.
+    - Deterministic Order ID Generation: Generates `ord_` + `consultation.id.replace(/-/g, "")` (36 alphanumeric characters) mapping consultations 1-to-1 to Cashfree orders.
+    - Gateway-First Sequence: Creates or recovers Cashfree order via `IPaymentGatewayAdapter` before local state progression.
+    - Post-Gateway Expiry Verification: Verifies reservation did not expire during the external network roundtrip, preventing orphan payment sessions.
+    - Concurrency & PostgreSQL 23505 Conflict Convergence: If parallel requests compete, the loser catches PostgreSQL unique violation 23505 on `idx_orders_gateway_order_id`, fetches the winning record via `getOrderByGatewayId`, and returns the identical session.
+    - State Machine Progression: Transitions consultation state `slot_held` → `awaiting_payment` only after Cashfree success and local order persistence.
+  - **API Route Handler (`/api/consultations/payment/order`)**: Built dynamic POST route enforcing POST-only, `isAllowedOrigin` CSRF guard, 16 KB payload ceiling, IP rate limiting (5 req / 10m), `X-Request-Id` correlation, and sanitized error mapping. Returns `{ success: true, data: { paymentSessionId } }`.
+  - **Automated Verification**: Added 58 tests across 3 new test files (`payment-order-schema.test.ts`, `consultation-payment-service.test.ts`, `payment-order-route.test.ts`) and updated `payment-foundation-repositories.test.ts` (13 tests). Full suite: 31 test files, 323 tests passing (0 failures). TypeScript (`npx tsc --noEmit`), ESLint 9 (`npm run lint`), and Next.js 16.3.0 standalone production build (`npm run build`) verified 100% clean.
+
 ### 2026-09-16
 - **Cashfree Payment Gateway Adapter (Step 3 Post-Review Corrections)**:
   - **Hard-Locked API Version (`2023-08-01`)**: Hard-locked Cashfree PG REST API version internally in `cashfree-payment-gateway-adapter.ts` via internal constant `CASHFREE_API_VERSION = "2023-08-01"` (`x-api-version: 2023-08-01`). Completely removed `apiVersion` configurability from `CashfreeConfig`, `env.ts`, `.env.example`, and test mocks, eliminating any runtime or environmental overrides.
@@ -1232,15 +1265,15 @@ Every AI agent working in the Eventsika repository must adhere to the following 
 ## 29. Final Verification
 
 - **Repository Inspected**: YES (All files, routes, components, assets, migrations, and configs verified directly from active source)
-- **Architecture Verified**: YES (6-layer backend flow, 8-table Supabase PostgreSQL persistence, 3 atomic stored procedures, Consultation Booking Engine, Asia/Kolkata scheduling engine, Cashfree Payment Gateway Adapter with hard-locked API version 2023-08-01, Supabase SSR Auth & RBAC session cookies, Distributed Rate Limiting via Upstash Redis, Concierge Operations Suite, Hero Fireworks dotLottie Layer)
-- **Automated Test Suite Verified**: YES (28 test files, 263 passing tests, 0 failures)
-- **Build & Lint Verified**: YES (Next.js 16.3.0 standalone production build compiled in 1.6s, 0 TypeScript errors, 0 ESLint errors)
+- **Architecture Verified**: YES (6-layer backend flow, 8-table Supabase PostgreSQL persistence, 3 atomic stored procedures, Consultation Booking Engine, Asia/Kolkata scheduling engine, Cashfree Payment Gateway Adapter with hard-locked API version 2023-08-01, Secure Consultation Payment Order Creation Subsystem with 120s reservation safety rule and PostgreSQL 23505 concurrency convergence, Supabase SSR Auth & RBAC session cookies, Distributed Rate Limiting via Upstash Redis, Concierge Operations Suite, Hero Fireworks dotLottie Layer)
+- **Automated Test Suite Verified**: YES (31 test files, 323 passing tests, 0 failures)
+- **Build & Lint Verified**: YES (Next.js 16.3.0 standalone production build compiled in 2.9s, 0 TypeScript errors, 0 ESLint errors)
 - **Secrets Excluded**: YES (Zero API keys, database credentials, or private tokens stored)
 - **Existing Agent Tooling Preserved**: YES (All 6 skills in `.agents/skills/` and MCP configurations intact)
 - **Application Code Modified by Documentation Task**: NO
 - **Brain.md Generated From Actual Codebase**: YES
-- **Repository HEAD at Verification**: `7981c8a0022492ffb4ca5f05e5a5960f090e4ab5` (`main` — working tree contains uncommitted Step 3 changes pending review)
-- **Verification Timestamp**: `2026-09-16T16:30:00+05:30`
+- **Repository HEAD at Verification**: `88d9db98e4d3a24b0718501e5fc2ceae57467610` (`main` — working tree contains uncommitted Step 4 changes pending review)
+- **Verification Timestamp**: `2026-09-17T13:50:00+05:30`
 
 ---
 
@@ -1258,7 +1291,7 @@ This section serves as the immediate reference for future engineers and AI agent
   - `ConsultationBookingService`: JIT slot generation, atomic 15m hold, 256-bit secure tokens, stale-hold detachment, and compensation release.
   - Endpoints: `GET /api/consultations/slots` (30 req/min, no-store) and `POST /api/consultations/reserve` (5 req/10m, 50 KB, 409/400/404/500 mapping).
   - Database concurrency migration (`20260915120000`): unique slot start time index, confirmed-slot partial index (`WHERE status = 'confirmed'`), and 3 stored procedures (`reserve_consultation_slot`, `release_consultation_slot`, `confirm_consultation_slot`) hardened as `SECURITY INVOKER` restricted to `service_role`.
-- **Payment Step 3 — Cashfree Payment Gateway Adapter**:
+- **Payment Step 3 — Cashfree Payment Gateway Adapter** ([`88d9db9`](file:///d:/Persional-projects/landing)):
   - Provider-agnostic gateway interface (`IPaymentGatewayAdapter` in `payment-gateway.interface.ts`).
   - Zero-dependency native fetch adapter (`CashfreePaymentGatewayAdapter` in `cashfree-payment-gateway-adapter.ts`) for Cashfree PG API hard-locked to `2023-08-01`.
   - Defensive 10-second `AbortController` timeout against hanging network requests.
@@ -1268,13 +1301,18 @@ This section serves as the immediate reference for future engineers and AI agent
   - Server-only credentials validation (`CASHFREE_APP_ID`, `CASHFREE_SECRET_KEY`, `CASHFREE_ENVIRONMENT`) in `env.ts` with strict production enforcement against silent sandbox fallback.
   - Tracked `.env.example` in git (`!.env.example`) with safe placeholders.
   - 23 unit tests passing (28 test files, 263 tests passing overall).
+- **Payment Step 4 — Secure Consultation Payment Order Creation**:
+  - `IPaymentOrderRepository.getLatestOrderByConsultationId` & Supabase implementation.
+  - Schema validation (`payment-order-schema.ts`): UUIDv4 `consultationId`, 64-hex lowercase `reservationToken`, client price tampering prevention.
+  - `ConsultationPaymentService`: server-authoritative pricing (₹2,999 / 299900 paise, INR), 120-second reservation safety lifetime threshold ($remaining \ge 120s$), timing-safe token verification (`crypto.timingSafeEqual`), deterministic provider order ID (`ord_<32hex>`), Gateway-First Cashfree call via `IPaymentGatewayAdapter`, post-gateway reservation re-check, PostgreSQL 23505 unique conflict reconciliation (`idx_orders_gateway_order_id`), and consultation transition (`slot_held` → `awaiting_payment`). Within the Step 4 payment-order creation pathway, a consultation deterministically maps to one gateway order ID, and the existing unique gateway_order_id constraint prevents duplicate insertion through that pathway.
+  - Route handler: `POST /api/consultations/payment/order` (5 req / 10m, 16 KB ceiling, origin check, `X-Request-Id` correlation, sanitized `{ paymentSessionId }` response).
+  - 59 automated tests across 4 test suites (31 test files, 323 tests passing overall).
 
 ### 2. What is partially implemented?
 - **Database Migrations on Remote Production**: All 3 migration files are complete and tested in version control; physical execution against the live remote Supabase production project is `[PENDING EXTERNAL VERIFICATION]`.
-- **Payment Flow**: The inventory, booking, and draft consultation pipeline is fully implemented up to `slot_held`. The subsequent handoff to a payment gateway (`awaiting_payment` -> `confirmed`) is architected but not yet wired to a gateway SDK.
+- **Payment Flow**: The inventory, booking, draft consultation, and secure payment order creation pipeline is fully implemented (`slot_held` → `awaiting_payment`). The subsequent client-side checkout modal presentation (Step 5), webhook transaction ledger (Step 6), and slot confirmation RPC invocation (Step 7) are next.
 
 ### 3. What is intentionally not implemented?
-- **Payment Order Persistence & Concurrency Index**: Deferred to Step 4. (Step 3 delivers strictly the isolated gateway adapter; no `payment_orders` writes or consultation status changes occur in Step 3).
 - **Cashfree Client SDK / Checkout Modal**: Deferred to Step 5.
 - **Webhook Ingestion & Signature Verification**: Deferred to Step 6.
 - **Booking Confirmation & Notification Automation**: Deferred to Step 7.
@@ -1284,10 +1322,6 @@ This section serves as the immediate reference for future engineers and AI agent
 - **Monolithic RPC containing Customer PII**: Stored procedures only touch slot IDs and tokens. Customer PII is stored cleanly in `public.consultations` via the repository layer.
 
 ### 4. What is next?
-- **Step 4 — Payment Order Persistence & Concurrency Migration**:
-  - Database migration adding unique partial index on `public.payment_orders(consultation_id)`.
-  - `ConsultationPaymentService` calling `IPaymentGatewayAdapter` with deterministic order IDs (`ord_${consultation.id.replace(/-/g, "")}`).
-  - Route handler `POST /api/consultations/payment/order` returning payment session credentials.
 - **Step 5 — Client Checkout Presentation**:
   - Client-side Cashfree JS SDK integration on `/diwali-consultation` to mount payment modal.
 - **Step 6 — Webhook Ingestion & Transaction Ledger**:

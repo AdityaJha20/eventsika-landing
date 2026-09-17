@@ -31,4 +31,9 @@ export interface IPaymentOrderRepository {
       paidAt?: string | null;
     }
   ): Promise<PaymentOrderRecord>;
+
+  /**
+   * Retrieves the latest payment order associated with a consultation.
+   */
+  getLatestOrderByConsultationId(consultationId: string): Promise<PaymentOrderRecord | null>;
 }
