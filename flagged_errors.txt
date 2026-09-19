@@ -1,0 +1,1 @@
+Found the missing data-scroll-behavior="smooth" attribute issue based on Next.js 16 upgrading guide because scroll-behavior: smooth is set globally in src/app/globals.css.
