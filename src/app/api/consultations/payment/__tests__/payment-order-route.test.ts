@@ -32,6 +32,7 @@ describe("POST /api/consultations/payment/order Route Handler Suite", () => {
         orderId: "ord_c7c88b90d4614fa3a75df152d113ba4c",
         amountInPaise: 299900,
         currency: "INR",
+        environment: "sandbox",
       },
     });
 
@@ -51,6 +52,7 @@ describe("POST /api/consultations/payment/order Route Handler Suite", () => {
     expect(data.success).toBe(true);
     expect(data.data).toEqual({
       paymentSessionId: "session_mock_token_abc123",
+      environment: "sandbox",
     });
 
     // Zero secret or internal leak

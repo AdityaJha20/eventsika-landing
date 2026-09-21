@@ -36,6 +36,13 @@ export class CashfreePaymentGatewayAdapter implements IPaymentGatewayAdapter {
   }
 
   /**
+   * Returns the current Cashfree environment ('sandbox' | 'production').
+   */
+  public getEnvironment(): "sandbox" | "production" {
+    return this.config.environment;
+  }
+
+  /**
    * Constructs required Cashfree authentication and version headers.
    * Throws AUTHENTICATION_FAILED if credentials are not configured.
    */

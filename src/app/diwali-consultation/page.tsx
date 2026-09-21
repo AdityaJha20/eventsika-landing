@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import {
+  BookingModalProvider,
+  BookingTriggerButton,
+} from "@/components/consultation/BookingExperience";
 import styles from "./diwali-consultation.module.css";
 
 export const metadata: Metadata = {
@@ -125,7 +129,8 @@ const INCLUSIONS_DATA = [
 
 export default function DiwaliConsultationPage() {
   return (
-    <div className={styles.pageWrapper}>
+    <BookingModalProvider>
+      <div className={styles.pageWrapper}>
       {/* 1. Global Navigation */}
       <Navbar />
 
@@ -237,17 +242,11 @@ export default function DiwaliConsultationPage() {
                     </div>
                   </div>
 
-                  <button
-                    type="button"
+                  <BookingTriggerButton
+                    variant="hero"
                     className={styles.primaryCtaBtn}
-                    aria-label="Book My Consultation for ₹2,999"
-                  >
-                    <span>Book My Consultation — ₹2,999</span>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                      <polyline points="12 5 19 12 12 19" />
-                    </svg>
-                  </button>
+                    ariaLabel="Book My Consultation for ₹2,999"
+                  />
                   <span className={styles.ctaTrustNote}>
                     ✓ 100% Dedicated Session • No Hidden Fees • Tailored Celebration Blueprint
                   </span>
@@ -422,18 +421,12 @@ export default function DiwaliConsultationPage() {
                   ))}
                 </ul>
 
-                {/* Card CTA (Inert / Visual) */}
-                <button
-                  type="button"
+                {/* Card CTA (Interactive) */}
+                <BookingTriggerButton
+                  variant="card"
                   className={styles.cardCtaBtn}
-                  aria-label="Book My Consultation for ₹2,999"
-                >
-                  <span>Book My Consultation — ₹2,999</span>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                    <polyline points="12 5 19 12 12 19" />
-                  </svg>
-                </button>
+                  ariaLabel="Book My Consultation for ₹2,999"
+                />
 
                 <p className={styles.cardDisclaimer}>
                   🔒 Limited seasonal slots available for Diwali &amp; upcoming winter celebrations.
@@ -501,17 +494,11 @@ export default function DiwaliConsultationPage() {
               </div>
 
               <div>
-                <button
-                  type="button"
+                <BookingTriggerButton
+                  variant="final"
                   className={styles.finalCtaBtn}
-                  aria-label="Reserve Your Consultation Today"
-                >
-                  <span>Reserve Your Consultation Today</span>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                    <polyline points="12 5 19 12 12 19" />
-                  </svg>
-                </button>
+                  ariaLabel="Reserve Your Consultation Today"
+                />
               </div>
 
               <p className={styles.finalMicroNote}>
@@ -525,6 +512,7 @@ export default function DiwaliConsultationPage() {
       {/* 9. Global Footer */}
       <Footer />
     </div>
+    </BookingModalProvider>
   );
 }
 

@@ -91,4 +91,9 @@ export interface IPaymentGatewayAdapter {
    * Returns null if the order does not exist (HTTP 404).
    */
   getOrder(orderId: string): Promise<GatewayOrderResult | null>;
+
+  /**
+   * Optional getter returning current gateway environment.
+   */
+  getEnvironment?(): "sandbox" | "production";
 }
