@@ -190,12 +190,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 6. Sanitized Response (Payment Session only, zero secrets or tokens)
+    // 6. Sanitized Response (Payment Session and Client Mode only, zero secrets or tokens)
     return NextResponse.json(
       {
         success: true,
         data: {
           paymentSessionId: result.data.paymentSessionId,
+          environment: result.data.environment,
         },
       },
       {

@@ -127,6 +127,7 @@ describe("ConsultationPaymentService Suite (Step 4)", () => {
     mockGatewayAdapter = {
       createOrder: vi.fn().mockResolvedValue(mockGatewayOrderResult),
       getOrder: vi.fn().mockResolvedValue(mockGatewayOrderResult),
+      getEnvironment: vi.fn().mockReturnValue("sandbox"),
     };
 
     service = new ConsultationPaymentService(
@@ -164,6 +165,7 @@ describe("ConsultationPaymentService Suite (Step 4)", () => {
         expect(result.data.orderId).toBe(deterministicOrderId);
         expect(result.data.amountInPaise).toBe(299900);
         expect(result.data.currency).toBe("INR");
+        expect(result.data.environment).toBe("sandbox");
       }
 
       // 1. Loaded consultation & slot

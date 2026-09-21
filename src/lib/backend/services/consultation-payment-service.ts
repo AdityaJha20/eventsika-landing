@@ -62,6 +62,7 @@ export interface CreatePaymentOrderSuccess {
     orderId: string;
     amountInPaise: number;
     currency: "INR";
+    environment: "sandbox" | "production";
   };
 }
 
@@ -400,6 +401,9 @@ export class ConsultationPaymentService {
             orderId: deterministicOrderId,
             amountInPaise: existingOrder.amountInPaise,
             currency: existingOrder.currency,
+            environment: this.gatewayAdapter.getEnvironment
+              ? this.gatewayAdapter.getEnvironment()
+              : "sandbox",
           },
         };
       }
@@ -577,6 +581,9 @@ export class ConsultationPaymentService {
         orderId: gatewayResult.merchantOrderId,
         amountInPaise: DEFAULT_CONSULTATION_PRICE_PAISE,
         currency: "INR",
+        environment: this.gatewayAdapter.getEnvironment
+          ? this.gatewayAdapter.getEnvironment()
+          : "sandbox",
       },
     };
   }

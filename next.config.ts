@@ -6,16 +6,18 @@ function getCspDirectives(): string {
     "default-src 'self'",
     // unsafe-inline is required for Next.js hydration bootstrap scripts and static JSON-LD.
     // unsafe-eval is restricted strictly to local development for Next.js Fast Refresh tooling.
-    `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+    // https://sdk.cashfree.com is required for Cashfree Web Checkout SDK v3.
+    `script-src 'self' 'unsafe-inline' https://sdk.cashfree.com${isDev ? " 'unsafe-eval'" : ""}`,
     // unsafe-inline is required for Next.js CSS variable injection and CSS module styles.
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data:",
     "font-src 'self' data:",
     "media-src 'self'",
-    "connect-src 'self'",
+    "connect-src 'self' https://api.cashfree.com https://sandbox.cashfree.com",
+    "frame-src 'self' https://sdk.cashfree.com https://api.cashfree.com https://sandbox.cashfree.com https://payments.cashfree.com https://payments-test.cashfree.com",
     "object-src 'none'",
     "base-uri 'self'",
-    "form-action 'self'",
+    "form-action 'self' https://api.cashfree.com https://sandbox.cashfree.com",
     "frame-ancestors 'self'",
   ];
 
