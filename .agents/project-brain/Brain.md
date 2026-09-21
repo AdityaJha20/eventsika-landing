@@ -9,16 +9,18 @@
 | Attribute | Details |
 | :--- | :--- |
 | **Project Name** | Eventsika (`landing`) |
-| **Document Path** | [`.agents/project-brain/Brain.md`](file:///d:/Persional-projects/landing/.agents/project-brain/Brain.md) |
-| **Brain Version** | `1.5.0` |
+| **Document Path** | [`.agents/project-brain/Brain.md`](file:///c:/Users/gcad1/Documents/eventsika-landing/.agents/project-brain/Brain.md) |
+| **Brain Version** | `1.6.0` |
 | **Creation Date** | `2026-08-30` |
-| **Last Verified** | `2026-09-17` |
+| **Last Verified** | `2026-09-21` |
 | **Target Framework** | Next.js `16.3.0` (React `19.2.8`, App Router) |
 | **Primary Domain** | `https://eventsika.in` |
 | **Support Inbox** | `care@eventsika.in` |
 | **Operational Rule** | **Brain-First**: Consult `Brain.md` before initiating any non-trivial architectural, feature, or refactoring task. |
 
 ---
+
+
 
 ## 1. Project Overview
 
@@ -35,8 +37,11 @@
 8. **Consultation Booking & Slot Reservation Engine**: High-concurrency booking engine featuring JIT slot materialization, server-authoritative Asia/Kolkata scheduling (6 daily slots, Mon–Sat, 24h lead time, 30d window), 15-minute temporary hold with 256-bit cryptographically secure tokens, atomic database concurrency controls, lazy expiry, and automatic compensation release.
 9. **Cashfree Payment Gateway Integration Subsystem**: Provider-agnostic payment gateway contract with zero-dependency native fetch adapter targeting Cashfree PG API (2023-08-01), 10s timeout protection, automatic 409 duplicate recovery, paise-to-rupee conversion, and server-only credential security.
 10. **Secure Consultation Payment Order Creation Subsystem**: Gateway-First order creation engine enforcing locked ₹2,999 pricing, 120s reservation safety threshold, deterministic provider order ID generation (`ord_<hex>`), PostgreSQL 23505 unique conflict reconciliation, and atomic consultation status transition (`slot_held` → `awaiting_payment`).
+11. **Customer-Facing Consultation Booking & Cashfree Web Checkout Experience**: Client-side interactive booking modal on `/diwali-consultation` orchestrated by a 9-state machine (`BookingExperience.tsx`, `ConsultationBookingModal.tsx`), live slot picker querying `GET /api/consultations/slots`, client-validated customer intake form (`ConsultationIntakeForm.tsx`), atomic reservation hold (`POST /api/consultations/reserve`), server-anchored live 15-minute countdown timer with tiered urgency states (`ReservationCountdownTimer.tsx`), authoritative ₹2,999 pricing checkout view (`ConsultationCheckoutView.tsx`), dynamic Cashfree Web SDK v3 modal checkout invocation (`_modal`), and presentation-only pending state (`PaymentProcessingView.tsx`).
 
 ---
+
+
 
 ## 2. Technology Stack
 
@@ -52,16 +57,19 @@ All dependencies and versions are verified directly from `package.json` and proj
 | **Styling** | Vanilla CSS | Design System | Pure CSS Modules (`*.module.css`) + CSS Custom Properties. **Zero Tailwind**. |
 | **Typography** | `next/font/google` | Font Management | `Playfair Display` (Serif) & `Inter` (Sans-serif) with CSS variable injection |
 | **Animation Runtime** | `@lottiefiles/dotlottie-web: 0.80.0` | Vector Celebration Animation | Canvas-based rendering, local WASM player (`/animation/dotlottie-player.wasm`), local `.lottie` container, reduced-motion listener, zero external CDN calls |
-| **Database & Auth** | `@supabase/supabase-js: ^2.112.4`<br>`@supabase/ssr: ^0.12.5` | Persistence, Sessions & RPC | PostgreSQL database persistence (8 tables), server-side session cookies, RLS policies, and atomic stored procedures (`reserve_consultation_slot`, `release_consultation_slot`, `confirm_consultation_slot`) executed via service-role |
+| **Database & Auth** | `@supabase/supabase-js: ^2.112.4`<br>`@supabase/ssr: ^0.12.5` | Persistence, Sessions & RPC | PostgreSQL database persistence (8 tables in schema design), server-side session cookies, RLS policies, and atomic stored procedures (`reserve_consultation_slot`, `release_consultation_slot`, `confirm_consultation_slot`) executed via service-role |
 | **Distributed Cache / Rate Limiter** | `@upstash/redis: ^1.38.3` | Distributed Abuse Prevention | Atomic Redis Lua scripts for multi-layer admin auth rate limiting; fails closed in prod |
 | **Rate Limiter (Public)** | In-Memory Map | Public Intake Defense | Sliding window IP rate limiter with automated 5-minute cleanup cycles (`rate-limit.ts`) |
 | **Cryptography** | Native `node:crypto` | Secure Token Generation & Timing Safety | 256-bit secure reservation tokens (`crypto.randomBytes(32)`) and timing-safe token verification (`crypto.timingSafeEqual`) |
 | **ESLint** | `^9` | Linting & Standards | Flat config format (`eslint.config.mjs`) using `eslint-config-next: 16.3.0` |
-| **Test Framework** | `vitest: ^4.1.11` | Automated Testing | Unit & integration test suites (31 test files, 323 tests passing) |
+| **Test Framework** | `vitest: ^4.1.11` | Automated Testing | Unit & integration test suites (33 test files, 342 tests passing) |
 | **Mailer Engine** | Native Fetch | Backend Dispatch | Zero-dependency REST dispatchers for Resend, SendGrid, and Custom Webhooks |
-| **Payment Gateway** | Native Fetch | Payment Adapter | Zero-dependency REST adapter for Cashfree PG API (2023-08-01) with 10s AbortController |
+| **Payment Gateway** | Native Fetch | Backend Adapter | Zero-dependency REST adapter for Cashfree PG API (2023-08-01) with 10s AbortController |
+| **Checkout SDK** | Dynamic Web SDK v3 | Client Modal Checkout | Dynamically loaded Cashfree JS SDK (`https://sdk.cashfree.com/js/v3/cashfree.js`) initializing `_modal` checkout without adding npm dependencies |
 
 ---
+
+
 
 ## 3. High-Level Architecture
 
@@ -76,10 +84,19 @@ graph TD
         NextRouter --> ServicesRoute["/services (Catalog, Estimator & FAQs)"]
         NextRouter --> PackagesRoute["/packages (Tiers & Customizer)"]
         NextRouter --> VendorRoute["/for-vendors (Partner Application)"]
-        NextRouter --> DiwaliRoute["/diwali-consultation (Promo Advisory)"]
+        NextRouter --> DiwaliRoute["/diwali-consultation (Promo Advisory & Booking Modal)"]
         NextRouter --> LoginRoute["/login (Admin & Partner Authentication)"]
         NextRouter --> MetadataRoutes["/robots.txt & /sitemap.xml"]
         ServicesRoute -.->|"Consultation CTA"| DiwaliRoute
+
+        DiwaliRoute --> BookingExp["BookingExperience (Trigger & Dialog Container)"]
+        BookingExp --> BookingModal["ConsultationBookingModal (9-State Orchestrator)"]
+        BookingModal --> SlotPicker["ConsultationSlotPicker (Live Slots via GET /api/consultations/slots)"]
+        BookingModal --> IntakeForm["ConsultationIntakeForm (Client Validation)"]
+        BookingModal --> CountdownTimer["ReservationCountdownTimer (Live 15m Hold)"]
+        BookingModal --> CheckoutView["ConsultationCheckoutView (Authoritative ₹2,999)"]
+        CheckoutView --> CashfreeSDK["Cashfree Web SDK v3 (Modal Checkout)"]
+        CheckoutView --> ProcessingView["PaymentProcessingView (Pending State)"]
     end
 
     subgraph MiddlewareLayer ["Edge/Server Request Boundary (src/middleware.ts)"]
@@ -104,43 +121,48 @@ graph TD
         LoginRoute -.->|"POST /api/admin/auth/login"| AdminLoginAPI["Route: /api/admin/auth/login"]
         AdminDash -.->|"POST /api/admin/auth/logout"| AdminLogoutAPI["Route: /api/admin/auth/logout"]
         
+        SlotPicker -.->|"GET /api/consultations/slots"| SlotRoute["Route: /api/consultations/slots"]
+        BookingModal -.->|"POST /api/consultations/reserve"| ReserveRoute["Route: /api/consultations/reserve"]
+        CheckoutView -.->|"POST /api/consultations/payment/order"| OrderRoute["Route: /api/consultations/payment/order"]
+        
         LeadRoute --> PublicGuards["Public Guards (In-Memory Rate Limit 5/10m, Size 50KB, RequestId)"]
         VendorRouteAPI --> PublicGuards
+        SlotRoute --> SlotGuards["Slot Guards (Rate Limit 30/min, Cache-Control: no-store, private)"]
+        ReserveRoute --> ReserveGuards["Reserve Guards (Rate Limit 5/10m, Size 50KB, Origin Check)"]
+        OrderRoute --> OrderGuards["Order Guards (Rate Limit 5/10m, Size 16KB, Origin Check, 120s Rule)"]
         AdminLoginAPI --> AdminGuards["Admin Security Guards (CSRF/Origin, 8KB Size, Upstash Redis Rate Limit)"]
         
         PublicGuards --> ValidationLayer["Validation Layer (src/lib/backend/validation)"]
+        SlotGuards --> SlotService["ConsultationBookingService (JIT Generation & Slot Logic)"]
+        ReserveGuards --> SlotService
+        OrderGuards --> PaymentService["ConsultationPaymentService (Gateway-First, 120s Check)"]
         AdminGuards --> AuthLogic["Supabase Auth Verification & Anti-Enumeration Defense"]
         ValidationLayer --> ServiceLayer["Business Service Layer (Lead, Vendor, Admin Services)"]
-        AdminDash --> ServiceLayer
-        AdminLeads --> ServiceLayer
-        AdminVendors --> ServiceLayer
-        AdminAnalytics --> ServiceLayer
         
         ServiceLayer --> Deduplicator["In-Memory Deduplicator (30s Sliding Window)"]
         ServiceLayer --> RepoBoundary["Repository Boundary (ILeadRepository, IVendorRepository, IDashboardRepository)"]
-        ServiceLayer --> DeliveryBoundary["Delivery Notifier Boundary (IDeliveryNotifier)"]
+        SlotService --> SlotRepoBoundary["Slot & Consultation Repositories"]
+        PaymentService --> PaymentRepoBoundary["Payment Order Repository & Gateway Adapter"]
     end
 
     subgraph Persistence ["Persistence & Caching Infrastructure"]
         RepoBoundary -->|"Production: Service Role Key"| SupabaseStore["Supabase PostgreSQL (leads, vendor_applications)"]
+        SlotRepoBoundary --> SupabaseStore
+        PaymentRepoBoundary --> SupabaseStore
         RepoBoundary -.->|"Dev / Test Fallback"| InMemoryStore["In-Memory Store Singletons"]
         AdminGuards -->|"Atomic Lua Scripting"| UpstashRedis["Upstash Redis (Multi-Layer IP/Account Lockouts)"]
     end
 
-    subgraph Integrations ["Integrations & External Dispatch (src/lib/mailer.ts)"]
-        DeliveryBoundary --> MailerAdapter["Mailer Delivery Notifier"]
-        MailerAdapter -->|"RESEND_API_KEY"| ResendAPI["Resend REST API"]
-        MailerAdapter -->|"SENDGRID_API_KEY"| SendgridAPI["SendGrid v3 API"]
-        MailerAdapter -->|"LEAD_WEBHOOK_URL"| CustomWebhook["Custom Webhook / Automation"]
-        MailerAdapter -.->|"Dev / Fallback"| SafeLogger["PII-Safe Masked Logger"]
-        
-        ResendAPI --> OpsTeam["care@eventsika.in (Ops & Planners)"]
-        SendgridAPI --> OpsTeam
-        CustomWebhook --> OpsTeam
+    subgraph Integrations ["Integrations & External Dispatch"]
+        ServiceLayer --> MailerAdapter["Mailer Delivery Notifier (Resend / SendGrid / Webhook)"]
+        PaymentService --> CashfreeAdapter["CashfreePaymentGatewayAdapter (REST API 2023-08-01)"]
+        CashfreeAdapter --> CashfreeAPI["Cashfree PG API (Sandbox / Production)"]
     end
 ```
 
 ---
+
+
 
 ## 4. Repository / Filesystem Structure
 
@@ -238,6 +260,23 @@ landing/
 │   │   ├── robots.ts                      # Dynamic robots.txt generation
 │   │   └── sitemap.ts                     # Dynamic sitemap.xml generation
 │   ├── components/                        # Reusable modular UI components
+│   │   ├── consultation/                  # Customer Consultation Booking & Checkout Experience (Step 5)
+│   │   │   ├── BookingExperience.tsx      # Modal trigger button and dialog mount container
+│   │   │   ├── ConsultationBookingModal.tsx # Central 9-state machine dialog orchestrator
+│   │   │   ├── ConsultationSlotPicker.tsx # Dynamic slot inventory picker & date tabs
+│   │   │   ├── ConsultationIntakeForm.tsx # Client-validated customer details form
+│   │   │   ├── ReservationCountdownTimer.tsx # 15-minute live hold timer with tiered urgency
+│   │   │   ├── ConsultationCheckoutView.tsx # Authoritative ₹2,999 summary & Cashfree checkout trigger
+│   │   │   ├── PaymentProcessingView.tsx  # Presentation-only gateway pending state
+│   │   │   ├── consultation.module.css    # Scoped luxury styling matching Sand/Ivory/Crimson tokens
+│   │   │   └── utils/
+│   │   │       ├── booking-types.ts       # Frontend view models, state unions & sessions
+│   │   │       ├── cashfree-loader.ts     # Cashfree Web SDK v3 dynamic CDN loader & modal launcher
+│   │   │       ├── countdown-utils.ts     # Pure IST date/time formatting & timer calculators
+│   │   │       ├── error-mapping.ts       # Backend RFC error code to user-friendly error mapper
+│   │   │       └── __tests__/
+│   │   │           ├── countdown-utils.test.ts # Timer calculation and formatting tests
+│   │   │           └── error-mapping.test.ts   # Error code mapping tests
 │   │   ├── EventTypes.tsx / .module.css   # Interactive 2-column event showcase
 │   │   ├── Footer.tsx / .module.css       # Global footer & navigation directory
 │   │   ├── ForVendors.tsx / .module.css   # Homepage vendor partner section
@@ -339,44 +378,51 @@ landing/
 │       └── rate-limit.ts                  # Hybrid rate limiter (In-memory public + Upstash Redis admin)
 ├── supabase/                              # Version-controlled Supabase migrations
 │   └── migrations/                        # PostgreSQL DDL migrations (tables, RLS, indexes)
+│       ├── 20260901160000_create_intake_tables.sql # Baseline leads & vendor_applications
+│       ├── 20260914180000_create_payment_and_consultation_foundation.sql # Step 1 foundation tables
+│       └── 20260915120000_add_slot_concurrency_and_constraints.sql # Step 2 concurrency & RPCs
 ├── .env.example                           # Sanitized environment variable template
 ├── .gitignore                             # Git ignore rules (.env.local, node_modules, .next)
 ├── AGENTS.md                              # Next.js 16 agent environment notice
 ├── CLAUDE.md                              # Pointer linking Claude to AGENTS.md
 ├── eslint.config.mjs                      # ESLint 9 flat configuration
-├── next.config.ts                         # Next.js config (headers, reactCompiler, poweredBy)
+├── next.config.ts                         # Next.js config (headers, CSP, reactCompiler, poweredBy)
 ├── package.json                           # Dependency definitions and scripts
 └── tsconfig.json                          # TypeScript configuration & path aliases
 ```
 
 ---
 
+
+
 ## 5. Application Routing
 
 | Route | Type | Component / File | Purpose & Key Interactions |
 | :--- | :--- | :--- | :--- |
-| `/` | Page (Static) | [`src/app/page.tsx`](file:///d:/Persional-projects/landing/src/app/page.tsx) | Main landing page. Contains Hero intake form (`#plan-event`), How It Works, Services, Event Types, Packages, and Vendor preview. |
-| `/services` | Page (Static) | [`src/app/services/page.tsx`](file:///d:/Persional-projects/landing/src/app/services/page.tsx) | Comprehensive celebration service directory with 6 curated service categories (01 Decor & Styling, 02 Catering & Cuisine, 03 Rituals & Blessings, 04 Entertainment & Performers, 05 Photography & Films, 06 Invitations & Favours), dynamic [`ServiceEstimator`](file:///d:/Persional-projects/landing/src/components/ServiceEstimator.tsx), [`ServicesFAQ`](file:///d:/Persional-projects/landing/src/components/ServicesFAQ.tsx), and consultation CTA routing to `/diwali-consultation`. |
-| `/packages` | Page (Static) | [`src/app/packages/page.tsx`](file:///d:/Persional-projects/landing/src/app/packages/page.tsx) | Curated tiered package explorer with interactive [`PackageCustomizer`](file:///d:/Persional-projects/landing/src/components/PackageCustomizer.tsx) and side-by-side [`PackageComparison`](file:///d:/Persional-projects/landing/src/components/PackageComparison.tsx). |
-| `/for-vendors` | Page (Static) | [`src/app/for-vendors/page.tsx`](file:///d:/Persional-projects/landing/src/app/for-vendors/page.tsx) | Partner acquisition landing page with value props and multi-category [`VendorApplicationForm`](file:///d:/Persional-projects/landing/src/components/VendorApplicationForm.tsx). |
-| `/diwali-consultation` | Page (Static) | [`src/app/diwali-consultation/page.tsx`](file:///d:/Persional-projects/landing/src/app/diwali-consultation/page.tsx) | High-intent promotional landing page for 1-on-1 strategy consultations at ₹2,999 (regular ₹5,000). |
-| `/login` | Page (Static) | [`src/app/login/page.tsx`](file:///d:/Persional-projects/landing/src/app/login/page.tsx) | Client & Partner portal authentication page. Features client-side validation and authenticates directly against `/api/admin/auth/login`. |
-| `/admin` | Page (RSC) | [`src/app/admin/page.tsx`](file:///d:/Persional-projects/landing/src/app/admin/page.tsx) | Executive concierge operations dashboard. Displays 4 key metric cards, 5-stage intake pipeline, chronological activity feed, and upcoming celebrations table. |
-| `/admin/analytics` | Page (RSC) | [`src/app/admin/analytics/page.tsx`](file:///d:/Persional-projects/landing/src/app/admin/analytics/page.tsx) | Executive celebration analytics ("Celebrations in Focus"). Features date filtering (`7d`, `30d`, `year`, `all`), India demand heatmap, top cities ranking, celebration trends, lead journey funnel, lead sources donut, and operational signals. |
-| `/admin/leads` | Page (RSC) | [`src/app/admin/leads/page.tsx`](file:///d:/Persional-projects/landing/src/app/admin/leads/page.tsx) | Operational celebration inquiries queue. Features 2-pane master-detail view, search, city/occasion filtering, sorting, deep client dossier, and WhatsApp/Call actions. |
-| `/admin/vendors` | Page (RSC) | [`src/app/admin/vendors/page.tsx`](file:///d:/Persional-projects/landing/src/app/admin/vendors/page.tsx) | Operational vendor partner application register. Features category/city/experience filtering, slide-over detail drawer, and formula-injection-safe CSV export. |
-| `/robots.txt` | Metadata | [`src/app/robots.ts`](file:///d:/Persional-projects/landing/src/app/robots.ts) | Dynamic SEO robot instructions allowing all crawling except `/api/` and `/admin/` endpoints. |
-| `/sitemap.xml` | Metadata | [`src/app/sitemap.ts`](file:///d:/Persional-projects/landing/src/app/sitemap.ts) | Dynamic XML sitemap indexing all canonical public routes with priority ratings. |
-| `/api/health` | API (Dynamic) | [`src/app/api/health/route.ts`](file:///d:/Persional-projects/landing/src/app/api/health/route.ts) | GET endpoint for application health and uptime verification (`{ status: "healthy", timestamp, version }`). |
-| `/api/leads` | API (Dynamic) | [`src/app/api/leads/route.ts`](file:///d:/Persional-projects/landing/src/app/api/leads/route.ts) | POST endpoint for celebration inquiries. Rate limited (5/10m), 50KB capped, deduplicated, validated, dispatches email/webhook. |
-| `/api/vendor-applications` | API (Dynamic) | [`src/app/api/vendor-applications/route.ts`](file:///d:/Persional-projects/landing/src/app/api/vendor-applications/route.ts) | POST endpoint for vendor partner applications. Rate limited, deduplicated, validates portfolio URLs & category arrays. |
-| `/api/consultations/slots` | API (Dynamic) | [`src/app/api/consultations/slots/route.ts`](file:///d:/Persional-projects/landing/src/app/api/consultations/slots/route.ts) | GET dynamic slot availability. Evaluated in `Asia/Kolkata` with JIT slot materialization, 30-day window, Mon–Sat schedule, 30 req/min rate limit, `Cache-Control: no-store, private`. |
-| `/api/consultations/reserve` | API (Dynamic) | [`src/app/api/consultations/reserve/route.ts`](file:///d:/Persional-projects/landing/src/app/api/consultations/reserve/route.ts) | POST atomic 15-minute slot hold and draft consultation creation. Rate limited (5/10m), 50KB ceiling, returns 256-bit cryptographically secure reservation token. |
-| `/api/consultations/payment/order` | API (Dynamic) | [`src/app/api/consultations/payment/order/route.ts`](file:///d:/Persional-projects/landing/src/app/api/consultations/payment/order/route.ts) | POST create or recover Cashfree payment order. Server-authoritative ₹2,999 pricing, 120s reservation safety threshold, deterministic order ID (`ord_<hex>`), PostgreSQL 23505 conflict reconciliation, transitions `slot_held` → `awaiting_payment`, returns `{ paymentSessionId }`. Rate limited (5/10m), 16KB ceiling, origin guard. |
-| `/api/admin/auth/login` | API (Dynamic) | [`src/app/api/admin/auth/login/route.ts`](file:///d:/Persional-projects/landing/src/app/api/admin/auth/login/route.ts) | POST endpoint for admin authentication. Origin/CSRF guard, 8KB size ceiling, multi-layer Upstash Redis rate limiting with progressive cooldown, Supabase auth verification, strict `app_metadata.role === 'admin'` check, anti-enumeration response, and session cookie setting. |
-| `/api/admin/auth/logout` | API (Dynamic) | [`src/app/api/admin/auth/logout/route.ts`](file:///d:/Persional-projects/landing/src/app/api/admin/auth/logout/route.ts) | POST endpoint for admin session revocation. Origin guard, terminates Supabase session, clears cookies. |
+| `/` | Page (Static) | [`src/app/page.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/page.tsx) | Main landing page. Contains Hero intake form (`#plan-event`), How It Works, Services, Event Types, Packages, and Vendor preview. |
+| `/services` | Page (Static) | [`src/app/services/page.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/services/page.tsx) | Comprehensive celebration service directory with 6 curated service categories (01 Decor & Styling, 02 Catering & Cuisine, 03 Rituals & Blessings, 04 Entertainment & Performers, 05 Photography & Films, 06 Invitations & Favours), dynamic [`ServiceEstimator`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/ServiceEstimator.tsx), [`ServicesFAQ`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/ServicesFAQ.tsx), and consultation CTA routing to `/diwali-consultation`. |
+| `/packages` | Page (Static) | [`src/app/packages/page.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/packages/page.tsx) | Curated tiered package explorer with interactive [`PackageCustomizer`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/PackageCustomizer.tsx) and side-by-side [`PackageComparison`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/PackageComparison.tsx). |
+| `/for-vendors` | Page (Static) | [`src/app/for-vendors/page.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/for-vendors/page.tsx) | Partner acquisition landing page with value props and multi-category [`VendorApplicationForm`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/VendorApplicationForm.tsx). |
+| `/diwali-consultation` | Page (Static) | [`src/app/diwali-consultation/page.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/diwali-consultation/page.tsx) | High-intent promotional landing page for 1-on-1 strategy consultations at authoritative ₹2,999. Hosts the interactive customer booking modal (`BookingExperience.tsx`, `ConsultationBookingModal.tsx`), slot inventory picker, intake form, 15-minute reservation timer, and Cashfree Web SDK checkout. |
+| `/login` | Page (Static) | [`src/app/login/page.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/login/page.tsx) | Client & Partner portal authentication page. Features client-side validation and authenticates directly against `/api/admin/auth/login`. |
+| `/admin` | Page (RSC) | [`src/app/admin/page.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/admin/page.tsx) | Executive concierge operations dashboard. Displays 4 key metric cards, 5-stage intake pipeline, chronological activity feed, and upcoming celebrations table. |
+| `/admin/analytics` | Page (RSC) | [`src/app/admin/analytics/page.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/admin/analytics/page.tsx) | Executive celebration analytics ("Celebrations in Focus"). Features date filtering (`7d`, `30d`, `year`, `all`), India demand heatmap, top cities ranking, celebration trends, lead journey funnel, lead sources donut, and operational signals. |
+| `/admin/leads` | Page (RSC) | [`src/app/admin/leads/page.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/admin/leads/page.tsx) | Operational celebration inquiries queue. Features 2-pane master-detail view, search, city/occasion filtering, sorting, deep client dossier, and WhatsApp/Call actions. |
+| `/admin/vendors` | Page (RSC) | [`src/app/admin/vendors/page.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/admin/vendors/page.tsx) | Operational vendor partner application register. Features category/city/experience filtering, slide-over detail drawer, and formula-injection-safe CSV export. |
+| `/robots.txt` | Metadata | [`src/app/robots.ts`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/robots.ts) | Dynamic SEO robot instructions allowing all crawling except `/api/` and `/admin/` endpoints. |
+| `/sitemap.xml` | Metadata | [`src/app/sitemap.ts`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/sitemap.ts) | Dynamic XML sitemap indexing all canonical public routes with priority ratings. |
+| `/api/health` | API (Dynamic) | [`src/app/api/health/route.ts`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/api/health/route.ts) | GET endpoint for application health and uptime verification (`{ status: "healthy", timestamp, version }`). |
+| `/api/leads` | API (Dynamic) | [`src/app/api/leads/route.ts`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/api/leads/route.ts) | POST endpoint for celebration inquiries. Rate limited (5/10m), 50KB capped, deduplicated, validated, dispatches email/webhook. |
+| `/api/vendor-applications` | API (Dynamic) | [`src/app/api/vendor-applications/route.ts`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/api/vendor-applications/route.ts) | POST endpoint for vendor partner applications. Rate limited, deduplicated, validates portfolio URLs & category arrays. |
+| `/api/consultations/slots` | API (Dynamic) | [`src/app/api/consultations/slots/route.ts`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/api/consultations/slots/route.ts) | GET dynamic slot availability. Evaluated in `Asia/Kolkata` with JIT slot materialization, 30-day window, Mon–Sat schedule, 30 req/min rate limit, `Cache-Control: no-store, private`. |
+| `/api/consultations/reserve` | API (Dynamic) | [`src/app/api/consultations/reserve/route.ts`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/api/consultations/reserve/route.ts) | POST atomic 15-minute slot hold and draft consultation creation. Rate limited (5/10m), 50KB ceiling, returns 256-bit cryptographically secure reservation token. |
+| `/api/consultations/payment/order` | API (Dynamic) | [`src/app/api/consultations/payment/order/route.ts`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/api/consultations/payment/order/route.ts) | POST create or recover Cashfree payment order. Server-authoritative ₹2,999 pricing, 120s reservation safety threshold, deterministic order ID (`ord_<hex>`), PostgreSQL 23505 conflict reconciliation, transitions `slot_held` → `awaiting_payment`, returns `{ paymentSessionId, environment }`. Rate limited (5/10m), 16KB ceiling, origin guard. |
+| `/api/admin/auth/login` | API (Dynamic) | [`src/app/api/admin/auth/login/route.ts`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/api/admin/auth/login/route.ts) | POST endpoint for admin authentication. Origin/CSRF guard, 8KB size ceiling, multi-layer Upstash Redis rate limiting with progressive cooldown, Supabase auth verification, strict `app_metadata.role === 'admin'` check, anti-enumeration response, and session cookie setting. |
+| `/api/admin/auth/logout` | API (Dynamic) | [`src/app/api/admin/auth/logout/route.ts`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/api/admin/auth/logout/route.ts) | POST endpoint for admin session revocation. Origin guard, terminates Supabase session, clears cookies. |
 
 ---
+
+
 
 ## 6. Frontend Architecture
 
@@ -385,24 +431,126 @@ landing/
   - All public route entrypoints (`page.tsx`), `RootLayout`, `robots.ts`, `sitemap.ts`, `HowItWorks.tsx`, `Packages.tsx`, `ForVendors.tsx`, and `Footer.tsx`.
   - **Admin Suite RSCs**: `src/app/admin/layout.tsx` (enforces `requireAdminSession`), `src/app/admin/page.tsx` (fetches dashboard summary), `src/app/admin/analytics/page.tsx` (fetches operational analytics), `src/app/admin/leads/page.tsx` (fetches inquiries queue), and `src/app/admin/vendors/page.tsx` (fetches partner applications).
 - **Client Components (`"use client"`)**:
-  - [`Hero.tsx`](file:///d:/Persional-projects/landing/src/components/Hero.tsx): Multi-field form state, real-time Indian phone validation (`/^[6-9]\d{9}$/`), service multi-selection chips, submission spinner, and error banners.
-  - [`HeroFireworks.tsx`](file:///d:/Persional-projects/landing/src/components/HeroFireworks.tsx): Canvas-based dotLottie animation player, local WASM runtime, responsive opacity (0.5 desktop, 0.75 mobile), non-blocking pointer events, and reduced-motion listener.
-  - [`Navbar.tsx`](file:///d:/Persional-projects/landing/src/components/Navbar.tsx): Mobile toggle menu state, active route highlighting via `usePathname()`.
-  - [`Services.tsx`](file:///d:/Persional-projects/landing/src/components/Services.tsx): 3D CSS flip-card state (`transform-style: preserve-3d`) toggled via click or keyboard navigation (`Enter` / `Space`).
-  - [`EventTypes.tsx`](file:///d:/Persional-projects/landing/src/components/EventTypes.tsx): Synchronized hover/click tab list updating active high-resolution editorial imagery on the left column.
-  - [`PackageCustomizer.tsx`](file:///d:/Persional-projects/landing/src/components/PackageCustomizer.tsx) & [`ServiceEstimator.tsx`](file:///d:/Persional-projects/landing/src/components/ServiceEstimator.tsx): Dynamic arithmetic cost calculations based on guest counts, venue types, and add-on toggles.
-  - [`VendorApplicationForm.tsx`](file:///d:/Persional-projects/landing/src/components/VendorApplicationForm.tsx) & [`LoginForm.tsx`](file:///d:/Persional-projects/landing/src/components/LoginForm.tsx): Controlled inputs, field-level error validation, interactive feedback notices, and authentication handshakes.
+  - [`Hero.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/Hero.tsx): Multi-field form state, real-time Indian phone validation (`/^[6-9]\d{9}$/`), service multi-selection chips, submission spinner, and error banners.
+  - [`HeroFireworks.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/HeroFireworks.tsx): Canvas-based dotLottie animation player, local WASM runtime, responsive opacity (0.5 desktop, 0.75 mobile), non-blocking pointer events, and reduced-motion listener.
+  - [`Navbar.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/Navbar.tsx): Mobile toggle menu state, active route highlighting via `usePathname()`.
+  - [`Services.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/Services.tsx): 3D CSS flip-card state (`transform-style: preserve-3d`) toggled via click or keyboard navigation (`Enter` / `Space`).
+  - [`EventTypes.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/EventTypes.tsx): Synchronized hover/click tab list updating active high-resolution editorial imagery on the left column.
+  - [`PackageCustomizer.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/PackageCustomizer.tsx) & [`ServiceEstimator.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/ServiceEstimator.tsx): Dynamic arithmetic cost calculations based on guest counts, venue types, and add-on toggles.
+  - [`VendorApplicationForm.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/VendorApplicationForm.tsx) & [`LoginForm.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/LoginForm.tsx): Controlled inputs, field-level error validation, interactive feedback notices, and authentication handshakes.
+  - **Consultation Booking & Checkout Components (`src/components/consultation/`)**:
+    - [`BookingExperience.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/consultation/BookingExperience.tsx): Client trigger button and modal mount point.
+    - [`ConsultationBookingModal.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/consultation/ConsultationBookingModal.tsx): 9-state machine dialog orchestrator with background scroll lock, progress indicators, step transitions, and error management.
+    - [`ConsultationSlotPicker.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/consultation/ConsultationSlotPicker.tsx): Dynamic slot inventory picker grouping available IST slots by date tabs.
+    - [`ConsultationIntakeForm.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/consultation/ConsultationIntakeForm.tsx): Client-validated customer details form (Name, Indian phone, Email, City dropdown, Meeting Channel, Vision).
+    - [`ReservationCountdownTimer.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/consultation/ReservationCountdownTimer.tsx): 15-minute live hold countdown with calm, warning, critical (<120s), and expired states.
+    - [`ConsultationCheckoutView.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/consultation/ConsultationCheckoutView.tsx): Two-column Stitch-inspired luxury checkout layout with authoritative ₹2,999 pricing, accepted payment method showcase, and Cashfree Web SDK modal checkout trigger.
+    - [`PaymentProcessingView.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/consultation/PaymentProcessingView.tsx): Presentation-only pending state while payment confirmation completes server-side.
   - **Admin Client Workspaces**:
-    - [`AdminShell.tsx`](file:///d:/Persional-projects/landing/src/app/admin/AdminShell.tsx), [`AdminSidebar.tsx`](file:///d:/Persional-projects/landing/src/app/admin/AdminSidebar.tsx), [`AdminHeader.tsx`](file:///d:/Persional-projects/landing/src/app/admin/AdminHeader.tsx), [`LogoutButton.tsx`](file:///d:/Persional-projects/landing/src/app/admin/LogoutButton.tsx): Responsive navigation drawer state, active route highlighting, and session sign-out dispatch.
-    - [`AnalyticsWorkspace.tsx`](file:///d:/Persional-projects/landing/src/app/admin/analytics/AnalyticsWorkspace.tsx): Interactive celebration analytics, date preset dropdown, tab navigation, SVG demand map tooltips, and attribution donut.
-    - [`LeadsWorkspace.tsx`](file:///d:/Persional-projects/landing/src/app/admin/leads/LeadsWorkspace.tsx): Interactive 2-pane master-detail inquiries list, search query, event/city filters, sort order, and client dossier inspection.
-    - [`VendorsWorkspace.tsx`](file:///d:/Persional-projects/landing/src/app/admin/vendors/VendorsWorkspace.tsx): Paginated partner registry, multi-filter dropdowns, slide-over detail drawer, and CSV export.
+    - [`AdminShell.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/admin/AdminShell.tsx), [`AdminSidebar.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/admin/AdminSidebar.tsx), [`AdminHeader.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/admin/AdminHeader.tsx), [`LogoutButton.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/admin/LogoutButton.tsx): Responsive navigation drawer state, active route highlighting, and session sign-out dispatch.
+    - [`AnalyticsWorkspace.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/admin/analytics/AnalyticsWorkspace.tsx): Interactive celebration analytics, date preset dropdown, tab navigation, SVG demand map tooltips, and attribution donut.
+    - [`LeadsWorkspace.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/admin/leads/LeadsWorkspace.tsx): Interactive 2-pane master-detail inquiries list, search query, event/city filters, sort order, and client dossier inspection.
+    - [`VendorsWorkspace.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/admin/vendors/VendorsWorkspace.tsx): Paginated partner registry, multi-filter dropdowns, slide-over detail drawer, and CSV export.
 
 ### 2. Styling Strategy
 - **Vanilla CSS Modules**: Every component is paired with a strictly scoped `.module.css` stylesheet. Class names are hashed by Next.js to eliminate global namespace collisions.
 - **Design Tokens**: Standardized CSS custom properties in `src/app/globals.css` provide uniform colors, borders, max widths, and font stacks across all components.
 
-### 3. Seasonal Occasion Decoration Architecture
+### 3. Customer Consultation Booking & Cashfree Checkout Experience (`src/components/consultation/`)
+
+Eventsika incorporates a complete, luxury customer booking and checkout experience built directly from the approved Stitch visual direction (`77b7f837daef465e894ee73ea2f924fb`):
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ <ConsultationBookingModal /> (Fixed Overlay, z: 9999)       │
+│  ├── Progress Indicator (01 Select Slot → 02 Details → 03 Pay)│
+│  ├── State 1: <ConsultationSlotPicker />                    │
+│  │     └── Grouped IST Dates + 60m Slot Time Pills          │
+│  ├── State 2: <ConsultationIntakeForm />                    │
+│  │     └── Name, Phone, Email, City, Channel, Vision Notes  │
+│  ├── State 3: <ConsultationCheckoutView />                  │
+│  │     ├── Left Col: Summary Card + Numbered Inclusions (1-4)│
+│  │     └── Right Col: <ReservationCountdownTimer /> (15m)   │
+│  │          ├── Authoritative Fee: ₹2,999 (One-Time)       │
+│  │          ├── Payment Method Badges (UPI, GPay, Cards)    │
+│  │          ├── Primary CTA ("Proceed to Payment — ₹2,999") │
+│  │          └── Trust Strip (256-Bit SSL, RBI Regulated)    │
+│  └── State 4: <PaymentProcessingView />                     │
+│        └── Presentation-Only Verification Spinner           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 1. 9-State Modal Orchestrator (`ConsultationBookingModal.tsx`):
+The booking modal is governed by a strict, type-safe state machine (`BookingModalState`):
+- `LOADING_SLOTS`: Initial mounting phase; calls `GET /api/consultations/slots` to retrieve live inventory.
+- `SLOT_SELECTION`: Displays available dates and slots. Customer selects their preferred 60-minute session.
+- `CUSTOMER_DETAILS`: Renders the intake form with selected slot context.
+- `RESERVING`: Form submission dispatches `POST /api/consultations/reserve`.
+- `RESERVED`: Atomic 15-minute slot hold confirmed; active reservation session initialized (`consultationId`, 64-hex lowercase `reservationToken`, slot time range, and `reservedUntil` ISO string).
+- `CREATING_PAYMENT`: Customer clicks "Proceed to Payment"; dispatches `POST /api/consultations/payment/order` to obtain ephemeral `paymentSessionId` and `environment`.
+- `CHECKOUT_OPEN`: Official Cashfree Web SDK v3 modal opened in browser overlay (`redirectTarget: "_modal"`).
+- `CHECKOUT_CLOSED`: Cashfree modal dismissed or closed without payment; retains reservation session, displays contextual guidance, and allows safe retry.
+- `PAYMENT_PENDING`: Cashfree checkout returned `completedOrPending`; transitions to `<PaymentProcessingView>` presentation state awaiting server-side webhook/order verification (Step 6).
+
+#### 2. Slot Inventory Picker (`ConsultationSlotPicker.tsx`):
+- Fetches dynamic availability evaluated in `Asia/Kolkata` from `GET /api/consultations/slots`.
+- Groups slots into horizontal date selection tabs (displaying day-of-week and month/day).
+- Renders available time slots as interactive pill buttons displaying 12-hour IST format (`10:00 AM – 11:00 AM`).
+- Handles loading skeletons, empty inventory alerts, and network error retry prompts.
+
+#### 3. Customer Intake Validation (`ConsultationIntakeForm.tsx`):
+- Implements strict client-side validation mirroring backend constraints:
+  - `fullName`: Required, minimum 2 characters.
+  - `phone`: Required, normalized Indian mobile matching `/^[6-9]\d{9}$/`.
+  - `email`: Required, valid email format.
+  - `city`: Required dropdown matching `CITY_OPTIONS` allowlist.
+  - `meetingChannel`: Required radio selector (`video` = Google Meet, `phone` = Direct Call).
+  - `celebrationVision`: Optional text capped at 1,000 characters.
+- Real-time field-level validation messages with disabled submit buttons during submission.
+
+#### 4. Server-Anchored 15-Minute Hold Timer (`ReservationCountdownTimer.tsx`):
+- Anchored to the server-issued `reservedUntil` timestamp.
+- Calculates remaining seconds via `calculateRemainingSeconds(reservedUntil)` on a 1-second interval.
+- **Tiered Urgency States**:
+  - $> 180s$ (Normal): Calm green accent, displays MM:SS countdown.
+  - $\le 180s$ (Warning): Amber urgency banner alerting customer that hold is closing.
+  - $\le 120s$ (Critical): Red urgency banner; disables payment checkout initiation ("Hold Expiring Soon (< 2 min)") to strictly comply with backend Step 4 120s safety threshold.
+  - $\le 0s$ (Expired): Red expired state; displays "Hold Expired — Select New Slot" and triggers `onExpired` callback to cleanly return to slot selection.
+
+#### 5. Authoritative Consultation Checkout (`ConsultationCheckoutView.tsx`):
+- Two-column luxury layout adapting Warm Ivory (`#FFFAF4`), Deep Charcoal (`#2B211D`), and Royal Crimson (`#7F1010`) tokens:
+  - **Left Column**:
+    - Reservation Summary Card: Displays formatted IST date, time slot, duration (60m), consultation format, and guest name/city.
+    - Eyebrow header: "DIWALI CONSULTATION" with "1-on-1 Celebration Planning".
+    - Numbered consultation inclusions (01 Personalized Planning Blueprint, 02 Vetted Vendor & Decor Guidance, 03 Transparent Budget Allocation, 04 Comprehensive Event Strategy).
+  - **Right Column**:
+    - Embedded `<ReservationCountdownTimer>`.
+    - Authoritative Pricing: Displays exclusively `₹2,999` with "One-time consultation fee". Zero invented or unverified promotional breakdowns.
+    - Accepted Payment Methods: Vector badges for UPI, Google Pay, PhonePe, Paytm, and Cards & NetBanking.
+    - Contextual payment error banners with automatic retry guidance.
+    - Adaptive Payment CTA:
+      - Loading: "Preparing Secure Checkout..."
+      - Critical Hold ($\le 120s$): "Hold Expiring Soon (< 2 min)" (Disabled)
+      - Expired Hold: "Hold Expired — Select New Slot"
+      - Default: "Proceed to Payment — ₹2,999"
+    - Security Strip: "256-Bit SSL Encryption • RBI Regulated Gateway • No Hidden Charges".
+
+#### 6. Cashfree Web SDK Loader & Modal Lifecycle (`utils/cashfree-loader.ts`):
+- **Zero npm Dependencies**: Dynamically injects `<script src="https://sdk.cashfree.com/js/v3/cashfree.js">` upon checkout request.
+- Cached promise prevents redundant script injection.
+- Initializes SDK: `window.Cashfree({ mode: environment })` (strictly `"sandbox"` or `"production"`).
+- Invokes modal checkout: `cashfree.checkout({ paymentSessionId, redirectTarget: "_modal" })`.
+- Returns structured `CheckoutResult` distinguishing `completedOrPending` from `dismissedOrError`, enabling graceful retry on modal close without resetting the reservation.
+
+#### 7. Payment Processing View (`PaymentProcessingView.tsx`):
+- Presentation-only pending state while backend webhook / verification completes.
+- Displays animated gold spinner and clear status message.
+- **Core Security Boundary**: Explicitly does NOT mark payment as confirmed or slot as confirmed.
+
+---
+
+
+### 4. Seasonal Occasion Decoration Architecture
 
 Eventsika incorporates an isolated, zero-layout-impact festive decoration engine for seasonal occasions (e.g., Diwali, Holi, Christmas, Wedding Season):
 
@@ -440,7 +588,7 @@ Eventsika incorporates an isolated, zero-layout-impact festive decoration engine
    - CTA Diya features a gentle 3.8s ease-in-out flame sway anchor-based animation.
    - Full `@media (prefers-reduced-motion: reduce)` support: disables all animations/sway and maintains warm static illumination.
 
-### 4. Hero Fireworks Decorative Animation Layer
+### 5. Hero Fireworks Decorative Animation Layer
 
 Eventsika features a high-performance, non-blocking decorative celebratory fireworks animation in the homepage hero:
 
@@ -481,7 +629,7 @@ Eventsika features a high-performance, non-blocking decorative celebratory firew
    - `renderConfig: { autoResize: true, freezeOnOffscreen: true }` freezes the animation loop when scrolled out of view.
    - Component unmount hook calls `abortController.abort()` to prevent unhandled fetch rejections and invokes `player.destroy()` to free canvas memory and WebAssembly worker resources cleanly in React 19 concurrent environments.
 
-### 5. Concierge Operations Suite (Admin Portal Frontend)
+### 6. Concierge Operations Suite (Admin Portal Frontend)
 
 The administrative layer provides a dedicated operations console rooted in `src/app/admin/`:
 
@@ -510,8 +658,6 @@ The administrative layer provides a dedicated operations console rooted in `src/
    - Slide-over detail drawer inspecting applicant contact info, offered service categories, verified experience, digital portfolio link, and submission request ID.
    - Action buttons for WhatsApp chat, direct call, safe email mailto, and full application summary copy.
    - RFC 4180 CSV export with spreadsheet formula injection defense (CWE-1236 in `vendor-helpers.ts`).
-
----
 
 ## 7. Backend Architecture
 
@@ -545,68 +691,86 @@ Standardized HTTP Contract Response ({ success, data | error })
    - `src/middleware.ts`: Inspects protected paths `["/admin/:path*", "/api/admin/:path*"]`. Exempts `/api/admin/auth/login`. Rejects unauthenticated API calls with 401 JSON, redirects unauthorized browser requests to `/login`, and handles missing configuration with 503 JSON.
    - `src/app/api/health/route.ts`: Liveness check returning `{ status: "healthy", timestamp, version }`.
    - `src/app/api/leads/route.ts` & `src/app/api/vendor-applications/route.ts`: Public lead and partner application intake.
+   - `src/app/api/consultations/slots/route.ts`: Slot availability query with JIT materialization.
+   - `src/app/api/consultations/reserve/route.ts`: Atomic 15-minute slot hold and draft consultation creation.
+   - `src/app/api/consultations/payment/order/route.ts`: Gateway-First Cashfree order creation/recovery.
    - `src/app/api/admin/auth/login/route.ts` & `src/app/api/admin/auth/logout/route.ts`: Admin session authentication and termination.
 2. **HTTP Guard & Security Layer (`src/lib/backend/http/` & `src/lib/rate-limit.ts`)**:
    - `origin.ts`: Validates `Origin`, `Referer`, and `Sec-Fetch-Site` headers against canonical domains to defeat CSRF.
    - `request-id.ts`: Generates or extracts correlation IDs (`X-Request-Id`) across the lifecycle.
-   - `rate-limit.ts`: Public intake routes use in-memory sliding window rate limiting (5 req / 10 min); admin login routes use `@upstash/redis` multi-layer rate limiting (IP, Account, Combo) with progressive cooldown tiers (15m, 30m, 60m) and atomic Lua script execution.
+   - `rate-limit.ts`: Public intake routes use in-memory sliding window rate limiting (5 req / 10 min; slots endpoint 30 req / min); admin login routes use `@upstash/redis` multi-layer rate limiting with progressive cooldown tiers (15m, 30m, 60m) and atomic Lua script execution.
 3. **Validation & Allowlist Layer (`src/lib/backend/validation/` & `config/`)**:
    - Canonical option allowlists defined in `src/lib/backend/constants/allowlists.ts` (`CITY_OPTIONS`, `EVENT_TYPE_OPTIONS`, `GUEST_COUNT_OPTIONS`, `VENUE_TYPE_OPTIONS`, `SERVICE_OPTIONS`, `BUDGET_OPTIONS`, `VENDOR_CATEGORIES`, `VENDOR_EXPERIENCE_TIERS`).
    - `phone.ts`: Normalizes and validates Indian mobile phone formats (`/^[6-9]\d{9}$/` or `+91`/`0` prefixes).
    - `date.ts`: Validates `YYYY-MM-DD` calendar dates, enforces non-past dates, and caps forward planning dates at 24 months (730 days).
    - `url.ts`: Enforces valid URL/domain syntax and blocks unsafe protocols (`javascript:`, `data:`, `file:`).
-   - `lead-schema.ts` & `vendor-schema.ts`: Comprehensive schema validation returning typed inputs or descriptive safe error messages.
+   - `consultation-schema.ts`: Validates customer booking parameters.
+   - `payment-order-schema.ts`: Enforces UUIDv4 consultation ID and 64-hex lowercase reservation token, strictly rejecting client price tampering.
    - `env.ts`: Validates critical server environment variables (`validateEnv()`) at startup.
 4. **Business Service Layer (`src/lib/backend/services/`)**:
    - `LeadService` & `VendorService`: Coordinate validation, silent honeypot filtering (`isBot: true`), 30-second deduplication (`deduplicator.ts`), database persistence, and external notification dispatch.
-   - `AdminDashboardService`: Computes dashboard summaries, merged activity streams, and upcoming celebrations.
-   - `AdminLeadService`: Computes inquiries queue metrics (`totalLeads`, `newLeadsLast7Days`, `upcomingCelebrations`) and retrieves inquiry records.
-   - `AdminVendorService`: Computes vendor intake metrics (`totalApplications`, `newApplicationsLast7Days`, `experiencedApplicationsCount`, `portfolioLinkedCount`) and retrieves applicant records.
+   - `ConsultationBookingService`: Manages JIT slot materialization, atomic 15-minute hold, 256-bit token generation, and compensation release.
+   - `ConsultationPaymentService`: Gateway-First payment order orchestration, 120s reservation safety check, deterministic order ID generation, and PostgreSQL 23505 conflict reconciliation.
+   - `AdminDashboardService`, `AdminLeadService`, `AdminVendorService`, `AdminAnalyticsService`: Admin concierge data orchestration.
 5. **Repository / Persistence Boundary (`src/lib/backend/repositories/`)**:
-   - Abstract TypeScript interface contracts (`ILeadRepository`, `IVendorRepository`, `IDashboardRepository`).
-   - **Production Stores**: `SupabaseLeadRepository`, `SupabaseVendorRepository`, and `SupabaseDashboardRepository` persist to Supabase PostgreSQL.
-   - **Fallback Stores**: `InMemoryLeadRepository` and `InMemoryVendorRepository` provide in-memory fallback singletons strictly for isolated testing or unconfigured development.
-   - **Strict No-Fake-Fallback Policy**: If database queries fail in admin services, errors are surfaced cleanly to display safe operational notices rather than fabricating dummy metrics.
+   - Abstract TypeScript interface contracts (`ILeadRepository`, `IVendorRepository`, `IConsultationSlotRepository`, `IConsultationRepository`, `IPaymentOrderRepository`, `IPaymentTransactionRepository`, `IPaymentRefundRepository`, `IWebhookEventRepository`, `IDashboardRepository`, `IAnalyticsRepository`).
+   - Production stores persist to Supabase PostgreSQL.
+   - Strict No-Fake-Fallback Policy in admin services.
 6. **Delivery / Integration Boundary (`src/lib/backend/integrations/`)**:
-   - `IDeliveryNotifier`: Abstract delivery interface.
-   - `MailerDeliveryNotifier`: Adapts zero-dependency transactional dispatch in `src/lib/mailer.ts` (Resend, SendGrid, Webhooks).
+   - `IDeliveryNotifier`: Abstract delivery interface adapted by `MailerDeliveryNotifier`.
+   - `IPaymentGatewayAdapter`: Provider-agnostic gateway interface adapted by `CashfreePaymentGatewayAdapter`.
 7. **PII-Safe Structured Logging (`src/lib/backend/logger/logger.ts`)**:
-   - Automatically masks phone numbers (`98****3210`), emails (`a***@domain.com`), and names.
-   - Never logs full customer payloads in production.
+   - Automatically masks phone numbers (`98****3210`), emails (`a***@domain.com`), and customer names.
    - Generates single-line JSON logs with correlation IDs (`X-Request-Id`).
 
 ---
 
+
+
 ## 8. Database Architecture
 
 * **Current Status**: **Supabase PostgreSQL Production Architecture**.
-* **Design Philosophy**: Business service workflows interact exclusively through abstract repository interfaces (`ILeadRepository`, `IVendorRepository`, `IDashboardRepository`). `SupabaseLeadRepository`, `SupabaseVendorRepository`, and `SupabaseDashboardRepository` provide durable PostgreSQL persistence, with graceful in-memory fallbacks when unconfigured.
+* **Target Project**: `mswbfuguigogoumrxqmo` (`https://mswbfuguigogoumrxqmo.supabase.co`).
+* **Design Philosophy**: Business service workflows interact exclusively through abstract repository interfaces. `Supabase*` repositories provide durable PostgreSQL persistence, with graceful in-memory fallbacks when unconfigured in non-production environments.
 * **Dual Supabase Client Architecture**:
-  - **Admin Database Client** ([`src/lib/backend/supabase/client.ts`](file:///d:/Persional-projects/landing/src/lib/backend/supabase/client.ts)): Server-only client initialized with `SUPABASE_SERVICE_ROLE_KEY`. Bypasses RLS to execute trusted backend queries. Never exposed to browser bundles.
-  - **Auth Session Client** ([`src/lib/backend/supabase/server.ts`](file:///d:/Persional-projects/landing/src/lib/backend/supabase/server.ts)): Server client initialized via `@supabase/ssr` with `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Reads and writes secure HttpOnly cookies across Next.js Server Components, Server Actions, and Route Handlers.
-* **Tables**:
-  - `public.leads`: Bounded intake records with UUIDv4 primary keys, `user_name`, `user_phone`, `city`, `event_type`, `event_date` (`DATE`), `guest_count`, `venue_type`, `selected_services` (`TEXT[]`), `budget_range`, `whatsapp_consent` (`BOOLEAN`), and `request_id`.
-  - `public.vendor_applications`: Partner applications with `business_name`, `contact_name`, `phone`, `email`, `city`, `experience`, `portfolio_url`, `categories` (`TEXT[]`), and `request_id`.
+  - **Admin Database Client** ([`src/lib/backend/supabase/client.ts`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/lib/backend/supabase/client.ts)): Server-only client initialized with `SUPABASE_SERVICE_ROLE_KEY`. Bypasses RLS to execute trusted backend queries. Never exposed to browser bundles.
+  - **Auth Session Client** ([`src/lib/backend/supabase/server.ts`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/lib/backend/supabase/server.ts)): Server client initialized via `@supabase/ssr` with `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Reads and writes secure HttpOnly cookies across Next.js Server Components, Server Actions, and Route Handlers.
+* **Tables in Schema Design (8 Total)**:
+  1. `public.leads`: Bounded intake records with UUIDv4 primary keys, contact info, celebration specifications, and request ID.
+  2. `public.vendor_applications`: Partner applications with business profile, portfolio URL, and service categories.
+  3. `public.consultation_slots`: Inventory table tracking `start_time` (`TIMESTAMPTZ UNIQUE`), `end_time` (`TIMESTAMPTZ`), `status` (`available`, `held`, `booked`, `cancelled`), `reservation_token_hash` (`TEXT`), and `reserved_until` (`TIMESTAMPTZ`).
+  4. `public.consultations`: Booked and held consultations with `slot_id` (FK), `customer_name`, `customer_phone`, `customer_email`, `customer_city`, `meeting_channel` (`video`, `phone`), `celebration_vision`, `status` (`slot_held`, `awaiting_payment`, `confirmed`, `cancelled`, `completed`), `fee_amount_in_paise` (`299900`), and `fee_currency` (`INR`).
+  5. `public.payment_orders`: Payment order records with `consultation_id` (FK), `gateway_provider` (`cashfree`), `gateway_order_id` (`TEXT UNIQUE`), `amount_in_paise` (`299900`), `currency` (`INR`), and `status` (`pending`, `paid`, `failed`, `expired`).
+  6. `public.payment_transactions`: Transaction attempt ledger tracking `payment_order_id` (FK), `gateway_transaction_id`, `payment_method`, `amount_in_paise`, `status`, and `raw_gateway_response`.
+  7. `public.payment_refunds`: Refund ledger tracking `payment_order_id` (FK), `gateway_refund_id`, `amount_in_paise`, `reason`, and `status`.
+  8. `public.webhook_events`: Idempotency tracking table with `gateway_provider`, `event_id` (`UNIQUE`), `event_type`, `payload`, and `processed_at`.
+* **Stored Procedures / RPCs (3 Total)**:
+  - `public.reserve_consultation_slot(p_slot_id, p_token_hash, p_hold_duration_minutes)`: Atomic row-level lock (`FOR UPDATE`) verifying slot is available or stale-held, transitioning to `held`, setting token hash and `reserved_until`.
+  - `public.release_consultation_slot(p_slot_id, p_token_hash)`: Compensation procedure resetting a held slot back to `available` if the matching token hash is provided.
+  - `public.confirm_consultation_slot(p_slot_id)`: Atomic procedure transitioning a held slot to `booked`, clearing token hash and expiry.
+  - All RPCs are configured as `SECURITY INVOKER`, revoked from `PUBLIC`/`anon`, and granted strictly to `service_role`.
 * **Security & Row Level Security (RLS)**:
   - RLS is enabled on all tables by default.
   - Anonymous / public browser access is completely denied (`anon` role has 0 permissions).
-  - Server-side backend accesses tables using `SUPABASE_SERVICE_ROLE_KEY` (strictly server-only, never exposed to client bundles).
-* **Triggers & Indexes**:
-  - `handle_updated_at()` trigger automatically maintains `updated_at` timestamps.
-  - B-Tree indexes on `created_at DESC`, `user_phone`, `email`, and `event_date`.
-* **Migration Location**: Version-controlled DDL located in `supabase/migrations/`.
+  - Server-side backend accesses tables using `SUPABASE_SERVICE_ROLE_KEY`.
+* **Remote Migration Deployment Status**:
+  - Local migrations `20260901160000`, `20260914180000`, and `20260915120000` exist in version control and pass 100% of integration tests locally.
+  - **Remote Verification**: On remote project `mswbfuguigogoumrxqmo`, baseline tables `leads` and `vendor_applications` exist. The six payment/consultation tables and three RPCs are **NOT YET APPLIED** remotely (`PGRST205` / `PGRST202`).
+  - Remote CLI deployment (`npx supabase db push --linked`) requires providing `SUPABASE_ACCESS_TOKEN` / `supabase login` before execution.
 
 ---
+
+
 
 ## 9. Authentication & Authorization
 
 * **Current Status**: **Production Supabase SSR Authentication & Strict Admin RBAC**.
-* **Primary Entrypoint**: [`/login`](file:///d:/Persional-projects/landing/src/app/login/page.tsx) and component [`LoginForm.tsx`](file:///d:/Persional-projects/landing/src/components/LoginForm.tsx).
+* **Primary Entrypoint**: [`/login`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/login/page.tsx) and component [`LoginForm.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/LoginForm.tsx).
 * **Authentication Handshake**:
   - Client form executes input validation and dispatches `POST /api/admin/auth/login` with email and password.
-  - The route handler invokes `supabase.auth.signInWithPassword` via [`createSupabaseServerClient()`](file:///d:/Persional-projects/landing/src/lib/backend/supabase/server.ts), attaching session cookies via `@supabase/ssr`.
+  - The route handler invokes `supabase.auth.signInWithPassword` via [`createSupabaseServerClient()`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/lib/backend/supabase/server.ts), attaching session cookies via `@supabase/ssr`.
 * **Authoritative Server Role Verification**:
-  - Authorization is verified exclusively through [`requireAdminSession()`](file:///d:/Persional-projects/landing/src/lib/backend/auth/require-admin.ts).
+  - Authorization is verified exclusively through [`requireAdminSession()`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/lib/backend/auth/require-admin.ts).
   - **Strict Role Check**: Checks `user.app_metadata?.role === "admin"`.
   - **Zero Trust on Client Metadata**: Never trusts `user_metadata`, request body, client headers, or unverified cookies for role determination.
   - If authenticated user lacks the `admin` role, the session is immediately terminated via `supabase.auth.signOut()` and rejected with a generic 401 response.
@@ -620,16 +784,30 @@ Standardized HTTP Contract Response ({ success, data | error })
   - Unified error response: Always returns `401 Invalid email or password.` for invalid password, nonexistent accounts, and authenticated non-admin accounts alike.
   - Prevents attackers from distinguishing between valid and invalid emails or admin vs. non-admin privileges.
 * **Session Termination**:
-  - Dispatched via [`POST /api/admin/auth/logout`](file:///d:/Persional-projects/landing/src/app/api/admin/auth/logout/route.ts).
+  - Dispatched via [`POST /api/admin/auth/logout`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/api/admin/auth/logout/route.ts).
   - Revokes Supabase session on server and clears authentication cookies.
 
 ---
 
+
+
 ## 10. Security Architecture
 
-### 1. HTTP Security Headers
-Configured globally in [`next.config.ts`](file:///d:/Persional-projects/landing/next.config.ts) for all routes `/(.*)`:
-- `Content-Security-Policy`: Strict policy (`getCspDirectives()`) specifying `default-src 'self'`, `script-src 'self' 'unsafe-inline'` (`'unsafe-eval'` restricted strictly to development), `style-src 'self' 'unsafe-inline'`, `img-src 'self' data:`, `font-src 'self' data:`, `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'self'`, and `upgrade-insecure-requests` in production.
+### 1. HTTP Security Headers & Content Security Policy (CSP)
+Configured globally in [`next.config.ts`](file:///c:/Users/gcad1/Documents/eventsika-landing/next.config.ts) for all routes `/(.*)`:
+- `Content-Security-Policy`: Strict policy (`getCspDirectives()`) with minimal, fully-justified additions for the Cashfree Web SDK:
+  - `default-src 'self'`
+  - `script-src 'self' 'unsafe-inline' https://sdk.cashfree.com` (`'unsafe-eval'` restricted strictly to development)
+  - `style-src 'self' 'unsafe-inline'`
+  - `img-src 'self' data:`
+  - `font-src 'self' data:`
+  - `connect-src 'self' https://api.cashfree.com https://sandbox.cashfree.com`
+  - `frame-src 'self' https://sdk.cashfree.com https://api.cashfree.com https://sandbox.cashfree.com https://payments.cashfree.com https://payments-test.cashfree.com`
+  - `form-action 'self' https://api.cashfree.com https://sandbox.cashfree.com`
+  - `object-src 'none'`
+  - `base-uri 'self'`
+  - `frame-ancestors 'self'`
+  - `upgrade-insecure-requests` (enforced in production)
 - `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload` (enforced in production).
 - `X-Frame-Options: SAMEORIGIN` (Defends against clickjacking attacks).
 - `X-Content-Type-Options: nosniff` (Prevents MIME-type sniffing vulnerabilities).
@@ -638,44 +816,58 @@ Configured globally in [`next.config.ts`](file:///d:/Persional-projects/landing/
 - `poweredByHeader: false` (Suppresses `X-Powered-By: Next.js` fingerprinting).
 
 ### 2. Origin & CSRF Protection
-- Server-side origin verification via [`src/lib/backend/http/origin.ts`](file:///d:/Persional-projects/landing/src/lib/backend/http/origin.ts) (`isAllowedOrigin`).
-- Verifies `Origin` and `Referer` headers against canonical domains on all sensitive POST routes (`/api/admin/auth/login`, `/api/admin/auth/logout`).
+- Server-side origin verification via [`src/lib/backend/http/origin.ts`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/lib/backend/http/origin.ts) (`isAllowedOrigin`).
+- Verifies `Origin`, `Referer`, and `Sec-Fetch-Site` headers against canonical domains on all sensitive POST routes (`/api/admin/auth/login`, `/api/admin/auth/logout`, `/api/consultations/reserve`, `/api/consultations/payment/order`).
 - Cross-origin POST attempts are blocked with HTTP 403.
 - Enforces HTTP POST-only (405 for GET/PUT/DELETE/PATCH).
 
 ### 3. Payload Ceilings & Malicious Input Defense
 - `/api/admin/auth/login`: Capped at **8 KB** payload size (413).
-- `/api/leads` & `/api/vendor-applications`: Capped at **50 KB** payload size (413).
+- `/api/consultations/payment/order`: Capped at **16 KB** payload size (413).
+- `/api/leads`, `/api/vendor-applications`, `/api/consultations/reserve`: Capped at **50 KB** payload size (413).
 - Strict prototype pollution defense rejecting `__proto__`, `constructor`, or `prototype` keys.
 - Null-byte injection guards rejecting `\0` in email and password strings.
 - RFC 5321 email length bounds (254 chars) and password length bounds (6 to 1024 chars).
 
 ### 4. Distributed Multi-Layer Rate Limiter (`src/lib/rate-limit.ts`)
-- **Public Routes** (`/api/leads`, `/api/vendor-applications`): In-memory sliding window limiter (5 requests / 10 min window) with automated stale record cleanup.
-- **Admin Authentication** (`/api/admin/auth/login`): Production-grade distributed rate limiting backed by `@upstash/redis`:
-  - **Layer 1 (IP)**: Client IP rate limiting with spoofing-resistant IP extraction prioritizing trusted reverse proxy headers (`cf-connecting-ip`, `x-real-ip`).
-  - **Layer 2 (Account)**: Targeted email rate limiting using fixed-length SHA-256 hashes (`eventsika:admin:acc:<sha256>`).
-  - **Layer 3 (Combo)**: Combined IP + Account locking.
-  - **Progressive Cooldown Tiers**: Tier 1 (5 failures → 15m), Tier 2 (10 failures → 30m), Tier 3 (15+ failures → 60m).
-  - **Observation Window**: Counter retention extends to $\text{cooldown} + \text{15m}$, ensuring subsequent failures accumulate into higher tiers upon repeated abuse.
-  - **Atomic Lua Scripts**: `CHECK_LIMIT_LUA` and `RECORD_FAILURE_LUA` eliminate race conditions and parallel bypass attacks.
-  - **Fail-Closed Security**: In `production`, missing Redis credentials or datastore timeouts return HTTP 503, preventing silent fallback to unthrottled states.
+- **Public Routes** (`/api/leads`, `/api/vendor-applications`, `/api/consultations/reserve`, `/api/consultations/payment/order`): In-memory sliding window limiter (5 requests / 10 min window) with automated stale record cleanup.
+- **Consultation Slots Query** (`/api/consultations/slots`): In-memory sliding window limiter (30 requests / 1 min window) with `Cache-Control: no-store, private`.
+- **Admin Authentication** (`/api/admin/auth/login`): Production-grade distributed rate limiting backed by `@upstash/redis` with IP, Account, and Combo layers, progressive cooldown tiers (15m, 30m, 60m), and atomic Lua scripts (`CHECK_LIMIT_LUA`, `RECORD_FAILURE_LUA`). Fails closed (503) in production if Redis is unavailable.
 
-### 5. Spreadsheet Formula Injection Defense (CWE-1236)
+### 5. Server-Side Pricing Authority & Anti-Tampering
+- The client is completely untrusted for monetary pricing. The consultation fee is hardcoded to ₹2,999 (`299900` integer paise) in server business logic.
+- Any client-provided `amount`, `currency`, or `status` fields in `/api/consultations/payment/order` are rejected by schema validation.
+- The 120-second safety threshold ($remaining \ge 120s$) prevents initiating payments against expiring reservations.
+
+### 6. Client-Server Separation of Concerns (Presentation-Only Checkout)
+- The client-side checkout experience (Step 5) is strictly presentation-only.
+- Control returned from Cashfree (`completedOrPending`) transitions the UI to `<PaymentProcessingView>` but has **zero authority** to mark `payment_orders.status = paid` or `consultation.status = confirmed`.
+- Only server-authoritative webhook processing or server-side Cashfree status polling (Step 6) can mutate database payment or booking status.
+
+### 7. Cryptographic Tokens & Timing Safety
+- Reservation tokens are generated using 256-bit cryptographically secure randomness: `crypto.randomBytes(32).toString("hex")` (64 hex characters).
+- Token verification in `ConsultationPaymentService` uses `crypto.timingSafeEqual` against byte buffers to defeat timing attacks.
+
+### 8. PII-Safe Structured Logging
+- Phone numbers, email addresses, and customer names are automatically masked (`logger.ts`).
+- Full request payloads and raw webhook bodies containing secrets are never logged in production.
+
+---
+
+
+### 9. Spreadsheet Formula Injection Defense (CWE-1236)
 - [`src/app/admin/vendors/vendor-helpers.ts`](file:///d:/Persional-projects/landing/src/app/admin/vendors/vendor-helpers.ts) (`sanitizeCsvCell`): Neutralizes formula execution by prefixing dangerous characters (`=`, `+`, `-`, `@`) with a leading single quote before CSV generation.
 - Validates and sanitizes email addresses for `mailto:` links, rejecting CR/LF characters to prevent header injection.
 - Enforces strict `http:` and `https:` protocol validation on external portfolio URLs, blocking `javascript:`, `data:`, and `file:` schemes.
 
-### 6. XSS & Injection Defenses
+### 10. XSS & Injection Defenses
 - All dynamic fields interpolated into HTML emails in [`mailer.ts`](file:///d:/Persional-projects/landing/src/lib/mailer.ts) pass through `escapeHtml()` replacing `&`, `<`, `>`, `"`, and `'`.
 - Schema.org JSON-LD scripts in [`layout.tsx`](file:///d:/Persional-projects/landing/src/app/layout.tsx) use native `JSON.stringify` serialization with static object constants.
 
-### 7. Secrets Management
+### 11. Secrets Management
 - **Zero Secrets in Source Code**: No private API keys, database secrets, or Redis tokens exist in git.
 - **Server Scoping**: Privileged keys (`SUPABASE_SERVICE_ROLE_KEY`, `UPSTASH_REDIS_REST_TOKEN`, `RESEND_API_KEY`, `SENDGRID_API_KEY`) are executed exclusively in server contexts and never prefixed with `NEXT_PUBLIC_`.
 - **Git Ignore**: `.env.local` is strictly excluded in `.gitignore`.
-
----
 
 ## 11. Design System & Brand Guidelines
 
@@ -696,12 +888,13 @@ Configured globally in [`next.config.ts`](file:///d:/Persional-projects/landing/
 - **Body & Interface**: `Inter` sans-serif font loaded via `var(--font-inter)` (`font-weight: 400, 500, 600, 700`).
 
 ### 3. Logo Animation & Brand Rules
-- **Direct SVG Fill Transitions**: Defined in [`Navbar.module.css`](file:///d:/Persional-projects/landing/src/components/Navbar.module.css). The logo uses vector paths with `transition: fill 0.3s cubic-bezier(0.25, 1, 0.5, 1)` transitioning from Festive Gold to Crimson on hover.
+- **Direct SVG Fill Transitions**: Defined in [`Navbar.module.css`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/Navbar.module.css). The logo uses vector paths with `transition: fill 0.3s cubic-bezier(0.25, 1, 0.5, 1)` transitioning from Festive Gold to Crimson on hover.
 - **Emblem Rotation**: The circular emblem (`.logoSymbol`) rotates 180° on brand hover around its verified coordinate origin (`transform-origin: 152.13px 253.98px`).
 - **Stationary Wordmark**: The text portion (`.logoWordmark`) remains completely stationary.
-- **Rejected Pattern**: Filter-based hue rotation (`filter: hue-rotate(...)`) is permanently rejected due to rainbow color interpolation artifacts.
 
 ---
+
+
 
 ## 12. Public Assets Map
 
@@ -759,114 +952,241 @@ The interactive 3D flip service cards (`src/components/Services.tsx`) use dedica
 
 ---
 
+
 ## 13. Major User Flows
+
+### Consultation Booking & Checkout Flow (Steps 1–5 Implemented)
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User as Client / Event Host
-    participant UI as Eventsika Frontend (Hero / Forms)
-    participant API as Route Handler (/api/leads)
-    participant Sec as Security (Rate Limit & Honeypot)
-    participant Mail as Mailer Utility (mailer.ts)
-    participant Inbox as Operations (care@eventsika.in)
+    actor Customer as Client / Event Host
+    participant UI as Consultation Booking Modal
+    participant SlotsAPI as GET /api/consultations/slots
+    participant ReserveAPI as POST /api/consultations/reserve
+    participant OrderAPI as POST /api/consultations/payment/order
+    participant CashfreeSDK as Cashfree Web SDK v3
+    participant PG as Cashfree Payment Gateway
+    participant DB as Supabase PostgreSQL
 
-    User->>UI: Fills celebration details (Name, Phone, City, Occasion, Guests, Budget)
-    User->>UI: Clicks "Plan Your Celebration"
-    UI->>UI: Performs client validation (Indian mobile regex, required fields)
-    UI->>API: POST /api/leads with JSON payload
-    API->>Sec: Check IP Rate Limit (Max 5 / 10 min)
-    alt Rate Limit Exceeded
-        Sec-->>UI: HTTP 429 (Retry-After)
-        UI-->>User: "Too many submission attempts. Please wait..."
-    else Allowed
-        API->>Sec: Validate Honeypot
-        alt Bot Detected
-            Sec-->>UI: HTTP 200 OK (Silent Drop)
-        else Legitimate Client
-            API->>Mail: sendNotificationEmail(leadPayload)
-            Mail->>Inbox: Dispatch formatted HTML email via Resend / SendGrid
-            Mail-->>API: { success: true, delivered: true }
-            API-->>UI: HTTP 200 { success: true }
-            UI-->>User: Success confirmation screen & WhatsApp booking notice
-        end
+    Customer->>UI: Opens /diwali-consultation & clicks "Book Consultation"
+    UI->>SlotsAPI: GET /api/consultations/slots
+    SlotsAPI->>DB: Query available slots (Asia/Kolkata, JIT generated)
+    DB-->>SlotsAPI: Returns available inventory
+    SlotsAPI-->>UI: Displays slots grouped by IST date
+    Customer->>UI: Selects slot & fills details (Name, Phone, City, Channel)
+    Customer->>UI: Clicks "Continue to Confirmation"
+    UI->>ReserveAPI: POST /api/consultations/reserve { slotId, customerDetails }
+    ReserveAPI->>DB: Atomic RPC: reserve_consultation_slot (15m hold)
+    DB-->>ReserveAPI: Hold confirmed
+    ReserveAPI->>DB: Insert draft consultation (status: slot_held)
+    ReserveAPI-->>UI: { consultationId, reservationToken, reservedUntil }
+    UI->>UI: Starts live 15-minute countdown timer & displays ₹2,999 checkout view
+    Customer->>UI: Clicks "Proceed to Payment — ₹2,999"
+    UI->>OrderAPI: POST /api/consultations/payment/order { consultationId, reservationToken }
+    OrderAPI->>OrderAPI: Verify remaining hold >= 120s & timing-safe token check
+    OrderAPI->>PG: Gateway-First: Create/recover order (ord_<hex>, 2999.00 INR)
+    PG-->>OrderAPI: Returns payment_session_id
+    OrderAPI->>DB: Insert payment_orders row & update consultation to awaiting_payment
+    OrderAPI-->>UI: { paymentSessionId, environment }
+    UI->>CashfreeSDK: launchCashfreeCheckout({ paymentSessionId, mode: environment })
+    CashfreeSDK->>Customer: Opens Cashfree checkout modal (_modal)
+    Customer->>CashfreeSDK: Completes UPI/Card payment or closes modal
+    alt Modal Closed / Dismissed
+        CashfreeSDK-->>UI: dismissedOrError
+        UI-->>Customer: Displays retry notice (hold preserved)
+    else Payment Completed or Pending
+        CashfreeSDK-->>UI: completedOrPending
+        UI->>UI: Transitions to <PaymentProcessingView> (Pending server verification)
     end
 ```
 
 ---
 
-## 14. External Services & Integrations
+
+
+## 14. External Services, Integrations & Payment Architecture
+
+### 1. Email Provider Dispatchers & Notification Infrastructure
 
 * **Email Provider Dispatchers**:
   * **Resend API**: Triggered when `RESEND_API_KEY` is present. Posts to `https://api.resend.com/emails`.
   * **SendGrid v3 API**: Triggered when `SENDGRID_API_KEY` is present. Posts to `https://api.sendgrid.com/v3/mail/send`.
+  * **Fallback Logging Mode**: When neither `RESEND_API_KEY` nor `SENDGRID_API_KEY` is configured in development, `mailer.ts` gracefully falls back to logging structured, PII-masked email notification payloads to `stdout` without throwing exceptions or blocking intake workflows.
   * **Custom Automation Webhooks**: Triggered when `LEAD_WEBHOOK_URL` is set (Make, Zapier, Telegram bot, Hostinger webhook).
 * **Schema.org Structured Data**:
   * JSON-LD Organization, WebSite, and BreadcrumbList schemas injected on public routes for rich Google search cards.
 * **Operational Inboxes**: All customer leads and vendor applications route to `care@eventsika.in`.
-* **Cashfree Payment Gateway Subsystem**:
-  * Native fetch adapter (`src/lib/backend/integrations/cashfree-payment-gateway-adapter.ts`) implementing provider-agnostic `IPaymentGatewayAdapter`.
-  * Cashfree PG REST API version hard-locked internally to `2023-08-01` (`x-api-version: 2023-08-01`); zero runtime or environment configurability.
-  * Sandbox: `https://sandbox.cashfree.com/pg` | Production: `https://api.cashfree.com/pg`.
-  * Authenticated via server-only `x-client-id` (`CASHFREE_APP_ID`) and `x-client-secret` (`CASHFREE_SECRET_KEY`).
-  * Strict environment validation: `CASHFREE_ENVIRONMENT` may only be `sandbox` or `production`. In production (`NODE_ENV === "production"`), `CASHFREE_APP_ID`, `CASHFREE_SECRET_KEY`, and explicit `CASHFREE_ENVIRONMENT="production"` are mandatory; missing/invalid values fail validation immediately, completely preventing silent sandbox leakage.
-  * 10-second `AbortController` timeout enforcement; automatic HTTP 409 `order_already_exists` recovery via `GET /orders/{order_id}`.
-* **Payment & Consultation Subsystem Roadmap Status**:
-  * **Critical Architectural Distinction**: Domain Engine & Slot Inventory vs. Payment Gateway Integration.
-  * **Current State by Roadmap Step**:
-    * **Step 1 — Payment & Consultation Foundation**: `[COMPLETED / COMMITTED]` (Commit [`20916c3`](file:///d:/Persional-projects/landing), 2026-09-14).
-      * Established 6 PostgreSQL tables (`consultation_slots`, `consultations`, `payment_orders`, `payment_transactions`, `payment_refunds`, `webhook_events`).
-      * Established domain models, integer paise currency handling (`amount_in_paise BIGINT > 0`), server-owned pricing, snapshot customer model, and state machine unions.
-      * Established 6 repository interfaces and Supabase implementations behind strict TypeScript contracts.
-      * Established server-side validation (`consultation-schema.ts`).
-    * **Step 2 — Booking & Slot Engine**: `[COMPLETED / COMMITTED]` (Commit [`7981c8a`](file:///d:/Persional-projects/landing), 2026-09-15).
-      * Established pure scheduling engine (`consultation-time.ts`) evaluated strictly in `Asia/Kolkata`: 6 daily slots, Mon–Sat schedule, Sunday exclusion, 24-hour lead time, 30-day rolling window.
-      * Established `ConsultationBookingService`: JIT slot materialization with `ON CONFLICT DO NOTHING`, atomic 15-minute slot hold via database RPC, 256-bit cryptographically secure token generation, stale-hold detachment, and compensation release on failure.
-      * Established database concurrency migration (`20260915120000`): unique slot start time index, confirmed consultation partial index (`WHERE status = 'confirmed'`), and 3 stored procedures (`reserve_consultation_slot`, `release_consultation_slot`, `confirm_consultation_slot`) hardened as `SECURITY INVOKER` restricted to `service_role`.
-      * Established route handlers: `GET /api/consultations/slots` (rate limit 30/min, `Cache-Control: no-store, private`) and `POST /api/consultations/reserve` (rate limit 5/10min, 50 KB ceiling, RFC error status mapping).
-    * **Step 3 — Cashfree Payment Gateway Adapter**: `[COMPLETED / VERIFIED]` (2026-09-16).
-      * Established provider-agnostic interface (`payment-gateway.interface.ts`) defining `IPaymentGatewayAdapter`, `CreateGatewayOrderParams`, `GatewayOrderResult`, and normalized `GatewayError`.
-      * Established zero-dependency native fetch adapter (`cashfree-payment-gateway-adapter.ts`) targeting Cashfree Payment Gateway REST API with hard-locked internal version `2023-08-01` (`x-api-version: 2023-08-01`).
-      * Enforced 10-second request timeout via `AbortController` against hanging network requests.
-      * Handled currency boundary conversion: internal Eventsika integer paise (`299900`) converted to provider decimal rupees (`2999.00`).
-      * Implemented automatic HTTP 409 `order_already_exists` recovery: seamlessly calls `GET /orders/{order_id}` and recovers existing provider order rather than failing or duplicating orders.
-      * Maintained ephemeral presentation tokens: `payment_session_id` returned in `GatewayOrderResult` without database persistence.
-      * Server-only credentials and hardened environment validation in `src/lib/backend/config/env.ts` (`CASHFREE_APP_ID`, `CASHFREE_SECRET_KEY`, `CASHFREE_ENVIRONMENT`) and `.env.example` (intentionally tracked in git via `!.env.example` with safe placeholders only; `CASHFREE_API_VERSION` removed).
-      * 23 comprehensive unit tests in `src/lib/backend/integrations/__tests__/cashfree-payment-gateway-adapter.test.ts` (Full suite: 28 test files, 263 tests passing).
-    * **Step 4 — Secure Consultation Payment Order Creation**: `[COMPLETED / VERIFIED]` (2026-09-17).
-      * Established `getLatestOrderByConsultationId` in `IPaymentOrderRepository` and `SupabasePaymentOrderRepository` (`ORDER BY created_at DESC LIMIT 1`).
-      * Established server-side validation (`payment-order-schema.ts`): enforces UUIDv4 `consultationId`, exact 64-hex lowercase `reservationToken`, and rejects any client-provided amount, currency, status, or gateway order ID.
-      * Established `ConsultationPaymentService`: server-authoritative pricing (₹2,999 / 299900 paise, INR), 120-second reservation safety lifetime threshold ($remaining \ge 120s$; rejects $<120s$ with 410 `RESERVATION_EXPIRING_SOON`, $\le 0s$ with 410 `RESERVATION_EXPIRED`), timing-safe token verification (`crypto.timingSafeEqual`), deterministic provider order ID (`ord_` + `consultation.id.replace(/-/g, "")`), Gateway-First Cashfree call via `IPaymentGatewayAdapter`, post-gateway reservation re-check, PostgreSQL 23505 unique conflict reconciliation on `idx_orders_gateway_order_id`, and atomic consultation transition (`slot_held` → `awaiting_payment`). Within the Step 4 payment-order creation pathway, a consultation deterministically maps to one gateway order ID, and the existing unique gateway_order_id constraint prevents duplicate insertion through that pathway. `CreatePaymentOrderSuccess` returns internal service-layer transaction context (`orderId`, `amountInPaise`, `currency`), while the production route consumes strictly `paymentSessionId`.
-      * Established route handler `POST /api/consultations/payment/order`: POST-only, origin protection via `isAllowedOrigin`, 16 KB payload ceiling, IP rate limiting (5 req / 10m), `X-Request-Id` correlation, and sanitized error mapping.
-      * Zero database migrations (reused existing `idx_orders_gateway_order_id` uniqueness guarantee), zero new npm dependencies, zero client paymentSessionId DB persistence.
-      * 59 automated tests across 4 test suites: `payment-order-schema.test.ts` (10), `consultation-payment-service.test.ts` (25), `payment-order-route.test.ts` (23), and `payment-foundation-repositories.test.ts` (1 updated). Full test suite: 31 test files, 323 tests passing.
-    * **Step 5 — Client Checkout Presentation**: `[PLANNED / NEXT]`.
-      * Client-side Cashfree JS SDK integration on `/diwali-consultation` to mount payment modal.
-    * **Step 6 — Webhook Ingestion & Transaction Ledger**: `[PLANNED]`.
-      * Webhook listener (`POST /api/payments/webhook`) with raw payload signature verification (`x-webhook-signature`), idempotency enforcement via `public.webhook_events`, and transaction ledger recording in `public.payment_transactions`.
-    * **Step 7 — Booking Confirmation & Notification Automation**: `[PLANNED]`.
-      * Atomic slot confirmation via `confirm_consultation_slot` RPC.
-      * Customer confirmation email dispatch via Resend/SendGrid with calendar invite (`.ics`) or Google Meet/phone details.
-      * Operations team notification dispatch to `care@eventsika.in`.
-    * **Database Migration Deployment**: `[PENDING EXTERNAL VERIFICATION]`.
-      * Migrations `20260914180000` and `20260915120000` exist in version control and pass 100% of automated integration tests locally.
-      * Applying these migrations to the remote live Supabase production database is pending external execution.
-  * **Locked Business Invariants & Policies**:
-    * **Consultation Duration**: Exactly 60 minutes (`end_time = start_time + 60 minutes`).
-    * **Consultation Price**: ₹2,999 promotional advisory fee (represented as `299900` integer paise; server-owned, zero DB default).
-    * **Operating Schedule**: Monday through Saturday. All Sundays are strictly excluded from booking.
-    * **Daily Slots (6)**: 10:00–11:00, 11:30–12:30, 14:00–15:00, 15:30–16:30, 17:00–18:00, 18:30–19:30 IST.
-    * **Buffers**: 30-minute operational buffer between consecutive sessions.
-    * **Minimum Lead Time**: 24 hours in advance from server instant.
-    * **Rolling Availability Window**: 30 calendar days forward from server instant.
-    * **Temporary Reservation Hold**: Exactly 15 minutes (`RESERVATION_HOLD_DURATION_MINUTES = 15`).
-    * **Reservation Safety Threshold for Payment**: Minimum 120 seconds of remaining hold lifetime required before contacting Cashfree. If remaining $\le 0s$, return `RESERVATION_EXPIRED` (410). If $0 < remaining < 120s$, return `RESERVATION_EXPIRING_SOON` (410). No gateway order created.
-    * **Deterministic Provider Order ID**: Cashfree merchant order ID is strictly `ord_` + `consultation.id` with hyphens stripped (36 chars). Same consultation always maps to the same Cashfree order.
-    * **Gateway-First Flow**: Cashfree create/recover $\rightarrow$ DB insert $\rightarrow$ Consultation `slot_held` $\rightarrow$ `awaiting_payment`.
-    * **Post-Gateway Expiry Protection**: If hold expires during gateway roundtrip, payment order persistence and session exposure are blocked.
-    * **Core Security Invariant**: **Payment Success != Slot Confirmation**. A payment gateway success callback does not equal a booked slot until verified server-side and confirmed via the atomic database RPC.
+
+### 2. Payment Subsystem Roadmap
+
+
+### 3. Payment Step 1 — Implemented Payment Foundation
+- **Tables (6)**: `consultation_slots`, `consultations`, `payment_orders`, `payment_transactions`, `payment_refunds`, `webhook_events`.
+- **Currency Handling**: Integer paise representation (`amount_in_paise BIGINT > 0`, e.g. `299900`). Floating-point decimals strictly prohibited in database.
+- **Server-Owned Pricing**: Consultation fee hardcoded to ₹2,999 (`299900` paise). Zero client override allowed.
+- **Option B Customer Model**: Customer contact details snapshotted directly on `public.consultations` records to avoid premature auth coupling.
+- **Payment Order Fields**: `id`, `consultation_id`, `amount_in_paise`, `currency`, `gateway_provider`, `gateway_order_id` (nullable until gateway order created), `status` (`pending`, `paid`, `failed`, `expired`).
+- **Security**: RLS enabled on all tables; anonymous public access completely denied; service-role server-only access.
+- **Repository Contracts**: Abstract interfaces with Supabase implementations for all 6 tables.
+- **Scope Boundary**: Step 1 did NOT implement Cashfree network calls, webhooks, refunds, or emails.
 
 ---
+
+### 4. Payment Step 2 — Implemented Slot Engine
+- **Timezone**: Evaluated strictly in `Asia/Kolkata` (UTC+5:30).
+- **Operating Schedule**: Monday through Saturday. All Sundays are strictly excluded from booking.
+- **Daily Slots (6)**:
+  - `10:00 AM – 11:00 AM`
+  - `11:30 AM – 12:30 PM`
+  - `02:00 PM – 03:00 PM`
+  - `03:30 PM – 04:30 PM`
+  - `05:00 PM – 06:00 PM`
+  - `06:30 PM – 07:30 PM`
+- **Lead Time & Window**: 24-hour advance lead time; rolling 30-day availability window.
+- **Slot Duration & Buffers**: 60-minute session duration with 30-minute operational buffers between consecutive sessions.
+- **JIT Slot Materialization**: Dynamically creates slot inventory on demand using `ON CONFLICT (start_time) DO NOTHING`.
+- **15-Minute Temporary Hold**: Cryptographically secure 256-bit reservation token (`crypto.randomBytes(32)`), stored hashed via SHA-256.
+- **Lazy Expiry**: Expired holds automatically self-recover during query and reservation evaluation without background cron jobs.
+- **Compensation Release**: If consultation persistence fails after slot reservation, a compensation call releases the slot hold immediately.
+- **Stored Procedures (`20260915120000`)**:
+  - `reserve_consultation_slot`: Atomic row-level lock (`FOR UPDATE`), checks availability, sets status to `held`.
+  - `release_consultation_slot`: Resets held slot to `available` if token hash matches.
+  - `confirm_consultation_slot`: Transitions slot to `booked`.
+  - All RPCs are `SECURITY INVOKER` granted strictly to `service_role`.
+- **Concurrency Protection**: Database row-level locks prevent race conditions; no distributed lock dependency.
+
+---
+
+### 5. Payment Step 3 — Implemented Cashfree Gateway Adapter
+- **API Version**: Hard-locked internally to `2023-08-01` (`x-api-version: 2023-08-01`); zero runtime or environment overrides.
+- **Endpoints**: Sandbox: `https://sandbox.cashfree.com/pg` | Production: `https://api.cashfree.com/pg`.
+- **Interface**: Provider-agnostic `IPaymentGatewayAdapter` with `createOrder`, `getOrder`, and normalized `GatewayError`.
+- **Deterministic Order ID**: `ord_` + `consultation.id.replace(/-/g, "")` (36 alphanumeric characters).
+- **Automatic 409 Recovery**: If Cashfree returns HTTP 409 `order_already_exists`, the adapter recovers the existing order via `GET /orders/{order_id}` and returns the normalized result.
+- **Timeout Protection**: 10-second `AbortController` timeout for all outbound requests.
+- **Currency Boundary Conversion**: Integer paise (`299900`) converted to provider decimal rupees (`2999.00`) at the gateway boundary.
+- **Ephemeral Session Tokens**: `payment_session_id` returned in memory to caller without database persistence.
+- **Scope Boundary**: Step 3 is strictly a payment gateway adapter; it does NOT verify payment status or process webhooks.
+
+---
+
+### 6. Payment Step 4 — Implemented Secure Order Creation
+- **Flow**:
+  `slot_held` consultation $\rightarrow$ Server validation $\rightarrow$ Cashfree create/recover $\rightarrow$ Local `payment_orders` row $\rightarrow$ Consultation `awaiting_payment` $\rightarrow$ `paymentSessionId` returned.
+- **Server Pricing Authority**: Locked at ₹2,999 (`299900` paise, INR). Client-provided amounts strictly rejected.
+- **120-Second Reservation Safety Rule**: Minimum 120 seconds of remaining hold lifetime required ($remaining \ge 120s$). Returns 410 `RESERVATION_EXPIRING_SOON` if $0 < remaining < 120s$, 410 `RESERVATION_EXPIRED` if $\le 0s$.
+- **Token Comparison**: Validates length and executes timing-safe comparison (`crypto.timingSafeEqual`).
+- **Provider-First Sequence**: Creates or recovers Cashfree order before inserting into local database.
+- **Post-Gateway Re-check**: Verifies hold did not expire during external network roundtrip.
+- **PostgreSQL 23505 Conflict Reconciliation**: Parallel requests catch unique violation on `idx_orders_gateway_order_id`, recover the winning record, and converge to the same session.
+- **Security Controls**: POST-only, origin protection (`isAllowedOrigin`), 16 KB payload ceiling, IP rate limiting (5 req / 10m), `X-Request-Id` correlation, and PII-safe logging.
+- **Scope Boundary**: Step 4 creates the payment order; it DOES NOT CONFIRM PAYMENT.
+
+---
+
+### 7. Payment Step 5 — Implemented Customer Checkout Experience
+- **Customer Journey**:
+  `/diwali-consultation` $\rightarrow$ Booking Modal $\rightarrow$ Slot Picker $\rightarrow$ Customer Intake $\rightarrow$ Slot Reservation $\rightarrow$ Authoritative Checkout View $\rightarrow$ Cashfree Modal $\rightarrow$ Payment Processing View.
+- **9-State Machine**: Governed by `ConsultationBookingModal.tsx` (`LOADING_SLOTS`, `SLOT_SELECTION`, `CUSTOMER_DETAILS`, `RESERVING`, `RESERVED`, `CREATING_PAYMENT`, `CHECKOUT_OPEN`, `CHECKOUT_CLOSED`, `PAYMENT_PENDING`).
+- **Luxury UI Presentation**:
+  - Two-column Stitch-inspired layout adapting sand, warm ivory, and royal crimson tokens.
+  - Left column: Reservation summary card with formatted IST times, "DIWALI CONSULTATION" eyebrow, "1-on-1 Celebration Planning" title, and 4 numbered consultation inclusions.
+  - Right column: Live countdown timer, authoritative ₹2,999 pricing, accepted payment methods showcase, adaptive CTA button, and 256-bit security strip.
+- **Server-Anchored Live Hold Timer**:
+  - $> 180s$: Normal (calm green).
+  - $\le 180s$: Warning (amber urgency).
+  - $\le 120s$: Critical (red urgency, CTA disabled: "Hold Expiring Soon (< 2 min)").
+  - $\le 0s$: Expired ("Hold Expired — Select New Slot").
+- **Cashfree Web SDK v3 Integration**:
+  - Dynamically injected from `https://sdk.cashfree.com/js/v3/cashfree.js`.
+  - Zero npm dependencies added.
+  - Invoked with `redirectTarget: "_modal"`.
+  - Handles dismissal gracefully, allowing retry without losing reservation context.
+- **Content Security Policy (CSP)**:
+  - Updated `next.config.ts` to allow `https://sdk.cashfree.com`, `https://api.cashfree.com`, `https://sandbox.cashfree.com`, `https://payments.cashfree.com`, and `https://payments-test.cashfree.com`.
+- **Automated Tests**: 33 test files, 342 tests passing across countdown utilities, error mapping, and payment flows.
+- **Core Security Boundary**: Step 5 is presentation-only. It NEVER independently marks payment orders as paid or consultations as confirmed.
+
+---
+
+### 8. Payment Step 6 — Webhook & Payment Confirmation (NEXT PHASE ARCHITECTURE)
+
+The upcoming Step 6 phase will establish server-side payment verification and booking confirmation:
+
+```
+Cashfree Payment Gateway
+        ↓
+POST /api/webhooks/cashfree (Raw Body Payload)
+        ↓
+1. Cryptographic Signature Verification (x-webhook-signature + CASHFREE_SECRET_KEY)
+        ↓
+2. Idempotency Check (public.webhook_events table)
+        ↓
+3. Gateway Payment Status Verification (GET /orders/{order_id}/payments)
+        ↓
+4. Transaction Ledger Record (Insert public.payment_transactions)
+        ↓
+5. Order Status Transition (public.payment_orders.status -> 'paid')
+        ↓
+6. Consultation Status Transition (public.consultations.status -> 'confirmed')
+        ↓
+7. Atomic Slot Confirmation (RPC: confirm_consultation_slot)
+        ↓
+8. Dispatch Confirmation Email (Resend / SendGrid with .ics calendar invite)
+        ↓
+9. Dispatch Operations Notification (care@eventsika.in)
+```
+
+#### Step 6 Critical Architecture Rules:
+1. **Source of Truth**: The server-side webhook / verification path is the SOLE authority for payment confirmation. Client callbacks from Step 5 are never trusted.
+2. **Signature Verification**: Every incoming webhook must be verified against Cashfree's cryptographic signature using the raw unparsed request buffer and `CASHFREE_SECRET_KEY`.
+3. **Idempotency**: Webhook events must be recorded in `public.webhook_events` with unique event ID checking before processing to prevent double-crediting or duplicate confirmations.
+4. **Atomic Slot Confirmation**: The slot must be confirmed using the existing stored procedure `confirm_consultation_slot(slot_id)`.
+
+---
+
+### 9. Planned Admin Payment Architecture
+
+```
+ADMIN
+├── Dashboard (/admin)
+├── Consultations (/admin/consultations) [PLANNED]
+├── Payments [PLANNED]
+│   ├── Overview (/admin/payments)
+│   ├── Payment Orders (/admin/payments/orders)
+│   ├── Transactions (/admin/payments/transactions)
+│   ├── Refunds (/admin/payments/refunds)
+│   └── Webhook Events (/admin/payments/webhooks)
+├── Reconciliation (/admin/reconciliation) [PLANNED]
+├── Customers (/admin/customers) [PLANNED]
+├── Leads (/admin/leads) [ACTIVE]
+├── Vendors (/admin/vendors) [ACTIVE]
+└── Settings (/admin/settings) [PLANNED]
+```
+
+*Status*: **PLANNED / NOT YET IMPLEMENTED**. Only Leads (`/admin/leads`), Vendors (`/admin/vendors`), and Analytics (`/admin/analytics`) are currently active.
+
+---
+
+### 10. Current Verified Testing & Remote Migration Status
+
+#### Cashfree Testing Status:
+- **Status**: **BOOKING FLOW REACHED PAYMENT STAGE / GATEWAY ERROR IN SANDBOX**.
+- **Verification Summary**: Customer flow on `/diwali-consultation` successfully reserves inventory slot, transitions to authoritative checkout, and invokes Cashfree Web SDK modal. During browser sandbox verification, checkout encountered a high-traffic/gateway error.
+- **Diagnosis**: Root cause remains **UNVERIFIED**. Server-side payment confirmation is deferred to Step 6 by design; client presentation remains non-authoritative.
+#### Supabase Remote Migration Status:
+- **Status**: **VERIFIED / APPLIED REMOTELY**.
+- **Remote Project**: `mswbfuguigogoumrxqmo`.
+- **Deployment Mechanism**: Supabase CLI authentication completed, project linked, stale remote migration history repaired, and `supabase db push --linked` executed successfully.
+- **Applied Migrations**:
+  1. `20260901160000_create_intake_tables.sql` (baseline `leads` and `vendor_applications`).
+  2. `20260914180000_create_payment_and_consultation_foundation.sql` (six payment/consultation tables and constraints).
+  3. `20260915120000_add_slot_concurrency_and_constraints.sql` (slot indexes, partial confirmed index, and three stored procedures).
+- **Remote Verification**: All six tables (`public.consultation_slots`, `consultations`, `payment_orders`, `payment_transactions`, `payment_refunds`, `webhook_events`), RLS policies, and three slot RPCs (`reserve_consultation_slot`, `release_consultation_slot`, `confirm_consultation_slot` as `SECURITY INVOKER`) are verified present on the live remote database.
+---
+
+
 
 ## 15. Deployment & Infrastructure
 
@@ -910,7 +1230,7 @@ sequenceDiagram
   UPSTASH_REDIS_REST_TOKEN=your_upstash_rest_token_here
 
   # ==============================================================================
-  # Cashfree Payment Gateway Configuration (Step 3 Foundation)
+  # Cashfree Payment Gateway Configuration
   # ==============================================================================
   # Server-only configuration. NEVER prefix with NEXT_PUBLIC_.
   CASHFREE_APP_ID=your_cashfree_app_id_here
@@ -919,6 +1239,8 @@ sequenceDiagram
   ```
 
 ---
+
+
 
 ## 16. Git & Development Workflow
 
@@ -931,11 +1253,20 @@ sequenceDiagram
   - `npm test`: Executes all Vitest test suites once (`vitest run`).
   - `npm run test:watch`: Runs Vitest in interactive watch mode.
 * **Automated Test Architecture**:
-  - Vitest test framework covering 22 test suites (173 passing tests).
+  - Vitest test framework covering 33 test suites (342 passing tests).
   - Tests co-located in `__tests__/` subdirectories across route handlers, security boundaries, rate limiting, validation schemas, repositories, services, and helper sanitizers.
+* **Key Git Commits**:
+  - `20916c3`: `feat(payment): add consultation and payment foundation` (Step 1)
+  - `7981c8a`: `feat(payment): add consultation booking and slot engine` (Step 2)
+  - `88d9db9`: `feat(payment): add Cashfree payment gateway adapter` (Step 3)
+  - `328f285`: `feat(payment): add secure consultation payment order creation` (Step 4)
+  - `86ed613`: `feat(payment): add consultation booking and checkout experience` (Step 5)
+  - `26f4c34`: `merge: consultation booking and checkout` (Merged Step 5 into `main`)
 * **Pre-Commit Verification**: Always run `npx tsc --noEmit`, `npm test`, and `npm run lint` before committing any code changes.
 
 ---
+
+
 
 ## 17. Existing Agent & AI Tooling
 
@@ -952,18 +1283,22 @@ The Eventsika development environment is integrated with specialized Model Conte
 
 ---
 
+
+
 ## 18. Project Skills
 
-The repository includes 6 purpose-built skills located in [`.agents/skills/`](file:///d:/Persional-projects/landing/.agents/skills):
+The repository includes 6 purpose-built skills located in [`.agents/skills/`](file:///c:/Users/gcad1/Documents/eventsika-landing/.agents/skills):
 
-1. **[`minimal-change`](file:///d:/Persional-projects/landing/.agents/skills/minimal-change/SKILL.md)**: Enforces surgical precision, root-cause diagnosis first, smallest possible diffs, and zero collateral refactoring.
-2. **[`pre-commit-review`](file:///d:/Persional-projects/landing/.agents/skills/pre-commit-review/SKILL.md)**: Governs structured read-only working tree audits, diff checks, `tsc --noEmit` validation, and ESLint verification before committing.
-3. **[`code-quality-audit`](file:///d:/Persional-projects/landing/.agents/skills/code-quality-audit/SKILL.md)**: Read-only maintainability, complexity, dead-code, and technical debt assessment.
-4. **[`security-audit`](file:///d:/Persional-projects/landing/.agents/skills/security-audit/SKILL.md)**: Evidence-based security audits of Route Handlers, input bounds, rate limiting, and secret leakage vectors.
-5. **[`nextjs-architecture`](file:///d:/Persional-projects/landing/.agents/skills/nextjs-architecture/SKILL.md)**: Authoritative guidelines on Server vs. Client component boundaries, App Router patterns, and asset optimization.
-6. **[`project-memory`](file:///d:/Persional-projects/landing/.agents/skills/project-memory/SKILL.md)**: Governs how the agent interacts with Memory MCP graph nodes and reconciles durable decisions with source code.
+1. **[`minimal-change`](file:///c:/Users/gcad1/Documents/eventsika-landing/.agents/skills/minimal-change/SKILL.md)**: Enforces surgical precision, root-cause diagnosis first, smallest possible diffs, and zero collateral refactoring.
+2. **[`pre-commit-review`](file:///c:/Users/gcad1/Documents/eventsika-landing/.agents/skills/pre-commit-review/SKILL.md)**: Governs structured read-only working tree audits, diff checks, `tsc --noEmit` validation, and ESLint verification before committing.
+3. **[`code-quality-audit`](file:///c:/Users/gcad1/Documents/eventsika-landing/.agents/skills/code-quality-audit/SKILL.md)**: Read-only maintainability, complexity, dead-code, and technical debt assessment.
+4. **[`security-audit`](file:///c:/Users/gcad1/Documents/eventsika-landing/.agents/skills/security-audit/SKILL.md)**: Evidence-based security audits of Route Handlers, input bounds, rate limiting, and secret leakage vectors.
+5. **[`nextjs-architecture`](file:///c:/Users/gcad1/Documents/eventsika-landing/.agents/skills/nextjs-architecture/SKILL.md)**: Authoritative guidelines on Server vs. Client component boundaries, App Router patterns, and asset optimization.
+6. **[`project-memory`](file:///c:/Users/gcad1/Documents/eventsika-landing/.agents/skills/project-memory/SKILL.md)**: Governs how the agent interacts with Memory MCP graph nodes and reconciles durable decisions with source code.
 
 ---
+
+
 
 ## 19. Key Architectural Decisions (ADRs)
 
@@ -971,26 +1306,32 @@ The repository includes 6 purpose-built skills located in [`.agents/skills/`](fi
 | :--- | :--- | :--- | :--- |
 | **ADR-01** | **Pure CSS Modules over Tailwind CSS** | Provides complete typographic control, exact bespoke color rendering, zero utility bloat, and clean component colocation. | All styling must be written in scoped `*.module.css` files using CSS custom properties. |
 | **ADR-02** | **Zero-Dependency Native Email Dispatch** | External SDKs (Nodemailer, heavy client wrappers) add unnecessary bundle weight and maintenance overhead in serverless. | `mailer.ts` uses native `fetch` against Resend / SendGrid REST APIs. |
-| **ADR-03** | **Hybrid Rate Limiting Architecture** | Balances zero-infrastructure simplicity for public intake forms with hardened, distributed abuse prevention for privileged administrative authentication. | Public endpoints (`/api/leads`, `/api/vendor-applications`) use in-memory sliding window throttling; `/api/admin/auth/login` uses `@upstash/redis` with atomic Lua scripts, multi-layer lockouts, and fail-closed production semantics. |
+| **ADR-03** | **Hybrid Rate Limiting Architecture** | Balances zero-infrastructure simplicity for public intake forms with hardened, distributed abuse prevention for privileged administrative authentication. | Public endpoints (`/api/leads`, `/api/vendor-applications`, `/api/consultations/*`) use in-memory sliding window throttling; `/api/admin/auth/login` uses `@upstash/redis` with atomic Lua scripts, multi-layer lockouts, and fail-closed production semantics. |
 | **ADR-04** | **Direct SVG Fill Transitions for Logo** | CSS `filter: hue-rotate()` interpolates through intermediate rainbow hues (green/blue) when transitioning gold to crimson. | Logo vector paths use explicit `transition: fill` with 180° emblem rotation and stationary wordmark. |
 | **ADR-05** | **React Compiler Enabled** | Automates memoization and re-render optimizations in React 19 without manual `useMemo`/`useCallback` clutter. | Enabled via `reactCompiler: true` in `next.config.ts`. |
 | **ADR-06** | **Production Admin Authentication & SSR Session Management** | Replaced presentation mock with genuine server-authenticated administrative session management. | `/login` handshakes with `/api/admin/auth/login`, sets HttpOnly `@supabase/ssr` cookies, enforces `app_metadata.role === 'admin'`, and redirects to `/admin`. |
-| **ADR-07** | **Canonical WebP Asset Optimization & Lazy-Loading** | High-resolution raster images (PNGs/JPEGs) bloat initial page load. Next.js `<Image>` provides default viewport lazy-loading. | All photographic assets use high-fidelity WebP (quality ~85). Below-the-fold media uses deferred loading with poster preview frames. |
-| **ADR-08** | **Local dotLottie WebAssembly Player for Hero Celebration Animation** | Adding festive celebratory visual motion to homepage hero while strictly avoiding third-party CDN roundtrips (unpkg/jsdelivr), CSP violations, and render-blocking scripts. | Uses `@lottiefiles/dotlottie-web: 0.80.0` with self-hosted `/animation/dotlottie-player.wasm` and `/animation/Fireworks.lottie`. Enforces `pointer-events: none`, `aria-hidden="true"`, and honors `prefers-reduced-motion: reduce`. |
-| **ADR-09** | **Decoupling Services Marketing Editorial Copy from Backend Database Contracts** | Customer-facing service categories and marketing descriptions evolve to suit presentation appeal and festive offerings without invalidating historical leads or breaking intake allowlists. | Editorial copy, pricing displays, and photography on `/services` are decoupled from canonical backend definitions (`SERVICE_OPTIONS` in `allowlists.ts`). Customer inquiry form submissions remain standard and validated against backend allowlists. |
+| **ADR-07** | **Canonical WebP Asset Optimization & Lazy-Loading** | High-resolution raster images bloat initial page load. Next.js `<Image>` provides default viewport lazy-loading. | All photographic assets use high-fidelity WebP (quality ~85). Below-the-fold media uses deferred loading with poster preview frames. |
+| **ADR-08** | **Local dotLottie WebAssembly Player for Hero Celebration Animation** | Adding festive celebratory visual motion to homepage hero while strictly avoiding third-party CDN roundtrips, CSP violations, and render-blocking scripts. | Uses `@lottiefiles/dotlottie-web: 0.80.0` with self-hosted `/animation/dotlottie-player.wasm` and `/animation/Fireworks.lottie`. Enforces `pointer-events: none`, `aria-hidden="true"`, and honors `prefers-reduced-motion: reduce`. |
+| **ADR-09** | **Decoupling Services Marketing Editorial Copy from Backend Database Contracts** | Customer-facing service categories evolve to suit presentation appeal without breaking database allowlists. | Editorial copy, pricing displays, and photography on `/services` are decoupled from canonical backend definitions (`SERVICE_OPTIONS` in `allowlists.ts`). |
+| **ADR-10** | **Dynamic Cashfree Web SDK v3 Loader with Strict Presentation-Only Authority** | Customer checkout requires opening Cashfree's modal overlay without adding bloated npm wrappers or granting client confirmation privileges. | Cashfree JS SDK (`https://sdk.cashfree.com/js/v3/cashfree.js`) is dynamically loaded on demand. Client callback transitions to pending presentation view only; payment and slot confirmation authority resides strictly on the server in Step 6. |
 
 ---
+
+
 
 ## 20. Protected Areas (Handle With Caution)
 
 Do NOT modify these components or systems without explicit user approval and a detailed verification plan:
-1. **[`src/lib/mailer.ts`](file:///d:/Persional-projects/landing/src/lib/mailer.ts) & [`src/lib/rate-limit.ts`](file:///d:/Persional-projects/landing/src/lib/rate-limit.ts)**: Core notification dispatch and abuse prevention infrastructure.
-2. **[`next.config.ts`](file:///d:/Persional-projects/landing/next.config.ts)**: Global security headers, compiler flags, and server configurations.
-3. **[`src/app/globals.css`](file:///d:/Persional-projects/landing/src/app/globals.css)**: Core brand color tokens (`--primary`, `--gold`, `--cream`, etc.) and CSS variables.
-4. **SVG Logo Coordinates & Keyframes in [`Navbar.tsx`](file:///d:/Persional-projects/landing/src/components/Navbar.tsx) and [`Footer.tsx`](file:///d:/Persional-projects/landing/src/components/Footer.tsx)**: Vector geometry and rotation origins.
-5. **Route Handler Input Boundaries**: Strict phone regex (`/^[6-9]\d{9}$/`), size ceilings (50 KB), and honeypot structures.
+1. **[`src/lib/mailer.ts`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/lib/mailer.ts) & [`src/lib/rate-limit.ts`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/lib/rate-limit.ts)**: Core notification dispatch and abuse prevention infrastructure.
+2. **[`next.config.ts`](file:///c:/Users/gcad1/Documents/eventsika-landing/next.config.ts)**: Global security headers, CSP directives, compiler flags, and server configurations.
+3. **[`src/app/globals.css`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/globals.css)**: Core brand color tokens (`--primary`, `--gold`, `--cream`, etc.) and CSS variables.
+4. **SVG Logo Coordinates & Keyframes in [`Navbar.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/Navbar.tsx) and [`Footer.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/Footer.tsx)**: Vector geometry and rotation origins.
+5. **Route Handler Input Boundaries & Pricing**: Strict phone regex (`/^[6-9]\d{9}$/`), size ceilings, and server-owned consultation fee (`299900` paise).
+6. **Consultation Scheduling & Reservation Invariants**: Asia/Kolkata timezone, 60m duration, 30m buffer, 24h lead time, 15m hold duration, and 120s safety rule.
 
 ---
+
+
 
 ## 21. Safe-to-Modify Areas
 
@@ -1003,15 +1344,19 @@ These areas can be iterated on and refined with standard pre-commit verification
 
 ---
 
+
+
 ## 22. Known Issues & Technical Debt
 
-1. **Resolved: Next.js 16 Scroll Behavior**: Added `data-scroll-behavior="smooth"` to `<html>` in `src/app/layout.tsx` to align with App Router smooth scroll transition standards.
-2. **Next.js 16 Proxy Convention Notice**: Next.js 16 deprecates the `middleware` file convention in favor of `proxy`. Codemod migration (`npx @next/codemod@canary middleware-to-proxy .`) is tracked for canary-to-stable transition.
-3. **Payment Processing Infrastructure Pending**: Payment logos and pricing displays on `/diwali-consultation` are visual presentation trust indicators. Genuine payment gateway infrastructure, order generation, and transaction webhooks are currently in the architectural design phase.
+1. **Resolved: Remote Supabase Migrations Applied**: Migrations `20260901160000`, `20260914180000`, and `20260915120000` are verified applied to remote project `mswbfuguigogoumrxqmo` via `supabase db push --linked`. All six payment/consultation tables, RLS policies, and three slot RPCs (`reserve_consultation_slot`, `release_consultation_slot`, `confirm_consultation_slot` as `SECURITY INVOKER`) are verified present on the live remote database.
+2. **Cashfree Sandbox Browser Gateway Error (Unverified Root Cause)**: During browser testing, the checkout flow correctly invoked Cashfree, but the Cashfree sandbox returned a high-traffic/gateway error. Root cause remains unverified (potential Cashfree sandbox gateway outage or test credential limitation).
+3. **Next.js 16 Proxy Convention Notice**: Next.js 16 deprecates the `middleware` file convention in favor of `proxy`. Codemod migration (`npx @next/codemod@canary middleware-to-proxy .`) is tracked for canary-to-stable transition.
 4. **Legacy `page.module.css`**: Contains default boilerplate CSS from initial `create-next-app` initialization. Unused by current components but retained to avoid unnecessary breaking diffs.
-5. **Public Route Rate Limiting Scope**: In-memory rate limiting for public endpoints (`/api/leads`, `/api/vendor-applications`) is per Node process. Sufficient for current traffic; upgrade public routes to Redis if horizontal autoscaling is deployed. (Admin auth is already distributed via Upstash Redis).
+5. **Public Route Rate Limiting Scope**: In-memory rate limiting for public endpoints (`/api/leads`, `/api/vendor-applications`, `/api/consultations/*`) is per Node process. Sufficient for current single-instance traffic; upgrade public routes to Redis if horizontal autoscaling is deployed. (Admin auth is already distributed via Upstash Redis).
 
 ---
+
+
 
 ## 23. Completed Major Features
 
@@ -1025,31 +1370,38 @@ These areas can be iterated on and refined with standard pre-commit verification
 - [x] Interactive Package Customizer and side-by-side Package Comparison matrix (`/packages`).
 - [x] Interactive Celebration Service Cost Estimator & Accordion FAQ (`/services`).
 - [x] Vendor Partner Network application form & acquisition portal (`/for-vendors`).
-- [x] Seasonal 1-on-1 Strategy Session promotion landing page (`/diwali-consultation`).
 - [x] Client & Partner portal authentication with Supabase SSR session cookies (`/login`).
 - [x] Concierge Operations Suite with Executive Operations Dashboard (`/admin`).
 - [x] Celebration Leads Command Center with 2-pane inquiry queue and client dossier (`/admin/leads`).
 - [x] Vendor Partner Application Register with slide-over drawer and injection-safe CSV export (`/admin/vendors`).
 - [x] Executive Celebration Analytics & Insights with demand heatmap, celebration trends, and attribution donut (`/admin/analytics`).
-- [x] Streamlined Admin sidebar navigation removing inactive Settings link, retaining active links (`Dashboard`, `Leads`, `Vendors`, `Analytics`).
 - [x] Edge/Node route protection middleware (`src/middleware.ts`) enforcing `app_metadata.role === 'admin'`.
 - [x] Distributed multi-layer rate limiter with Upstash Redis and atomic Lua scripts (`rate-limit.ts`).
 - [x] Zero-dependency multi-adapter notification mailer (`mailer.ts`).
 - [x] Supabase PostgreSQL durable persistence for leads and partner applications.
 - [x] Hardened HTTP security headers (`CSP`, `HSTS`, `X-Frame-Options`, `X-Content-Type-Options`, `Permissions-Policy`).
-- [x] Dynamic SEO generation (`robots.ts`, `sitemap.ts`, Schema.org JSON-LD).
-- [x] Vitest automated testing suite with 22 test files and 173 passing tests.
+- [x] **Payment Step 1 — Foundation**: 6 PostgreSQL tables, domain contracts, integer paise currency handling, server-owned ₹2,999 pricing, and 6 repository interfaces.
+- [x] **Payment Step 2 — Slot Engine**: Asia/Kolkata pure scheduling engine, JIT slot generation, atomic 15m hold, 256-bit secure tokens, compensation release, unique slot indexes, and 3 stored procedures.
+- [x] **Payment Step 3 — Cashfree Adapter**: Native fetch adapter targeting Cashfree PG API (2023-08-01), 10s timeout, automatic 409 recovery, and server-only credential security.
+- [x] **Payment Step 4 — Secure Order Creation**: Gateway-First order creation, 120s reservation safety threshold, deterministic order ID, PostgreSQL 23505 conflict reconciliation, and atomic status transition (`slot_held` → `awaiting_payment`).
+- [x] **Payment Step 5 — Customer Checkout Experience**: Stitch-inspired luxury booking modal on `/diwali-consultation`, 9-state machine, live slot picker, client-validated customer intake form, live 15m hold timer, authoritative ₹2,999 checkout view, Cashfree Web SDK v3 modal integration, and presentation-only pending state.
+- [x] Vitest automated testing suite with 33 test files and 342 passing tests.
 
 ---
+
+
 
 ## 24. Current Project State
 
 * **Build Health**: Clean TypeScript compilation (`0 errors`), valid ESLint 9 checks, successful Next.js 16.3.0 standalone production build.
-* **Test Health**: 22 Vitest test suites passing (173 tests passing with zero failures).
-* **Development Server**: Fully operational and active on `http://localhost:3000`.
-* **Current Operational Priority**: Maintaining rock-solid landing page performance, zero-regression changes, and pristine architectural documentation.
+* **Test Health**: 33 Vitest test suites passing (342 tests passing with zero failures at verified Step 5 checkpoint; not re-run during this documentation-only task).
+* **Development Server**: Operational on `http://localhost:3000`.
+* **Git Checkpoint**: Merged into `main` via commit [`26f4c34`](file:///c:/Users/gcad1/Documents/eventsika-landing); working tree is clean.
+* **Current Operational Priority**: Transitioning to Payment Step 6 (Webhook Ingestion, Server Verification & Payment Confirmation).
 
 ---
+
+
 
 ## 25. Important Constraints & Rules
 
@@ -1057,8 +1409,11 @@ These areas can be iterated on and refined with standard pre-commit verification
 2. **Preserve Established Patterns**: Adhere strictly to CSS Modules and CSS Custom Properties. Never introduce Tailwind CSS or heavy UI frameworks unless explicitly directed.
 3. **Strict Secrets Hygiene**: Never commit or log API keys, webhook secrets, or private credentials.
 4. **Code is Ground Truth**: If any documentation, memory entry, or previous prompt disagrees with the active source code, the code is always right.
+5. **Presentation-Only Client Checkout Invariant**: Step 5 client checkout code has zero authority to confirm payments or consultations. Server-side verification (Step 6) is the sole authority.
 
 ---
+
+
 
 ## 26. AI Agent Operating Rules
 
@@ -1076,6 +1431,8 @@ Every AI agent working in the Eventsika repository must adhere to the following 
 10. **Explain Before Expanding Scope**: If a broader refactor appears necessary, stop and ask the user for confirmation before proceeding.
 
 ---
+
+
 
 ## 27. Brain Maintenance Rules
 
@@ -1103,44 +1460,48 @@ Every AI agent working in the Eventsika repository must adhere to the following 
 
 ---
 
+
+
 ## 28. Change Log
 
+### 2026-09-21
+- **Customer-Facing Consultation Booking & Cashfree Web Checkout Experience (Step 5 — Commits [`86ed613`](file:///c:/Users/gcad1/Documents/eventsika-landing), [`26f4c34`](file:///c:/Users/gcad1/Documents/eventsika-landing))**:
+  - **Component Architecture (`src/components/consultation/`)**: Built 7 core client components and 4 helper/test modules realizing the approved Stitch visual direction (`77b7f837daef465e894ee73ea2f924fb`):
+    - `BookingExperience.tsx`: Modal trigger button and dialog mount container for `/diwali-consultation`.
+    - `ConsultationBookingModal.tsx`: Central 9-state machine dialog orchestrator with background scroll lock, progress indicator (01 Slot → 02 Details → 03 Pay), and modal lifecycle management.
+    - `ConsultationSlotPicker.tsx`: Dynamic slot inventory picker grouping available IST slots by date tabs, with loading skeletons and empty inventory handling.
+    - `ConsultationIntakeForm.tsx`: Customer details form with real-time Indian mobile regex validation (`/^[6-9]\d{9}$/`), city allowlist dropdown, and channel selector.
+    - `ReservationCountdownTimer.tsx`: Live 15-minute hold timer anchored to server timestamp with calm (>180s), warning (<=180s), critical (<=120s), and expired (<=0s) states.
+    - `ConsultationCheckoutView.tsx`: Two-column Stitch-inspired luxury layout with formatted reservation summary card, 4 numbered inclusions, authoritative ₹2,999 pricing ("One-time consultation fee"), accepted payment method showcase, adaptive CTA button, and 256-bit security strip.
+    - `PaymentProcessingView.tsx`: Presentation-only pending state while backend webhook / confirmation completes.
+  - **Cashfree Web SDK v3 Integration (`utils/cashfree-loader.ts`)**: Dynamically loads Cashfree JS SDK (`https://sdk.cashfree.com/js/v3/cashfree.js`) without adding external npm dependencies. Initializes `Cashfree({ mode: environment })` and launches modal checkout (`_modal`). Distinguishes `completedOrPending` from `dismissedOrError`, allowing safe retry without resetting reservation state.
+  - **Content Security Policy Hardening (`next.config.ts`)**: Minimal, fully-justified CSP additions allowing `https://sdk.cashfree.com`, `https://api.cashfree.com`, `https://sandbox.cashfree.com`, `https://payments.cashfree.com`, and `https://payments-test.cashfree.com` across `script-src`, `connect-src`, `frame-src`, and `form-action`.
+  - **Promotional Copy Alignment**: Stripped unverified ₹5,000 / -₹2,001 promotional ledger from checkout view; locked presentation to authoritative ₹2,999 one-time fee.
+  - **Automated Verification**: Added 19 unit tests across `countdown-utils.test.ts` (15) and `error-mapping.test.ts` (4). Full test suite: 33 test files, 342 tests passing (0 failures). TypeScript (`npx tsc --noEmit`), ESLint 9 (`npm run lint`), and Next.js 16.3.0 standalone production build (`npm run build`) verified 100% clean.
+
 ### 2026-09-17
-- **Secure Consultation Payment Order Creation (Step 4 — Implementation & Verification)**:
-  - **Repository Layer (`payment-order-repository.interface.ts`, `supabase-payment-order-repository.ts`)**: Added `getLatestOrderByConsultationId(consultationId: string): Promise<PaymentOrderRecord | null>` to interface and implemented via Supabase ordering by `created_at DESC` with `.limit(1).maybeSingle()`.
-  - **Server-Authoritative Validation (`payment-order-schema.ts`)**: Built schema validating strictly `{ consultationId, reservationToken }`. Enforces standard UUIDv4 format, exact 64-hex lowercase token regex (`/^[0-9a-f]{64}$/`), and strictly rejects client-provided amounts, currencies, statuses, gateway order IDs, or extra payload fields.
-  - **Business Orchestrator (`consultation-payment-service.ts`)**:
-    - Server-authoritative locked pricing: ₹2,999 (`299900` integer paise, `INR`).
-    - 120-Second Reservation Safety Rule: Calculates server-side remaining hold lifetime ($remaining \ge 120s$). Returns 410 `RESERVATION_EXPIRING_SOON` if $0 < remaining < 120s$, 410 `RESERVATION_EXPIRED` if $\le 0s$, blocking gateway communication before it occurs.
-    - Timing-Safe Token Comparison: Validates byte length and executes `crypto.timingSafeEqual` against the stored reservation token hash.
-    - Deterministic Order ID Generation: Generates `ord_` + `consultation.id.replace(/-/g, "")` (36 alphanumeric characters) mapping consultations 1-to-1 to Cashfree orders.
-    - Gateway-First Sequence: Creates or recovers Cashfree order via `IPaymentGatewayAdapter` before local state progression.
-    - Post-Gateway Expiry Verification: Verifies reservation did not expire during the external network roundtrip, preventing orphan payment sessions.
-    - Concurrency & PostgreSQL 23505 Conflict Convergence: If parallel requests compete, the loser catches PostgreSQL unique violation 23505 on `idx_orders_gateway_order_id`, fetches the winning record via `getOrderByGatewayId`, and returns the identical session.
-    - State Machine Progression: Transitions consultation state `slot_held` → `awaiting_payment` only after Cashfree success and local order persistence.
-  - **API Route Handler (`/api/consultations/payment/order`)**: Built dynamic POST route enforcing POST-only, `isAllowedOrigin` CSRF guard, 16 KB payload ceiling, IP rate limiting (5 req / 10m), `X-Request-Id` correlation, and sanitized error mapping. Returns `{ success: true, data: { paymentSessionId } }`.
-  - **Automated Verification**: Added 58 tests across 3 new test files (`payment-order-schema.test.ts`, `consultation-payment-service.test.ts`, `payment-order-route.test.ts`) and updated `payment-foundation-repositories.test.ts` (13 tests). Full suite: 31 test files, 323 tests passing (0 failures). TypeScript (`npx tsc --noEmit`), ESLint 9 (`npm run lint`), and Next.js 16.3.0 standalone production build (`npm run build`) verified 100% clean.
+- **Secure Consultation Payment Order Creation (Step 4 — Commit [`328f285`](file:///c:/Users/gcad1/Documents/eventsika-landing))**:
+  - **Repository Layer (`payment-order-repository.interface.ts`, `supabase-payment-order-repository.ts`)**: Added `getLatestOrderByConsultationId(consultationId: string): Promise<PaymentOrderRecord | null>`.
+  - **Server-Authoritative Validation (`payment-order-schema.ts`)**: Built schema validating strictly `{ consultationId, reservationToken }` with exact 64-hex lowercase token regex.
+  - **Business Orchestrator (`consultation-payment-service.ts`)**: Locked ₹2,999 pricing, 120s reservation safety rule ($remaining \ge 120s$), timing-safe token verification (`crypto.timingSafeEqual`), deterministic order ID (`ord_<32hex>`), Gateway-First Cashfree call via `IPaymentGatewayAdapter`, post-gateway reservation re-check, and PostgreSQL 23505 unique conflict reconciliation.
+  - **API Route Handler (`/api/consultations/payment/order`)**: POST-only, `isAllowedOrigin` CSRF guard, 16 KB payload ceiling, IP rate limiting (5 req / 10m), `X-Request-Id` correlation. Returns `{ success: true, data: { paymentSessionId, environment } }`.
 
 ### 2026-09-16
-- **Cashfree Payment Gateway Adapter (Step 3 Post-Review Corrections)**:
-  - **Hard-Locked API Version (`2023-08-01`)**: Hard-locked Cashfree PG REST API version internally in `cashfree-payment-gateway-adapter.ts` via internal constant `CASHFREE_API_VERSION = "2023-08-01"` (`x-api-version: 2023-08-01`). Completely removed `apiVersion` configurability from `CashfreeConfig`, `env.ts`, `.env.example`, and test mocks, eliminating any runtime or environmental overrides.
-  - **Hardened Production Environment Validation (`src/lib/backend/config/env.ts`)**: Enforced strict environment validation where `CASHFREE_ENVIRONMENT` may only be `"sandbox"` or `"production"`. Disallowed ambiguous/unsupported values (`prod`, `live`, `staging`, `dev`). In production (`NODE_ENV === "production"`), strictly enforced `CASHFREE_APP_ID`, `CASHFREE_SECRET_KEY`, and explicit `CASHFREE_ENVIRONMENT: "production"` in `validateServerEnv()` and `assertProductionEnv()`, preventing silent sandbox leakage. Maintained non-production development ergonomics with advisory warnings.
-  - **Tracked `.env.example` via `.gitignore`**: Added explicit negation rule `!.env.example` directly following `.env*` in `.gitignore` so the template is tracked in git with safe non-secret placeholders only (and without `CASHFREE_API_VERSION`).
-  - **Provider-Agnostic Interface (`payment-gateway.interface.ts`)**: Defined `IPaymentGatewayAdapter`, `CreateGatewayOrderParams`, `GatewayOrderResult`, `GatewayError`, and `GatewayErrorCode` separating business/domain layer from provider JSON payloads.
-  - **Zero-Dependency Native Fetch Adapter (`cashfree-payment-gateway-adapter.ts`)**: Built native Node fetch adapter targeting Cashfree PG REST API `2023-08-01` (`https://sandbox.cashfree.com/pg` and `https://api.cashfree.com/pg`) with zero external npm dependencies.
-  - **Timeout Defense**: Enforced strict 10-second `AbortController` timeout for all outbound gateway network requests.
-  - **Monetary Boundary Conversion**: Converted internal integer paise (`299900`) to provider decimal rupees (`2999.00`) at the boundary while keeping internal paise representation intact.
-  - **Deterministic 409 Recovery**: Implemented automatic fallback recovery on HTTP 409 `order_already_exists` via `GET /orders/{order_id}`, returning normalized `GatewayOrderResult` with idempotency preserved.
-  - **Ephemeral Session Tokens**: Returned transient `payment_session_id` directly in result without database schema pollution.
-  - **Automated Verification**: 23 unit tests in `cashfree-payment-gateway-adapter.test.ts` (asserting `x-api-version: 2023-08-01` on create, GET, and 409 recovery) and 13 unit tests in `env.test.ts` (covering all sandbox/production/missing/invalid environment invariants). Full test suite: 28 test files, 263 passing tests, 0 failures. Typecheck, ESLint 9, and Next.js 16.3.0 standalone production build verified 100% clean.
+- **Cashfree Payment Gateway Adapter (Step 3 — Commit [`88d9db9`](file:///c:/Users/gcad1/Documents/eventsika-landing))**:
+  - Hard-locked Cashfree PG REST API version internally to `2023-08-01` (`x-api-version: 2023-08-01`).
+  - Strict production environment validation in `src/lib/backend/config/env.ts` preventing silent sandbox leakage.
+  - Zero-dependency native fetch adapter targeting sandbox/production endpoints with 10s `AbortController` timeout.
+  - Automatic HTTP 409 `order_already_exists` recovery via `GET /orders/{order_id}`.
+  - Monetary boundary conversion: integer paise (`299900`) to provider decimal rupees (`2999.00`).
 
 ### 2026-09-15
-- **Consultation Booking & Slot Engine (Step 2 — Commit [`7981c8a`](file:///d:/Persional-projects/landing))**:
-  - **Scheduling Mathematics & Time Engine (`consultation-time.ts`)**: Built pure scheduling utility evaluated strictly in `Asia/Kolkata` (UTC+5:30). Enforces 6 daily fixed slots (10:00, 11:30, 14:00, 15:30, 17:00, 18:30 IST), 60m duration, 30m buffers, Monday–Saturday schedule, Sunday exclusion, 24-hour minimum lead time, and rolling 30-day window.
-  - **Consultation Booking Service (`consultation-booking-service.ts`)**: Implemented two-step atomic hold flow: JIT slot materialization with `ON CONFLICT DO NOTHING`, atomic 15-minute slot hold via database RPC, 256-bit cryptographically secure token generation, stale-hold detachment, and compensation release if consultation creation fails.
-  - **Database Concurrency & Hardened Stored Procedures (`20260915120000_add_slot_concurrency_and_constraints.sql`)**: Added unique slot start time index (`idx_slots_start_time_unique`), confirmed consultation uniqueness index (`idx_consultations_confirmed_slot WHERE status = 'confirmed'`), and 3 stored procedures (`reserve_consultation_slot`, `release_consultation_slot`, `confirm_consultation_slot`) built as `SECURITY INVOKER` with execution granted strictly to `service_role`.
-  - **Route Handlers**: Implemented `GET /api/consultations/slots` (30 req/min, `Cache-Control: no-store, private`) and `POST /api/consultations/reserve` (5 req/10min, 50 KB ceiling, RFC error mapping: 409 Conflict, 400 Bad Request, 404 Not Found, 500 Server Error).
-  - **Automated Verification**: Added 23 new automated tests bringing test suite to 27 test files, 234 tests passing with zero failures.
+- **Consultation Booking & Slot Engine (Step 2 — Commit [`7981c8a`](file:///c:/Users/gcad1/Documents/eventsika-landing))**:
+  - Pure scheduling engine (`consultation-time.ts`) evaluated strictly in `Asia/Kolkata`: 6 daily slots, Mon–Sat schedule, Sunday exclusion, 24h lead time, 30d window.
+  - `ConsultationBookingService`: JIT slot materialization with `ON CONFLICT DO NOTHING`, atomic 15-minute slot hold via database RPC, 256-bit cryptographically secure token generation, stale-hold detachment, and compensation release.
+  - Database concurrency migration (`20260915120000`): unique slot start time index, confirmed consultation partial index, and 3 stored procedures (`reserve_consultation_slot`, `release_consultation_slot`, `confirm_consultation_slot`) hardened as `SECURITY INVOKER` restricted to `service_role`.
+  - Route handlers: `GET /api/consultations/slots` (30 req/min, no-store) and `POST /api/consultations/reserve` (5 req/10min, 50 KB ceiling).
+
+
 
 ### 2026-09-14
 - **Payment & Consultation Domain Foundation (Step 1 — Commit [`20916c3`](file:///d:/Persional-projects/landing))**:
@@ -1262,88 +1623,71 @@ Every AI agent working in the Eventsika repository must adhere to the following 
 
 ---
 
+
 ## 29. Final Verification
 
 - **Repository Inspected**: YES (All files, routes, components, assets, migrations, and configs verified directly from active source)
-- **Architecture Verified**: YES (6-layer backend flow, 8-table Supabase PostgreSQL persistence, 3 atomic stored procedures, Consultation Booking Engine, Asia/Kolkata scheduling engine, Cashfree Payment Gateway Adapter with hard-locked API version 2023-08-01, Secure Consultation Payment Order Creation Subsystem with 120s reservation safety rule and PostgreSQL 23505 concurrency convergence, Supabase SSR Auth & RBAC session cookies, Distributed Rate Limiting via Upstash Redis, Concierge Operations Suite, Hero Fireworks dotLottie Layer)
-- **Automated Test Suite Verified**: YES (31 test files, 323 passing tests, 0 failures)
-- **Build & Lint Verified**: YES (Next.js 16.3.0 standalone production build compiled in 2.9s, 0 TypeScript errors, 0 ESLint errors)
+- **Architecture Verified**: YES (6-layer backend flow, 8-table Supabase PostgreSQL persistence, 3 atomic stored procedures, Consultation Booking Engine, Asia/Kolkata scheduling engine, Cashfree Payment Gateway Adapter with hard-locked API version 2023-08-01, Secure Consultation Payment Order Creation Subsystem, Customer Booking & Checkout Experience with 9-state machine and Cashfree Web SDK v3, Supabase SSR Auth & RBAC session cookies, Distributed Rate Limiting via Upstash Redis, Concierge Operations Suite, Hero Fireworks dotLottie Layer)
+- **Automated Test Suite Verified**: YES (33 test files, 342 passing tests, 0 failures at verified Step 5 checkpoint; not re-run during this documentation-only audit)
+- **Build & Lint Verified**: YES (Next.js 16.3.0 standalone production build compiled successfully, 0 TypeScript errors, 0 ESLint errors)
 - **Secrets Excluded**: YES (Zero API keys, database credentials, or private tokens stored)
 - **Existing Agent Tooling Preserved**: YES (All 6 skills in `.agents/skills/` and MCP configurations intact)
 - **Application Code Modified by Documentation Task**: NO
 - **Brain.md Generated From Actual Codebase**: YES
-- **Repository HEAD at Verification**: `88d9db98e4d3a24b0718501e5fc2ceae57467610` (`main` — working tree contains uncommitted Step 4 changes pending review)
-- **Verification Timestamp**: `2026-09-17T13:50:00+05:30`
+- **Repository HEAD at Verification**: `26f4c3489d64403d6ea45803dac9a10da9ba16ba` (`main` — working tree clean)
+- **Verification Timestamp**: `2026-09-21T15:35:00+05:30`
 
 ---
 
+
+
 ## 30. Ground Truth System Summary
 
-This section serves as the immediate reference for future engineers and AI agent sessions:
-
 ### 1. What is implemented?
-- **Public Frontend**: Homepage (`/`), Services (`/services`), Packages (`/packages`), Vendor intake (`/for-vendors`), Diwali consultation presentation (`/diwali-consultation`), Portal login (`/login`), SEO (`robots.ts`, `sitemap.ts`, JSON-LD).
-- **Concierge Operations Suite**: Admin Dashboard (`/admin`), Inquiries Queue (`/admin/leads`), Partner Register (`/admin/vendors`), Analytics (`/admin/analytics`), SSR Session Management, Upstash Redis distributed auth rate limiting.
-- **Intake Engine**: `POST /api/leads` and `POST /api/vendor-applications` with sliding window rate limiting, honeypot spam defense, deduplication, and transactional email dispatch.
-- **Payment Step 1 — Payment & Consultation Foundation** ([`20916c3`](file:///d:/Persional-projects/landing)): 6 PostgreSQL tables (`consultation_slots`, `consultations`, `payment_orders`, `payment_transactions`, `payment_refunds`, `webhook_events`), integer paise representations (`BIGINT > 0`), snapshot customer model, server-owned pricing, and 6 repository interfaces with Supabase implementations.
-- **Payment Step 2 — Booking & Slot Engine** ([`7981c8a`](file:///d:/Persional-projects/landing)):
-  - Pure scheduling engine (`consultation-time.ts`): Asia/Kolkata timezone, 6 daily slots, Mon–Sat schedule, Sunday exclusion, 24h lead time, 30d window.
-  - `ConsultationBookingService`: JIT slot generation, atomic 15m hold, 256-bit secure tokens, stale-hold detachment, and compensation release.
-  - Endpoints: `GET /api/consultations/slots` (30 req/min, no-store) and `POST /api/consultations/reserve` (5 req/10m, 50 KB, 409/400/404/500 mapping).
-  - Database concurrency migration (`20260915120000`): unique slot start time index, confirmed-slot partial index (`WHERE status = 'confirmed'`), and 3 stored procedures (`reserve_consultation_slot`, `release_consultation_slot`, `confirm_consultation_slot`) hardened as `SECURITY INVOKER` restricted to `service_role`.
-- **Payment Step 3 — Cashfree Payment Gateway Adapter** ([`88d9db9`](file:///d:/Persional-projects/landing)):
-  - Provider-agnostic gateway interface (`IPaymentGatewayAdapter` in `payment-gateway.interface.ts`).
-  - Zero-dependency native fetch adapter (`CashfreePaymentGatewayAdapter` in `cashfree-payment-gateway-adapter.ts`) for Cashfree PG API hard-locked to `2023-08-01`.
-  - Defensive 10-second `AbortController` timeout against hanging network requests.
-  - Boundary conversion: internal integer paise (`299900`) to provider decimal rupees (`2999.00`).
-  - Automatic HTTP 409 `order_already_exists` recovery via `GET /orders/{order_id}`.
-  - Ephemeral `payment_session_id` returned directly in result (no DB persistence).
-  - Server-only credentials validation (`CASHFREE_APP_ID`, `CASHFREE_SECRET_KEY`, `CASHFREE_ENVIRONMENT`) in `env.ts` with strict production enforcement against silent sandbox fallback.
-  - Tracked `.env.example` in git (`!.env.example`) with safe placeholders.
-  - 23 unit tests passing (28 test files, 263 tests passing overall).
-- **Payment Step 4 — Secure Consultation Payment Order Creation**:
-  - `IPaymentOrderRepository.getLatestOrderByConsultationId` & Supabase implementation.
-  - Schema validation (`payment-order-schema.ts`): UUIDv4 `consultationId`, 64-hex lowercase `reservationToken`, client price tampering prevention.
-  - `ConsultationPaymentService`: server-authoritative pricing (₹2,999 / 299900 paise, INR), 120-second reservation safety lifetime threshold ($remaining \ge 120s$), timing-safe token verification (`crypto.timingSafeEqual`), deterministic provider order ID (`ord_<32hex>`), Gateway-First Cashfree call via `IPaymentGatewayAdapter`, post-gateway reservation re-check, PostgreSQL 23505 unique conflict reconciliation (`idx_orders_gateway_order_id`), and consultation transition (`slot_held` → `awaiting_payment`). Within the Step 4 payment-order creation pathway, a consultation deterministically maps to one gateway order ID, and the existing unique gateway_order_id constraint prevents duplicate insertion through that pathway.
-  - Route handler: `POST /api/consultations/payment/order` (5 req / 10m, 16 KB ceiling, origin check, `X-Request-Id` correlation, sanitized `{ paymentSessionId }` response).
-  - 59 automated tests across 4 test suites (31 test files, 323 tests passing overall).
+- **Core Landing Architecture**: Next.js 16 App Router, React 19, TypeScript strict mode, CSS Modules, and luxury brand design system.
+- **Hero Fireworks Decorative Animation Layer**: Local `@lottiefiles/dotlottie-web` WebAssembly canvas player (`/animation/dotlottie-player.wasm`), non-blocking pass-through (`pointer-events: none`), and reduced motion respect.
+- **Concierge Operations Suite**: Protected `/admin` layout shell, dynamic metric cards, lead pipeline, client inquiry dossier, vendor applicant register, and RFC 4180 CSV export with formula injection protection.
+- **Seasonal Strategy Promotion**: Live `/diwali-consultation` route with Diwali festive festoon lights and interactive consultation experience.
+- **Payment Step 1 — Foundation** ([`20916c3`](file:///c:/Users/gcad1/Documents/eventsika-landing)): 6 PostgreSQL tables, integer paise representations (`BIGINT > 0`), snapshot customer model, server-owned pricing, and 6 repository interfaces with Supabase implementations.
+- **Payment Step 2 — Slot Engine** ([`7981c8a`](file:///c:/Users/gcad1/Documents/eventsika-landing)): Asia/Kolkata timezone, 6 daily slots, Mon–Sat schedule, Sunday exclusion, 24h lead time, 30d window, JIT slot generation, atomic 15m hold, 256-bit secure tokens, stale-hold detachment, compensation release, unique slot indexes, and 3 stored procedures.
+- **Payment Step 3 — Cashfree Adapter** ([`88d9db9`](file:///c:/Users/gcad1/Documents/eventsika-landing)): Native fetch adapter targeting Cashfree PG API (2023-08-01), 10s timeout, automatic 409 recovery, integer paise to decimal rupees conversion, and server-only credential security.
+- **Payment Step 4 — Secure Order Creation** ([`328f285`](file:///c:/Users/gcad1/Documents/eventsika-landing)): Gateway-First order creation, 120s reservation safety threshold, deterministic order ID (`ord_<32hex>`), timing-safe token verification, PostgreSQL 23505 unique conflict reconciliation, and consultation transition (`slot_held` → `awaiting_payment`).
+- **Payment Step 5 — Customer Checkout Experience** ([`86ed613`](file:///c:/Users/gcad1/Documents/eventsika-landing), merged in [`26f4c34`](file:///c:/Users/gcad1/Documents/eventsika-landing)): Stitch-inspired luxury booking modal on `/diwali-consultation`, 9-state machine, live slot picker, client-validated customer intake form, live 15m hold timer, authoritative ₹2,999 checkout view, Cashfree Web SDK v3 modal integration, and presentation-only pending state.
+- **Remote Supabase Database Migrations**: Migrations `20260901160000`, `20260914180000`, and `20260915120000` applied remotely to `mswbfuguigogoumrxqmo` via `supabase db push --linked`. All six payment/consultation tables, RLS policies, and three slot RPCs (`reserve_consultation_slot`, `release_consultation_slot`, `confirm_consultation_slot` as `SECURITY INVOKER`) are verified present.
 
 ### 2. What is partially implemented?
-- **Database Migrations on Remote Production**: All 3 migration files are complete and tested in version control; physical execution against the live remote Supabase production project is `[PENDING EXTERNAL VERIFICATION]`.
-- **Payment Flow**: The inventory, booking, draft consultation, and secure payment order creation pipeline is fully implemented (`slot_held` → `awaiting_payment`). The subsequent client-side checkout modal presentation (Step 5), webhook transaction ledger (Step 6), and slot confirmation RPC invocation (Step 7) are next.
+- **Payment Lifecycle**: Steps 1–5 are complete (`slot_held` → `awaiting_payment` → Cashfree modal checkout invocation → pending view). Server-side webhook confirmation, transaction ledger recording, and atomic slot confirmation (Step 6) remain next.
+- **Cashfree Sandbox Verification**: Booking flow reached payment modal; sandbox checkout encountered a high-traffic/gateway error during browser testing (root cause unverified).
 
 ### 3. What is intentionally not implemented?
-- **Cashfree Client SDK / Checkout Modal**: Deferred to Step 5.
-- **Webhook Ingestion & Signature Verification**: Deferred to Step 6.
-- **Booking Confirmation & Notification Automation**: Deferred to Step 7.
+- **Client-Side Payment Confirmation**: Omitted by design. The browser has zero authority to confirm payments; all confirmation resides on the server in Step 6.
 - **Public Slot Release Endpoint**: Omitted by design. Expired holds self-recover via lazy expiry in 15 minutes, preventing denial-of-inventory tampering.
 - **Background Cron Expiry Workers**: Omitted by design. Lazy expiry at query/reservation time eliminates worker operational overhead.
 - **Separate Customer Table**: Omitted by design. Customer data is stored denormalized on consultations to avoid premature auth coupling.
 - **Monolithic RPC containing Customer PII**: Stored procedures only touch slot IDs and tokens. Customer PII is stored cleanly in `public.consultations` via the repository layer.
 
 ### 4. What is next?
-- **Step 5 — Client Checkout Presentation**:
-  - Client-side Cashfree JS SDK integration on `/diwali-consultation` to mount payment modal.
-- **Step 6 — Webhook Ingestion & Transaction Ledger**:
-  - Webhook listener `POST /api/payments/webhook` with signature verification, idempotency via `public.webhook_events`, and transaction ledger in `public.payment_transactions`.
-- **Step 7 — Booking Confirmation & Notifications**:
-  - Call `confirm_consultation_slot` RPC upon verified payment.
-  - Dispatch confirmation emails with calendar invitations (`.ics`) to customer and `care@eventsika.in`.
-- **Remote Migration Application**: Apply `20260914180000` and `20260915120000` to remote Supabase production database.
+- **Step 6 — Webhook Ingestion, Server Verification & Payment Confirmation**:
+  - Webhook listener `POST /api/webhooks/cashfree` with raw body cryptographic signature verification (`x-webhook-signature`).
+  - Webhook event idempotency tracking in `public.webhook_events`.
+  - Cashfree payment status polling/verification.
+  - Recording transaction attempts in `public.payment_transactions`.
+  - Atomic status updates: `payment_orders.status = 'paid'`, `consultations.status = 'confirmed'`.
+  - Atomic slot confirmation via `confirm_consultation_slot` RPC.
+  - Customer confirmation email dispatch with `.ics` calendar invitation and operations notification to `care@eventsika.in`.
+- **Cashfree Sandbox Resolution**: Investigate sandbox gateway response during end-to-end payment verification.
 
 ### 5. What must never be changed without architectural review?
 1. **Integer Paise Representation**: Never store or calculate consultation fees as floating-point decimals. Always use integer paise (`299900`).
-2. **Payment Success != Slot Confirmation Invariant**: A payment gateway success callback does NOT equal a booked consultation until verified and confirmed via database RPC.
+2. **Payment Success != Slot Confirmation Invariant**: A payment gateway success callback does NOT equal a booked consultation until verified server-side and confirmed via database RPC.
 3. **Asia/Kolkata Time Invariance**: All slot intervals and calendar bounds must be evaluated in `Asia/Kolkata` (UTC+5:30) regardless of host server time.
 4. **RPC Security Model**: Database stored procedures must remain `SECURITY INVOKER` with public/anon execute privileges revoked and granted strictly to `service_role`.
 5. **No Direct Client Supabase Database Calls**: Public browser clients must never query or mutate booking/payment tables directly; all access must pass through server-side Route Handlers.
 
+---
+
 ### 6. What is the authoritative source if Brain.md conflicts with code?
-**The active repository source code is ALWAYS the absolute ground truth.**
 If a conflict arises:
 1. Inspect the active source code and version-controlled migrations.
 2. Treat the code as truth.
 3. Update `Brain.md` to reflect reality.
-
-
-
