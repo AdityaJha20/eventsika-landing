@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Script from "next/script";
 import Navbar from "@/components/Navbar";
 import PackageCustomizer from "@/components/PackageCustomizer";
 import PackageComparison from "@/components/PackageComparison";
@@ -184,13 +185,15 @@ const breadcrumbJsonLd = {
 export default function PackagesPage() {
   return (
     <>
-      <script
+      <Script
+        id="json-ld-packages"
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(packagesJsonLd),
         }}
       />
-      <script
+      <Script
+        id="json-ld-packages-breadcrumb"
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(breadcrumbJsonLd),
