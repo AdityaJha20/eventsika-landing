@@ -504,7 +504,7 @@ interface MemoryEntry {
   lockedUntil: number;
 }
 
-export class InMemoryAdminRateLimitStore implements IAdminRateLimitStore {
+class InMemoryAdminRateLimitStore implements IAdminRateLimitStore {
   private store = new Map<string, MemoryEntry>();
 
   async checkLimits(ip: string, emailHash?: string): Promise<AdminRateLimitResult> {
