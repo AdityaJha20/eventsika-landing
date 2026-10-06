@@ -13,6 +13,6 @@ export function getOrCreateRequestId(request?: NextRequest): string {
 
   // Generate safe 12-char unique correlation identifier
   const timestamp = Date.now().toString(36);
-  const randomSuffix = Math.random().toString(36).slice(2, 8);
+  const randomSuffix = crypto.randomUUID().split("-")[0].slice(0, 6);
   return `req_${timestamp}_${randomSuffix}`;
 }
