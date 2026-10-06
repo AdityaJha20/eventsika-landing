@@ -234,7 +234,7 @@ export interface IAdminRateLimitStore {
 /**
  * Generates fixed-length SHA-256 hash for email to prevent arbitrary-length memory bloat.
  */
-export function hashEmail(email: string): string {
+function hashEmail(email: string): string {
   const normalized = email.trim().toLowerCase();
   return createHash("sha256").update(normalized).digest("hex");
 }
