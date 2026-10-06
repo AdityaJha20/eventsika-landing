@@ -476,7 +476,7 @@ export class ConsultationPaymentService {
     // Step 10: Post-Gateway Expiry Verification
     // If the reservation expired while waiting for Cashfree, abort exposure.
     // --------------------------------------------------------------------------
-    const postCheckNow = new Date();
+    const postCheckNow = context?.serverNow || new Date();
     const postCheckRemaining = Math.floor(
       (new Date(slot.reservedUntil).getTime() - postCheckNow.getTime()) / 1000
     );
