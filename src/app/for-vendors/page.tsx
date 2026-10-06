@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import Script from "next/script";
 import Navbar from "@/components/Navbar";
 import VendorApplicationForm from "@/components/VendorApplicationForm";
 import Footer from "@/components/Footer";
@@ -109,7 +110,8 @@ const PARTNER_CATEGORIES = [
 export default function ForVendorsPage() {
   return (
     <>
-      <script
+      <Script
+        id="json-ld-for-vendors"
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(breadcrumbJsonLd),

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import Script from "next/script";
 import Navbar from "@/components/Navbar";
 import ServiceEstimator from "@/components/ServiceEstimator";
 import ServicesFAQ from "@/components/ServicesFAQ";
@@ -155,7 +156,8 @@ const SERVICES_DATA = [
 export default function ServicesPage() {
   return (
     <>
-      <script
+      <Script
+        id="json-ld-services"
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(breadcrumbJsonLd),
