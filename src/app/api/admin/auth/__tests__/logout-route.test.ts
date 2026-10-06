@@ -3,6 +3,11 @@ import { NextRequest } from "next/server";
 import { POST, GET, PUT, DELETE } from "../logout/route";
 import * as serverSupabase from "@/lib/backend/supabase/server";
 import { SupabaseClient } from "@supabase/supabase-js";
+import { cookies } from "next/headers";
+
+vi.mock("next/headers", () => ({
+  cookies: vi.fn(),
+}));
 
 describe("POST /api/admin/auth/logout Endpoint", () => {
   beforeEach(() => {
@@ -37,6 +42,10 @@ describe("POST /api/admin/auth/logout Endpoint", () => {
   });
 
   it("calls supabase.auth.signOut() and returns HTTP 200 with confirmation", async () => {
+    vi.mocked(cookies).mockReturnValue({
+      delete: vi.fn(),
+    } as any);
+
     const mockSignOut = vi.fn().mockResolvedValue({ error: null });
 
     vi.spyOn(serverSupabase, "createSupabaseServerClient").mockResolvedValue({
@@ -64,9 +73,42 @@ describe("POST /api/admin/auth/logout Endpoint", () => {
   });
 
   it("handles unexpected errors during logout gracefully returning HTTP 500", async () => {
+    vi.mocked(cookies).mockReturnValue({
+      delete: vi.fn(),
+    } as any);
+
     vi.spyOn(serverSupabase, "createSupabaseServerClient").mockRejectedValue(
       new Error("Supabase connection fault")
     );
+
+    const request = new NextRequest("http://localhost:3000/api/admin/auth/logout", {
+      method: "POST",
+      headers: {
+        host: "localhost:3000",
+        origin: "http://localhost:3000",
+      },
+    });
+
+    const response = await POST(request);
+    expect(response.status).toBe(500);
+    const body = await response.json();
+    expect(body.success).toBe(false);
+    expect(body.error).toBe("Failed to process logout.");
+  });
+
+  it("handles unexpected errors when cookies().delete throws, returning HTTP 500", async () => {
+    vi.mocked(cookies).mockReturnValue({
+      delete: vi.fn().mockImplementation(() => {
+        throw new Error("Cookie deletion failed");
+      }),
+    } as any);
+
+    const mockSignOut = vi.fn().mockResolvedValue({ error: null });
+    vi.spyOn(serverSupabase, "createSupabaseServerClient").mockResolvedValue({
+      auth: {
+        signOut: mockSignOut,
+      },
+    } as unknown as SupabaseClient);
 
     const request = new NextRequest("http://localhost:3000/api/admin/auth/logout", {
       method: "POST",
