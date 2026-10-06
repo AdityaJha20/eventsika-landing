@@ -19,7 +19,7 @@ export type SeasonalOccasion =
  * - Set to null to disable all seasonal decorations website-wide.
  * - Set to another occasion key when a new festive component is integrated.
  */
-export const ACTIVE_SEASONAL_OCCASION: SeasonalOccasion = "diwali";
+const ACTIVE_SEASONAL_OCCASION: SeasonalOccasion = "diwali";
 
 interface SeasonalDecorationProps {
   /**
