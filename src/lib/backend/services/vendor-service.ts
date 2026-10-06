@@ -23,7 +23,7 @@ export function getDefaultVendorRepository(): IVendorRepository {
   return defaultVendorRepository;
 }
 
-export class VendorService {
+class VendorService {
   private repository: IVendorRepository;
   private notifier: IDeliveryNotifier;
 
