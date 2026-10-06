@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { ValidatedVendorInput } from "../validation/vendor-schema";
 import { IVendorRepository, SavedVendorRecord } from "./vendor-repository.interface";
 
@@ -19,7 +20,7 @@ export class InMemoryVendorRepository implements IVendorRepository {
   async saveVendorApplication(vendor: ValidatedVendorInput): Promise<SavedVendorRecord> {
     const record: SavedVendorRecord = {
       ...vendor,
-      id: `vnd_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      id: `vnd_${crypto.randomUUID()}`,
       createdAt: new Date().toISOString(),
     };
 
