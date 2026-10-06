@@ -85,6 +85,7 @@ export class VendorService {
       savedRecord = await this.repository.saveVendorApplication(vendor, { requestId });
     } catch (err) {
       logger.error("Failed to persist vendor application to repository boundary", err, { requestId });
+      throw err;
     }
 
     // 4. External Delivery / Notification Boundary
