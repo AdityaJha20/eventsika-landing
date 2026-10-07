@@ -32,6 +32,7 @@ export class SupabasePaymentOrderRepository implements IPaymentOrderRepository {
       status: row.status as PaymentOrderStatus,
       expiresAt: typeof row.expires_at === "string" ? row.expires_at : null,
       paidAt: typeof row.paid_at === "string" ? row.paid_at : null,
+      reservationToken: typeof row.reservation_token === "string" ? row.reservation_token : null,
       requestId: typeof row.request_id === "string" ? row.request_id : null,
       createdAt: String(row.created_at),
       updatedAt: String(row.updated_at),
@@ -54,6 +55,7 @@ export class SupabasePaymentOrderRepository implements IPaymentOrderRepository {
         currency: order.currency || "INR",
         status: "created",
         expires_at: order.expiresAt || null,
+        reservation_token: order.reservationToken,
         request_id: order.requestId || null,
       })
       .select("*")
