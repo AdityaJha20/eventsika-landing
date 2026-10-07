@@ -631,6 +631,10 @@ export function VendorsWorkspace({
     return filteredVendors.slice(startIndex, startIndex + pageSize);
   }, [filteredVendors, safeCurrentPage, pageSize]);
 
+  const pageNumbers = useMemo(() => {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }, [totalPages]);
+
   const handleResetFilters = () => {
     setSearchQuery("");
     setSelectedCategory("All");
@@ -1173,23 +1177,21 @@ export function VendorsWorkspace({
                 Previous
               </button>
 
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                (pageNum) => (
-                  <button
-                    key={pageNum}
-                    type="button"
-                    className={`${styles.pageNumberBtn} ${
-                      pageNum === safeCurrentPage ? styles.pageNumberActive : ""
-                    }`}
-                    onClick={() => setCurrentPage(pageNum)}
-                    aria-current={
-                      pageNum === safeCurrentPage ? "page" : undefined
-                    }
-                  >
-                    {pageNum}
-                  </button>
-                )
-              )}
+              {pageNumbers.map((pageNum) => (
+                <button
+                  key={pageNum}
+                  type="button"
+                  className={`${styles.pageNumberBtn} ${
+                    pageNum === safeCurrentPage ? styles.pageNumberActive : ""
+                  }`}
+                  onClick={() => setCurrentPage(pageNum)}
+                  aria-current={
+                    pageNum === safeCurrentPage ? "page" : undefined
+                  }
+                >
+                  {pageNum}
+                </button>
+              ))}
 
               <button
                 type="button"
