@@ -80,6 +80,7 @@ describe("ConsultationPaymentService Suite (Step 4)", () => {
     status: "created",
     expiresAt: "2026-10-01T10:15:00.000Z",
     paidAt: null,
+    reservationToken: mockToken,
     requestId: "req_test_123",
     createdAt: "2026-10-01T10:00:01.000Z",
     updatedAt: "2026-10-01T10:00:01.000Z",
@@ -194,6 +195,7 @@ describe("ConsultationPaymentService Suite (Step 4)", () => {
         amountInPaise: 299900,
         currency: "INR",
         expiresAt: "2026-10-01T10:15:00.000Z",
+        reservationToken: mockToken,
         requestId: "req_test_123",
       });
 

@@ -120,6 +120,7 @@ export interface PaymentOrderRecord {
   status: PaymentOrderStatus;
   expiresAt: string | null;
   paidAt: string | null;
+  reservationToken: string | null;
   requestId: string | null;
   createdAt: string;
   updatedAt: string;
@@ -131,6 +132,7 @@ export interface CreatePaymentOrderInput {
   currency?: "INR";
   gatewayOrderId?: string | null;
   expiresAt?: string | null;
+  reservationToken: string;
   requestId?: string | null;
 }
 

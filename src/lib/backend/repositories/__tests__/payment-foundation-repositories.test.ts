@@ -413,6 +413,7 @@ describe("Payment Foundation Repositories Suite (Step 1)", () => {
         repo.createOrder({
           consultationId: "c-1",
           amountInPaise: 0,
+          reservationToken: "tok-test-1",
         })
       ).rejects.toThrow("strictly positive integer");
 
@@ -420,6 +421,7 @@ describe("Payment Foundation Repositories Suite (Step 1)", () => {
         repo.createOrder({
           consultationId: "c-1",
           amountInPaise: 2999.5, // floating-point money forbidden!
+          reservationToken: "tok-test-1",
         })
       ).rejects.toThrow("strictly positive integer");
     });
@@ -434,18 +436,21 @@ describe("Payment Foundation Repositories Suite (Step 1)", () => {
         status: "created",
         expires_at: "2026-09-14T10:30:00.000Z",
         paid_at: null,
+        reservation_token: "tok_orig_reservation_123",
         request_id: "req_order_123",
         created_at: "2026-09-14T10:15:00.000Z",
         updated_at: "2026-09-14T10:15:00.000Z",
       };
 
+      const insertMock = vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: mockOrderRow, error: null }),
+        }),
+      });
+
       const mockClient = {
         from: vi.fn().mockReturnValue({
-          insert: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({ data: mockOrderRow, error: null }),
-            }),
-          }),
+          insert: insertMock,
         }),
       } as unknown as SupabaseClient;
 
@@ -453,6 +458,7 @@ describe("Payment Foundation Repositories Suite (Step 1)", () => {
       const order = await repo.createOrder({
         consultationId: "c-uuid-1",
         amountInPaise: 299900,
+        reservationToken: "tok_orig_reservation_123",
         requestId: "req_order_123",
       });
 
@@ -461,6 +467,12 @@ describe("Payment Foundation Repositories Suite (Step 1)", () => {
       expect(order.currency).toBe("INR");
       expect(order.gatewayOrderId).toBeNull();
       expect(order.status).toBe("created");
+      expect(order.reservationToken).toBe("tok_orig_reservation_123");
+      expect(insertMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reservation_token: "tok_orig_reservation_123",
+        })
+      );
     });
 
     it("fetches the latest payment order for a consultation ordered by created_at DESC", async () => {
@@ -473,6 +485,7 @@ describe("Payment Foundation Repositories Suite (Step 1)", () => {
         status: "created",
         expires_at: "2026-10-01T10:15:00.000Z",
         paid_at: null,
+        reservation_token: null,
         request_id: "req_order_latest",
         created_at: "2026-10-01T10:00:00.000Z",
         updated_at: "2026-10-01T10:00:00.000Z",
@@ -499,6 +512,7 @@ describe("Payment Foundation Repositories Suite (Step 1)", () => {
       expect(order?.id).toBe("order-uuid-latest");
       expect(order?.consultationId).toBe("c-uuid-1");
       expect(order?.gatewayOrderId).toBe("ord_gateway_123");
+      expect(order?.reservationToken).toBeNull();
     });
   });
 

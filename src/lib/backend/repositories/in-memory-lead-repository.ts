@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { ValidatedLeadInput } from "../validation/lead-schema";
 import { ILeadRepository, SavedLeadRecord } from "./lead-repository.interface";
 
@@ -19,7 +20,7 @@ export class InMemoryLeadRepository implements ILeadRepository {
   async saveLead(lead: ValidatedLeadInput): Promise<SavedLeadRecord> {
     const record: SavedLeadRecord = {
       ...lead,
-      id: `lead_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      id: `lead_${Date.now()}_${randomUUID()}`,
       createdAt: new Date().toISOString(),
     };
 

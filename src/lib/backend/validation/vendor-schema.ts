@@ -36,6 +36,7 @@ export type VendorValidationResult =
   | { success: false; error: string };
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const VENDOR_CATEGORIES_SET = new Set(VENDOR_CATEGORIES);
 
 /**
  * Validates and sanitizes a raw vendor partner application payload.
@@ -137,12 +138,14 @@ export function validateVendorInput(raw: unknown): VendorValidationResult {
     return { success: false, error: "Please select at least one service category." };
   }
   const categories: VendorCategoryOption[] = [];
+  const seenCategories = new Set<string>();
   for (const cat of payload.categories) {
     if (typeof cat === "string" && cat.trim()) {
       const trimmed = cat.trim() as VendorCategoryOption;
-      if (VENDOR_CATEGORIES.includes(trimmed)) {
-        if (!categories.includes(trimmed)) {
+      if (VENDOR_CATEGORIES_SET.has(trimmed)) {
+        if (!seenCategories.has(trimmed)) {
           categories.push(trimmed);
+          seenCategories.add(trimmed);
         }
       } else {
         return {

@@ -505,6 +505,7 @@ export class ConsultationPaymentService {
         amountInPaise: DEFAULT_CONSULTATION_PRICE_PAISE,
         currency: "INR",
         expiresAt: slot.reservedUntil,
+        reservationToken: slot.reservationToken!,
         requestId: requestId || null,
       });
     } catch (dbErr) {
