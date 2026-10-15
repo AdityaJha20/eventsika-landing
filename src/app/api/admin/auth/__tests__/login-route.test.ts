@@ -496,6 +496,25 @@ describe("POST /api/admin/auth/login Security & Hardening Suite", () => {
     expect(followUpRes.status).toBe(401);
   });
 
+
+  it("returns 500 when an unexpected error occurs during Supabase client creation or login", async () => {
+    vi.spyOn(serverSupabase, "createSupabaseServerClient").mockRejectedValue(
+      new Error("Simulated database failure")
+    );
+
+    const req = createMockRequest({
+      email: "admin@eventsika.in",
+      password: "password123",
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.success).toBe(false);
+    expect(body.error).toBe("An unexpected error occurred. Please try again.");
+  });
+
   // --- Fail-Closed Production Behavior ---
   it("fails closed with HTTP 503 when in production and Redis is unconfigured", async () => {
     vi.stubEnv("NODE_ENV", "production");
