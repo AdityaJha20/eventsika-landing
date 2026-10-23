@@ -21,6 +21,7 @@ describe("LeadService", () => {
     budgetRange: "₹50,000 – ₹1,00,000",
     whatsappConsent: true,
     isBot: false,
+    packageQuote: null,
   };
 
   beforeEach(() => {
