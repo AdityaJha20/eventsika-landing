@@ -69,8 +69,9 @@ export default function PackageCustomizer({
       setGuestCount(MIN_GUEST_COUNT);
       setInputValue(String(MIN_GUEST_COUNT));
     } else {
-      setGuestCount(parsed);
-      setInputValue(String(parsed));
+      const clamped = Math.min(MAX_GUEST_COUNT, parsed);
+      setGuestCount(clamped);
+      setInputValue(String(clamped));
     }
   };
 
