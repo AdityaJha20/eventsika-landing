@@ -90,7 +90,7 @@ function serviceOptionsForAddons(addonIds: readonly string[]): string[] {
     hampers: "More",
     "valet-concierge": "More",
   };
-  return Array.from(new Set(addonIds.map((id) => mappedServices[id]).filter(Boolean)));
+  return Array.from(new Set(addonIds.map((id) => mappedServices[id]).filter((service): service is string => typeof service === "string")));
 }
 
 function isValidPhoneNumber(phone: string): boolean {
@@ -369,6 +369,12 @@ export default function Hero() {
                     <div className={styles.summaryItem}>
                       <span className={styles.summaryKey}>Eventsika Planning Fee</span>
                       <span className={styles.summaryVal}>{formatCurrency(packageQuoteEstimate.planningFee)}</span>
+                    </div>
+                    <div className={styles.summaryItem}>
+                      <span className={styles.summaryKey}>Selected Vendor Services</span>
+                      <span className={styles.summaryVal}>
+                        {packageQuoteSelection.vendorAddonIds.map((id) => ADDONS_CONFIG.find((addon) => addon.id === id)?.name || id).join(", ") || "None selected"}
+                      </span>
                     </div>
                     <div className={styles.summaryItem}>
                       <span className={styles.summaryKey}>Selected Vendor Estimates</span>
