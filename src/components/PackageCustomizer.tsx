@@ -9,6 +9,10 @@ import {
   DEFAULT_GUEST_COUNT,
   DEFAULT_PACKAGE_ID,
   GUEST_PRESETS,
+  calculatePackageEstimate,
+  formatCurrency,
+  formatIndicativeVendorEstimate,
+  formatPackageRate,
   type PackageTierConfig,
 } from "@/lib/packages-config";
 import styles from "./PackageCustomizer.module.css";
@@ -32,7 +36,8 @@ export default function PackageCustomizer({
   const activePkgId = selectedPackageId ?? internalPkgId;
 
   const selectedPkg =
-    PACKAGES_CONFIG.find((p) => p.id === activePkgId) || PACKAGES_CONFIG[1];
+    PACKAGES_CONFIG.find((p) => p.id === activePkgId) ||
+    PACKAGES_CONFIG.find((p) => p.id === DEFAULT_PACKAGE_ID)!;
 
   const handlePackageSelect = (id: PackageTierConfig["id"]) => {
     if (onPackageSelect) {
@@ -74,17 +79,13 @@ export default function PackageCustomizer({
     );
   };
 
-  const basePackageTotal = guestCount * selectedPkg.pricePerGuest;
-
-  const addonsTotal = selectedAddonIds.reduce((sum, id) => {
-    const addon = ADDONS_CONFIG.find((a) => a.id === id);
-    return sum + (addon ? addon.price : 0);
-  }, 0);
-
-  const grandTotal = basePackageTotal + addonsTotal;
-  const formattedTotal = `₹${grandTotal.toLocaleString("en-IN")}`;
-  const formattedBase = `₹${basePackageTotal.toLocaleString("en-IN")}`;
-  const formattedAddons = `₹${addonsTotal.toLocaleString("en-IN")}`;
+  const estimate = calculatePackageEstimate(guestCount, selectedPkg.id, selectedAddonIds);
+  const basePackageTotal = estimate.planningFee;
+  const addonsTotal = estimate.selectedVendorEstimate;
+  const grandTotal = estimate.combinedEstimate;
+  const formattedTotal = formatCurrency(grandTotal);
+  const formattedBase = formatCurrency(basePackageTotal);
+  const formattedAddons = formatCurrency(addonsTotal);
 
   const customizerContent = (
     <div className={embedded ? styles.embeddedContainer : styles.container}>
@@ -93,7 +94,7 @@ export default function PackageCustomizer({
         <div className={styles.embeddedHeader}>
           <div className={styles.embeddedDivider} />
           <p className={styles.embeddedEyebrow}>ESTIMATE YOUR CELEBRATION</p>
-          <h3 className={styles.embeddedTitle}>Tailor Guest Count &amp; Add-ons</h3>
+          <h3 className={styles.embeddedTitle}>Planning Fee &amp; Vendor Estimates</h3>
         </div>
       ) : (
         <div className={styles.header}>
@@ -102,9 +103,7 @@ export default function PackageCustomizer({
             Build Your Custom Quote
           </h2>
           <p className={styles.description}>
-            Tailor a celebration package to your vision. Choose your expected
-            guest count, select your celebration tier, and add optional services
-            for an instant live estimate.
+            Estimate your Eventsika planning fee by guest count. Optional third-party vendor prices are indicative starting estimates and must be confirmed separately.
           </p>
         </div>
       )}
@@ -246,7 +245,7 @@ export default function PackageCustomizer({
             </fieldset>
           )}
 
-          {/* Optional Premium Add-Ons */}
+          {/* Optional Vendor Services */}
           <fieldset className={styles.stepGroup}>
             <legend className={styles.stepLegend}>
               <span className={styles.stepNum}>{embedded ? 2 : 3}</span>
@@ -256,7 +255,7 @@ export default function PackageCustomizer({
             <div
               className={styles.addonsList}
               role="group"
-              aria-label="Select Optional Premium Add-Ons"
+              aria-label="Select Optional Third-Party Vendor Services"
             >
               {ADDONS_CONFIG.map((addon) => {
                 const isChecked = selectedAddonIds.includes(addon.id);
@@ -299,7 +298,7 @@ export default function PackageCustomizer({
                     <div className={styles.addonInfo}>
                       <span className={styles.addonName}>{addon.name}</span>
                       <span className={styles.addonPrice}>
-                        {addon.displayPrice}
+                        {formatIndicativeVendorEstimate(addon.price)}
                       </span>
                     </div>
                   </label>
@@ -313,31 +312,31 @@ export default function PackageCustomizer({
         <div className={styles.summaryCol}>
           <div className={styles.summaryCard}>
             <div className={styles.summaryTop}>
-              <span className={styles.summaryEyebrow}>ESTIMATED PROPOSAL</span>
+              <span className={styles.summaryEyebrow}>PLANNING + VENDOR ESTIMATE</span>
               <span className={styles.tierBadge}>{selectedPkg.name}</span>
             </div>
 
             <div className={styles.totalBlock}>
-              <span className={styles.totalLabel}>Estimated Total</span>
+              <span className={styles.totalLabel}>Indicative Combined Estimate*</span>
               <div className={styles.totalFigure}>{formattedTotal}</div>
             </div>
 
             <div className={styles.breakdownList}>
               <div className={styles.breakdownRow}>
                 <span>
-                  Base Package ({selectedPkg.name})
+                  Planning & Coordination Fee
                 </span>
                 <span>{formattedBase}</span>
               </div>
               <div className={styles.calculationDetail}>
                 <span>
-                  {guestCount} guests × ₹{selectedPkg.pricePerGuest.toLocaleString("en-IN")} / guest
+                  {guestCount} guests × ₹{selectedPkg.pricePerPerson.toLocaleString("en-IN")} / person
                 </span>
               </div>
 
               {selectedAddonIds.length > 0 && (
                 <div className={styles.breakdownRow}>
-                  <span>Add-ons ({selectedAddonIds.length} selected)</span>
+                  <span>Vendor estimates ({selectedAddonIds.length} selected)</span>
                   <span>+{formattedAddons}</span>
                 </div>
               )}
@@ -363,9 +362,7 @@ export default function PackageCustomizer({
             </Link>
 
             <p className={styles.disclaimer}>
-              Estimates are indicative and calculated based on your expected guest
-              scale. Final quotation is tailored to your exact venue, custom menu,
-              and date availability.
+              The planning fee is separate from third-party vendor charges. Vendor estimates are indicative only, subject to vendor availability and confirmation; the final proposal will clarify tax treatment. This is not a confirmed all-inclusive quote.
             </p>
           </div>
         </div>
