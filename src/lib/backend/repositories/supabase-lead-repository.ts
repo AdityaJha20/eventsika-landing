@@ -47,6 +47,12 @@ export class SupabaseLeadRepository implements ILeadRepository {
         budget_range: lead.budgetRange,
         whatsapp_consent: lead.whatsappConsent,
         request_id: context?.requestId || null,
+        package_tier: lead.packageQuote?.tierId ?? null,
+        package_guest_count: lead.packageQuote?.guestCount ?? null,
+        package_vendor_addon_ids: lead.packageQuote?.vendorAddonIds ?? [],
+        package_planning_fee_rupees: lead.packageQuote?.planningFeeRupees ?? null,
+        package_vendor_estimate_rupees: lead.packageQuote?.vendorEstimateRupees ?? null,
+        package_combined_estimate_rupees: lead.packageQuote?.combinedEstimateRupees ?? null,
       })
       .select("id, created_at")
       .single();
@@ -94,6 +100,23 @@ export class SupabaseLeadRepository implements ILeadRepository {
       requestId: row.request_id || null,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+      packageQuote:
+        typeof row.package_tier === "string" &&
+        typeof row.package_guest_count === "number" &&
+        typeof row.package_planning_fee_rupees === "number" &&
+        typeof row.package_vendor_estimate_rupees === "number" &&
+        typeof row.package_combined_estimate_rupees === "number"
+          ? {
+              tierId: row.package_tier as NonNullable<ValidatedLeadInput["packageQuote"]>["tierId"],
+              guestCount: row.package_guest_count,
+              vendorAddonIds: Array.isArray(row.package_vendor_addon_ids)
+                ? row.package_vendor_addon_ids.filter((id: unknown): id is string => typeof id === "string")
+                : [],
+              planningFeeRupees: row.package_planning_fee_rupees,
+              vendorEstimateRupees: row.package_vendor_estimate_rupees,
+              combinedEstimateRupees: row.package_combined_estimate_rupees,
+            }
+          : null,
     }));
   }
 }
