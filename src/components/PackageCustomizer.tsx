@@ -232,7 +232,7 @@ export default function PackageCustomizer({
                       <div className={styles.radioTop}>
                         <span className={styles.packageName}>{pkg.name}</span>
                         <span className={styles.packagePrice}>
-                          {pkg.displayRate}
+                          {formatPackageRate(pkg.pricePerPerson)}
                         </span>
                       </div>
                       <span className={styles.packageTagline}>
