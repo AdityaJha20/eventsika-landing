@@ -28,7 +28,7 @@
 
 ### Primary Capabilities & Core Value Proposition
 1. **Curated Celebration Services**: Venue decor & floral styling, gourmet catering, live counters, ritual & puja arrangements, photography & cinematography, live entertainment, and bespoke invitations.
-2. **Transparent Tiered Pricing**: Structured packages ranging from intimate terrace gatherings (₹35k+) to grand multi-day festive galas (₹1.25L+), with dynamic customizer and comparison tools.
+2. **Transparent Tiered Pricing**: Three planning-and-coordination tiers—Essential (₹1,500/person), Premium (₹2,000/person), and Luxury (₹2,500/person)—with a shared live estimator. These fees cover Eventsika planning and coordination; third-party vendor services are quoted separately and any displayed vendor estimates are indicative until confirmed. The six fixed starting-price venue/event packages on `/packages` remain a separate catalogue ranging from ₹35,000 to ₹3,25,000.
 3. **Interactive Lead Generation Engine**: High-conversion, validated celebration intake form (`#plan-event`) with server-side rate limiting, honeypot protection, and multi-channel notification dispatch.
 4. **Curated Vendor Partner Network**: Transparent vendor partner application and onboarding registry (`/for-vendors`, `/admin/vendors`) capturing business profiles, portfolio links, and specialized categories.
 5. **Seasonal Strategy Consultations**: High-intent 1-on-1 celebration planning advisory sessions (`/diwali-consultation`).
@@ -436,7 +436,7 @@ landing/
   - [`Navbar.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/Navbar.tsx): Mobile toggle menu state, active route highlighting via `usePathname()`.
   - [`Services.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/Services.tsx): 3D CSS flip-card state (`transform-style: preserve-3d`) toggled via click or keyboard navigation (`Enter` / `Space`).
   - [`EventTypes.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/EventTypes.tsx): Synchronized hover/click tab list updating active high-resolution editorial imagery on the left column.
-  - [`PackageCustomizer.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/PackageCustomizer.tsx) & [`ServiceEstimator.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/ServiceEstimator.tsx): Dynamic arithmetic cost calculations based on guest counts, venue types, and add-on toggles.
+  - [`PackageCustomizer.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/PackageCustomizer.tsx): Calculates a per-person Eventsika planning fee by selected tier and guest count, and separately sums indicative third-party vendor estimates. [`ServiceEstimator.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/ServiceEstimator.tsx) sums selected flat indicative service estimates; its options do not dynamically scale from a guest-count field.
   - [`VendorApplicationForm.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/VendorApplicationForm.tsx) & [`LoginForm.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/LoginForm.tsx): Controlled inputs, field-level error validation, interactive feedback notices, and authentication handshakes.
   - **Consultation Booking & Checkout Components (`src/components/consultation/`)**:
     - [`BookingExperience.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/consultation/BookingExperience.tsx): Client trigger button and modal mount point.
@@ -1338,7 +1338,7 @@ Do NOT modify these components or systems without explicit user approval and a d
 These areas can be iterated on and refined with standard pre-commit verification:
 1. **Marketing Copy & Headings**: Text, feature descriptions, testimonials, and FAQs across landing sections.
 2. **Component-Specific Visual Styles**: Padding, margins, typography sizes, and layouts within localized `*.module.css` files.
-3. **Package & Pricing Tiers**: Pricing numbers, guest ranges, and feature bullet points in `PACKAGE_TIERS` (`packages/page.tsx`).
+3. **Per-person planning tiers**: IDs, prices, taglines, planning scope, vendor estimate amounts, and estimation helpers in `src/lib/packages-config.ts` (`PACKAGES_CONFIG` and `ADDONS_CONFIG`). The homepage cards, live customizer, and comparison rates consume this shared configuration. `src/app/packages/page.tsx` is a separate six-item fixed starting-price venue/event catalogue and should not be changed as part of the per-person tier update.
 4. **New Service Categories**: Additional items in `SERVICES_DATA` (`services/page.tsx`).
 5. **New Unit or E2E Tests**: Adding test suites without touching production logic.
 
