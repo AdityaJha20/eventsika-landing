@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import HeroFireworks from "./HeroFireworks";
@@ -90,7 +90,62 @@ function serviceOptionsForAddons(addonIds: readonly string[]): string[] {
     hampers: "More",
     "valet-concierge": "More",
   };
-  return Array.from(new Set(addonIds.map((id) => mappedServices[id]).filter((service): service is string => typeof service === "string")));
+  return Array.from(
+    new Set(
+      addonIds
+        .map((id) => mappedServices[id])
+        .filter((service): service is string => typeof service === "string")
+    )
+  );
+}
+
+function subscribeToLocationSearch(onStoreChange: () => void) {
+  window.addEventListener("popstate", onStoreChange);
+  window.addEventListener("pageshow", onStoreChange);
+
+  return () => {
+    window.removeEventListener("popstate", onStoreChange);
+    window.removeEventListener("pageshow", onStoreChange);
+  };
+}
+
+function getLocationSearchSnapshot(): string {
+  return window.location.search;
+}
+
+function parsePackageQuoteSelection(search: string): PackageQuoteSelection | null {
+  const params = new URLSearchParams(search);
+  const tierId = params.get("package");
+  const rawGuestCount = params.get("packageGuests");
+  const rawAddonIds = params.get("packageAddons") || "";
+
+  if (!tierId || rawGuestCount === null) return null;
+
+  const selectedPackage = PACKAGES_CONFIG.find((pkg) => pkg.id === tierId);
+  const exactGuestCount = Number(rawGuestCount);
+  const vendorAddonIds = rawAddonIds ? rawAddonIds.split(",") : [];
+  const hasOnlyKnownAddons = vendorAddonIds.every((id) =>
+    ADDONS_CONFIG.some((addon) => addon.id === id)
+  );
+  const hasNoDuplicateAddons =
+    new Set(vendorAddonIds).size === vendorAddonIds.length;
+
+  if (
+    !selectedPackage ||
+    !Number.isInteger(exactGuestCount) ||
+    exactGuestCount < 10 ||
+    exactGuestCount > 10000 ||
+    !hasOnlyKnownAddons ||
+    !hasNoDuplicateAddons
+  ) {
+    return null;
+  }
+
+  return {
+    tierId: selectedPackage.id,
+    guestCount: exactGuestCount,
+    vendorAddonIds,
+  };
 }
 
 function isValidPhoneNumber(phone: string): boolean {
@@ -118,53 +173,32 @@ export default function Hero() {
   const [city, setCity] = useState("");
   const [eventType, setEventType] = useState("");
   const [eventDate, setEventDate] = useState("");
-  const [guestCount, setGuestCount] = useState("");
+  const [guestCountInput, setGuestCount] = useState("");
   const [venueType, setVenueType] = useState("");
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [selectedServicesInput, setSelectedServicesInput] = useState<string[]>([]);
+  const [excludedQuoteServices, setExcludedQuoteServices] = useState<string[]>([]);
   const [budgetRange, setBudgetRange] = useState("");
   const [whatsappConsent, setWhatsappConsent] = useState(false);
   const [honeypot, setHoneypot] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [packageQuoteSelection, setPackageQuoteSelection] =
-    useState<PackageQuoteSelection | null>(null);
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tierId = params.get("package");
-    const rawGuestCount = params.get("packageGuests");
-    const rawAddonIds = params.get("packageAddons") || "";
-
-    if (!tierId) return;
-
-    const selectedPackage = PACKAGES_CONFIG.find((pkg) => pkg.id === tierId);
-    const exactGuestCount = Number(rawGuestCount);
-    const vendorAddonIds = rawAddonIds ? rawAddonIds.split(",") : [];
-    const hasOnlyKnownAddons = vendorAddonIds.every((id) =>
-      ADDONS_CONFIG.some((addon) => addon.id === id)
-    );
-    const hasNoDuplicateAddons =
-      new Set(vendorAddonIds).size === vendorAddonIds.length;
-
-    if (
-      !selectedPackage ||
-      !Number.isInteger(exactGuestCount) ||
-      exactGuestCount < 10 ||
-      exactGuestCount > 10000 ||
-      !hasOnlyKnownAddons ||
-      !hasNoDuplicateAddons
-    ) {
-      return;
-    }
-
-    setPackageQuoteSelection({
-      tierId: selectedPackage.id,
-      guestCount: exactGuestCount,
-      vendorAddonIds,
-    });
-    setGuestCount(guestCountRangeFor(exactGuestCount));
-    setSelectedServices(serviceOptionsForAddons(vendorAddonIds));
-  }, []);
+  const locationSearch = useSyncExternalStore(
+    subscribeToLocationSearch,
+    getLocationSearchSnapshot,
+    () => ""
+  );
+  const packageQuoteSelection = parsePackageQuoteSelection(locationSearch);
+  const guestCount = packageQuoteSelection
+    ? guestCountRangeFor(packageQuoteSelection.guestCount)
+    : guestCountInput;
+  const quoteServiceOptions = packageQuoteSelection
+    ? serviceOptionsForAddons(packageQuoteSelection.vendorAddonIds)
+    : [];
+  const selectedServices = [
+    ...quoteServiceOptions.filter((service) => !excludedQuoteServices.includes(service)),
+    ...selectedServicesInput.filter((service) => !quoteServiceOptions.includes(service)),
+  ];
 
   const packageQuoteEstimate = packageQuoteSelection
     ? calculatePackageEstimate(
@@ -178,9 +212,18 @@ export default function Hero() {
     : null;
 
   const toggleService = (service: string) => {
-    setSelectedServices((prev) =>
+    if (quoteServiceOptions.includes(service)) {
+      setExcludedQuoteServices((prev) =>
+        prev.includes(service)
+          ? prev.filter((item) => item !== service)
+          : [...prev, service]
+      );
+      return;
+    }
+
+    setSelectedServicesInput((prev) =>
       prev.includes(service)
-        ? prev.filter((s) => s !== service)
+        ? prev.filter((item) => item !== service)
         : [...prev, service]
     );
   };
