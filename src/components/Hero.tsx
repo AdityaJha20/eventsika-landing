@@ -494,13 +494,14 @@ export default function Hero() {
 
                   <div className={styles.fieldGroup}>
                     <label htmlFor="guest-count-select" className={styles.fieldLabel}>
-                      Guest Count
+                      {packageQuoteSelection ? "Guest Count (from package estimate)" : "Guest Count"}
                     </label>
                     <div className={styles.selectWrapper}>
                       <select
                         id="guest-count-select"
                         value={guestCount}
                         onChange={(e) => setGuestCount(e.target.value)}
+                        disabled={Boolean(packageQuoteSelection)}
                         className={styles.select}
                       >
                         <option value="" disabled>
