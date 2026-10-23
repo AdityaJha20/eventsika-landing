@@ -791,6 +791,26 @@ export default function Hero() {
                     </span>
                   </div>
 
+                  {packageQuoteSelection && packageQuoteEstimate && selectedQuotePackage && (
+                    <>
+                      <div className={styles.summaryItem}>
+                        <span className={styles.summaryKey}>Planning Package</span>
+                        <span className={styles.summaryVal}>{selectedQuotePackage.name} · {packageQuoteSelection.guestCount} guests</span>
+                      </div>
+                      <div className={styles.summaryItem}>
+                        <span className={styles.summaryKey}>Planning Fee</span>
+                        <span className={styles.summaryVal}>{formatCurrency(packageQuoteEstimate.planningFee)}</span>
+                      </div>
+                      <div className={styles.summaryItem}>
+                        <span className={styles.summaryKey}>Indicative Vendor Estimates</span>
+                        <span className={styles.summaryVal}>{formatCurrency(packageQuoteEstimate.selectedVendorEstimate)}</span>
+                      </div>
+                      <div className={styles.summaryItem}>
+                        <span className={styles.summaryKey}>Indicative Combined Estimate</span>
+                        <span className={styles.summaryVal}>{formatCurrency(packageQuoteEstimate.combinedEstimate)}</span>
+                      </div>
+                    </>
+                  )}
                   <div className={styles.summaryItem}>
                     <span className={styles.summaryKey}>Budget</span>
                     <span className={styles.summaryVal}>{budgetRange}</span>
