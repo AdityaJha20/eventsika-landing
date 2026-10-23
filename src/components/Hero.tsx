@@ -164,7 +164,7 @@ export default function Hero() {
     });
     setGuestCount(guestCountRangeFor(exactGuestCount));
     setSelectedServices(serviceOptionsForAddons(vendorAddonIds));
-  });
+  }, []);
 
   const packageQuoteEstimate = packageQuoteSelection
     ? calculatePackageEstimate(
