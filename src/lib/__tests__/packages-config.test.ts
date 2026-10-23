@@ -34,6 +34,7 @@ describe("Eventsika package pricing configuration", () => {
 
   it("keeps the default package valid and guest presets at or above the minimum", () => {
     expect(PACKAGES_CONFIG.some((pkg) => pkg.id === DEFAULT_PACKAGE_ID)).toBe(true);
+    expect(DEFAULT_PACKAGE_ID).toBe("premium");
     expect(MIN_GUEST_COUNT).toBe(10);
     expect(GUEST_PRESETS.length).toBeGreaterThan(0);
     expect(GUEST_PRESETS.every((count) => count >= MIN_GUEST_COUNT)).toBe(true);
