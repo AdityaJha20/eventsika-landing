@@ -1,6 +1,5 @@
 "use client";
 
-import { Fragment } from "react";
 import styles from "./PackageComparison.module.css";
 import {
   PACKAGES_CONFIG,
