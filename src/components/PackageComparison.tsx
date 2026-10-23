@@ -23,7 +23,7 @@ const COMPARISON_DATA: ComparisonCategory[] = [
     category: "Planning & Discovery",
     rows: [
       {
-        feature: "Initial planning consultation",
+        feature: "Initial event brief and planning kickoff",
         values: { essential: "Included", premium: "Included", luxury: "Included" },
       },
       {
