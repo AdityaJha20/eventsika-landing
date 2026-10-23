@@ -6,6 +6,7 @@ import {
   PACKAGES_CONFIG,
   ADDONS_CONFIG,
   MIN_GUEST_COUNT,
+  MAX_GUEST_COUNT,
   DEFAULT_GUEST_COUNT,
   DEFAULT_PACKAGE_ID,
   GUEST_PRESETS,
@@ -48,7 +49,7 @@ export default function PackageCustomizer({
   };
 
   const handleGuestChange = (newCount: number) => {
-    const clamped = Math.max(MIN_GUEST_COUNT, Math.round(newCount));
+    const clamped = Math.min(MAX_GUEST_COUNT, Math.max(MIN_GUEST_COUNT, Math.round(newCount)));
     setGuestCount(clamped);
     setInputValue(String(clamped));
   };
@@ -58,7 +59,7 @@ export default function PackageCustomizer({
     setInputValue(raw);
     const parsed = parseInt(raw, 10);
     if (!isNaN(parsed) && parsed >= MIN_GUEST_COUNT) {
-      setGuestCount(parsed);
+      setGuestCount(Math.min(MAX_GUEST_COUNT, parsed));
     }
   };
 
@@ -138,6 +139,7 @@ export default function PackageCustomizer({
                   <input
                     type="number"
                     min={MIN_GUEST_COUNT}
+                    max={MAX_GUEST_COUNT}
                     value={inputValue}
                     onChange={handleInputChange}
                     onBlur={handleInputBlur}
@@ -357,7 +359,10 @@ export default function PackageCustomizer({
 
             <div className={styles.divider} />
 
-            <Link href="/#plan-event" className={styles.ctaButton}>
+            <Link
+              href={`/?package=${selectedPkg.id}&packageGuests=${guestCount}&packageAddons=${selectedAddonIds.join(",")}#plan-event`}
+              className={styles.ctaButton}
+            >
               Request Detailed Quote
             </Link>
 
