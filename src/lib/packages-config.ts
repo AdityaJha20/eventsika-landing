@@ -35,7 +35,7 @@ export const PACKAGES_CONFIG: PackageTierConfig[] = [
     pricePerPerson: 1500,
     tagline: "Thoughtful planning support for intimate celebrations.",
     features: [
-      "Initial event planning consultation",
+      "Initial event brief and planning kickoff",
       "Planning checklist and budget-priority guidance",
       "Essential vendor recommendations and coordination",
       "Event-day checklist and timeline guidance",
