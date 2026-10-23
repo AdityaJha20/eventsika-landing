@@ -1,10 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import HeroFireworks from "./HeroFireworks";
 import styles from "./Hero.module.css";
+import {
+  ADDONS_CONFIG,
+  calculatePackageEstimate,
+  formatCurrency,
+  PACKAGES_CONFIG,
+  type PackageTierConfig,
+} from "@/lib/packages-config";
 
 const CITY_OPTIONS = [
   "Delhi",
@@ -60,6 +67,32 @@ const BUDGET_OPTIONS = [
   "₹5,00,000+",
 ];
 
+interface PackageQuoteSelection {
+  tierId: PackageTierConfig["id"];
+  guestCount: number;
+  vendorAddonIds: string[];
+}
+
+function guestCountRangeFor(count: number): string {
+  if (count <= 10) return "2–10 guests";
+  if (count <= 30) return "10–30 guests";
+  if (count <= 50) return "30–50 guests";
+  if (count <= 100) return "50–100 guests";
+  if (count <= 200) return "100–200 guests";
+  return "200+ guests";
+}
+
+function serviceOptionsForAddons(addonIds: readonly string[]): string[] {
+  const mappedServices: Record<string, string> = {
+    "live-chaat": "Food & Catering",
+    "photography-films": "Photography & Films",
+    "live-music": "Music & Entertainment",
+    hampers: "More",
+    "valet-concierge": "More",
+  };
+  return Array.from(new Set(addonIds.map((id) => mappedServices[id]).filter(Boolean)));
+}
+
 function isValidPhoneNumber(phone: string): boolean {
   const trimmed = phone.trim();
   if (!trimmed) return false;
@@ -93,6 +126,56 @@ export default function Hero() {
   const [honeypot, setHoneypot] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [packageQuoteSelection, setPackageQuoteSelection] =
+    useState<PackageQuoteSelection | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tierId = params.get("package");
+    const rawGuestCount = params.get("packageGuests");
+    const rawAddonIds = params.get("packageAddons") || "";
+
+    if (!tierId) return;
+
+    const selectedPackage = PACKAGES_CONFIG.find((pkg) => pkg.id === tierId);
+    const exactGuestCount = Number(rawGuestCount);
+    const vendorAddonIds = rawAddonIds ? rawAddonIds.split(",") : [];
+    const hasOnlyKnownAddons = vendorAddonIds.every((id) =>
+      ADDONS_CONFIG.some((addon) => addon.id === id)
+    );
+    const hasNoDuplicateAddons =
+      new Set(vendorAddonIds).size === vendorAddonIds.length;
+
+    if (
+      !selectedPackage ||
+      !Number.isInteger(exactGuestCount) ||
+      exactGuestCount < 10 ||
+      exactGuestCount > 10000 ||
+      !hasOnlyKnownAddons ||
+      !hasNoDuplicateAddons
+    ) {
+      return;
+    }
+
+    setPackageQuoteSelection({
+      tierId: selectedPackage.id,
+      guestCount: exactGuestCount,
+      vendorAddonIds,
+    });
+    setGuestCount(guestCountRangeFor(exactGuestCount));
+    setSelectedServices(serviceOptionsForAddons(vendorAddonIds));
+  });
+
+  const packageQuoteEstimate = packageQuoteSelection
+    ? calculatePackageEstimate(
+        packageQuoteSelection.guestCount,
+        packageQuoteSelection.tierId,
+        packageQuoteSelection.vendorAddonIds
+      )
+    : null;
+  const selectedQuotePackage = packageQuoteSelection
+    ? PACKAGES_CONFIG.find((pkg) => pkg.id === packageQuoteSelection.tierId)
+    : null;
 
   const toggleService = (service: string) => {
     setSelectedServices((prev) =>
@@ -174,6 +257,9 @@ export default function Hero() {
           budgetRange,
           whatsappConsent,
           honeypot,
+          packageTier: packageQuoteSelection?.tierId ?? null,
+          packageGuestCount: packageQuoteSelection?.guestCount ?? null,
+          packageVendorAddonIds: packageQuoteSelection?.vendorAddonIds ?? [],
         }),
       });
 
@@ -268,6 +354,35 @@ export default function Hero() {
 
             {formStep === "form" && (
               <form onSubmit={handleReview} className={styles.form}>
+                {packageQuoteSelection && packageQuoteEstimate && selectedQuotePackage && (
+                  <div className={styles.summaryGrid} aria-live="polite">
+                    <div className={styles.summaryItem}>
+                      <span className={styles.summaryKey}>Selected Planning Package</span>
+                      <span className={styles.summaryVal}>
+                        {selectedQuotePackage.name} · {formatCurrency(selectedQuotePackage.pricePerPerson)} / person
+                      </span>
+                    </div>
+                    <div className={styles.summaryItem}>
+                      <span className={styles.summaryKey}>Package Guest Count</span>
+                      <span className={styles.summaryVal}>{packageQuoteSelection.guestCount} guests</span>
+                    </div>
+                    <div className={styles.summaryItem}>
+                      <span className={styles.summaryKey}>Eventsika Planning Fee</span>
+                      <span className={styles.summaryVal}>{formatCurrency(packageQuoteEstimate.planningFee)}</span>
+                    </div>
+                    <div className={styles.summaryItem}>
+                      <span className={styles.summaryKey}>Selected Vendor Estimates</span>
+                      <span className={styles.summaryVal}>{formatCurrency(packageQuoteEstimate.selectedVendorEstimate)}</span>
+                    </div>
+                    <div className={styles.summaryItem}>
+                      <span className={styles.summaryKey}>Indicative Combined Estimate</span>
+                      <span className={styles.summaryVal}>{formatCurrency(packageQuoteEstimate.combinedEstimate)}</span>
+                    </div>
+                    <p className={styles.consentText}>
+                      Planning and coordination only. Vendor prices are estimates, not confirmed costs; additional vendor services and tax treatment will be clarified in the final proposal.
+                    </p>
+                  </div>
+                )}
                 {/* Row 1: Name + Phone */}
                 <div className={styles.formRow}>
                   <div className={styles.fieldGroup}>
@@ -574,6 +689,26 @@ export default function Hero() {
                     </span>
                   </div>
 
+                  {packageQuoteSelection && packageQuoteEstimate && selectedQuotePackage && (
+                    <>
+                      <div className={styles.summaryItem}>
+                        <span className={styles.summaryKey}>Planning Package</span>
+                        <span className={styles.summaryVal}>{selectedQuotePackage.name} · {packageQuoteSelection.guestCount} guests</span>
+                      </div>
+                      <div className={styles.summaryItem}>
+                        <span className={styles.summaryKey}>Planning Fee</span>
+                        <span className={styles.summaryVal}>{formatCurrency(packageQuoteEstimate.planningFee)}</span>
+                      </div>
+                      <div className={styles.summaryItem}>
+                        <span className={styles.summaryKey}>Indicative Vendor Estimates</span>
+                        <span className={styles.summaryVal}>{formatCurrency(packageQuoteEstimate.selectedVendorEstimate)}</span>
+                      </div>
+                      <div className={styles.summaryItem}>
+                        <span className={styles.summaryKey}>Indicative Combined Estimate</span>
+                        <span className={styles.summaryVal}>{formatCurrency(packageQuoteEstimate.combinedEstimate)}</span>
+                      </div>
+                    </>
+                  )}
                   <div className={styles.summaryItem}>
                     <span className={styles.summaryKey}>Budget</span>
                     <span className={styles.summaryVal}>{budgetRange}</span>
