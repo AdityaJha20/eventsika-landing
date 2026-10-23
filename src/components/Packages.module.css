@@ -101,13 +101,13 @@
 }
 
 /* Signature Featured Card Emphasis */
-.signatureCard {
+.premiumCard {
   border-color: var(--gold);
   box-shadow: 0 12px 32px rgba(43, 33, 29, 0.08);
   transform: translateY(-4px);
 }
 
-.signatureCard:hover {
+.premiumCard:hover {
   transform: translateY(-8px);
   box-shadow: 0 16px 40px rgba(43, 33, 29, 0.1);
 }
@@ -369,12 +369,12 @@
     gap: 1.5rem;
   }
 
-  .signatureCard {
+  .premiumCard {
     grid-column: span 2;
     transform: none;
   }
 
-  .signatureCard:hover {
+  .premiumCard:hover {
     transform: translateY(-4px);
   }
 
@@ -406,7 +406,7 @@
     gap: 2rem;
   }
 
-  .signatureCard {
+  .premiumCard {
     grid-column: auto;
   }
 

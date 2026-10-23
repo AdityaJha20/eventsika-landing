@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   PACKAGES_CONFIG,
   DEFAULT_PACKAGE_ID,
+  formatPackageRate,
   type PackageTierConfig,
 } from "@/lib/packages-config";
 import PackageCustomizer from "./PackageCustomizer";
@@ -27,17 +28,17 @@ const HOME_PACKAGE_PRESENTATION: Record<
     description:
       "For intimate gatherings where you need the important details brought together beautifully.",
   },
-  signature: {
+  premium: {
     number: "02",
     image: "/images/packages/driveway-lawns.webp",
     description:
-      "For celebrations where every detail matters and you want a dedicated team bringing the entire experience together.",
+      "For celebrations that need detailed planning and coordination across chosen vendors.",
   },
-  grand: {
+  luxury: {
     number: "03",
     image: "/images/packages/grand-celebration.webp",
     description:
-      "For larger or more elaborate occasions that need complete planning, coordination, and execution.",
+      "For more involved celebrations that need comprehensive planning and multi-vendor coordination.",
   },
 };
 
@@ -59,8 +60,7 @@ export default function Packages() {
             Thoughtfully planned, beautifully delivered.
           </h2>
           <p className={styles.description}>
-            Choose the level of support that feels right for your celebration.
-            Every package can be tailored to your occasion.
+            Choose your planning and coordination tier. Third-party vendor services are quoted separately; vendor estimates are indicative until confirmed.
           </p>
         </div>
 
@@ -73,7 +73,7 @@ export default function Packages() {
           {PACKAGES_CONFIG.map((pkg) => {
             const meta = HOME_PACKAGE_PRESENTATION[pkg.id];
             const isSelected = selectedPackageId === pkg.id;
-            const isSignature = pkg.id === "signature";
+            const isPremium = pkg.id === "premium";
 
             const handleSelect = () => {
               setSelectedPackageId(pkg.id);
@@ -94,9 +94,9 @@ export default function Packages() {
                 tabIndex={0}
                 onClick={handleSelect}
                 onKeyDown={handleKeyDown}
-                aria-label={`${pkg.name} Package — ${pkg.displayRate}`}
+                aria-label={`${pkg.name} Package — ${formatPackageRate(pkg.pricePerPerson)}`}
                 className={`${styles.card} ${
-                  isSignature ? styles.signatureCard : ""
+                  isPremium ? styles.premiumCard : ""
                 } ${isSelected ? styles.cardSelected : ""}`}
               >
                 {pkg.badge && (
@@ -119,7 +119,7 @@ export default function Packages() {
                   <div className={styles.cardHeader}>
                     <span className={styles.packageNumber}>{meta.number}</span>
                     <h3 className={styles.packageName}>{pkg.name}</h3>
-                    <span className={styles.packageRate}>{pkg.displayRate}</span>
+                    <span className={styles.packageRate}>{formatPackageRate(pkg.pricePerPerson)}</span>
                     <p className={styles.packageTagline}>{pkg.tagline}</p>
                     <p className={styles.packageDescription}>
                       {meta.description}

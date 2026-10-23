@@ -1,11 +1,16 @@
+"use client";
+
 import { Fragment } from "react";
 import styles from "./PackageComparison.module.css";
+import {
+  PACKAGES_CONFIG,
+  formatPackageRate,
+  type PackageTierConfig,
+} from "@/lib/packages-config";
 
 interface ComparisonItem {
   feature: string;
-  essential: string;
-  signature: string;
-  grand: string;
+  values: Record<PackageTierConfig["id"], string>;
 }
 
 interface ComparisonCategory {
@@ -15,126 +20,114 @@ interface ComparisonCategory {
 
 const COMPARISON_DATA: ComparisonCategory[] = [
   {
-    category: "Capacity & Scale",
+    category: "Planning & Discovery",
     rows: [
       {
-        feature: "Recommended Guest Scale",
-        essential: "10 to 35 Guests",
-        signature: "25 to 100 Guests",
-        grand: "75 to 200+ Guests",
+        feature: "Initial event brief and planning kickoff",
+        values: { essential: "Included", premium: "Included", luxury: "Included" },
       },
       {
-        feature: "Ideal Celebration Setting",
-        essential: "Cozy home / terrace / living room",
-        signature: "Lawns / banquet / terrace / farmhouse",
-        grand: "Luxury estate / grand hall / gala grounds",
+        feature: "Planning and budget guidance",
+        values: {
+          essential: "Core checklist and priorities",
+          premium: "Detailed plan and budget coordination",
+          luxury: "Comprehensive planning and budget coordination",
+        },
+      },
+      {
+        feature: "Planning complexity",
+        values: {
+          essential: "Intimate, straightforward celebrations",
+          premium: "Detailed, multi-part celebrations",
+          luxury: "Complex celebrations with broader coordination needs",
+        },
       },
     ],
   },
   {
-    category: "Decor & Floral Styling",
+    category: "Vendor Discovery & Coordination",
     rows: [
       {
-        feature: "Stage / Backdrop Concept",
-        essential: "Signature Themed Backdrop or Floral Mandap",
-        signature: "Grand Floral Stage + Entrance Toran",
-        grand: "Bespoke Architectural Fabrication & Chandeliers",
+        feature: "Vendor recommendations",
+        values: {
+          essential: "Essential vendor recommendations",
+          premium: "Curated shortlist across agreed categories",
+          luxury: "Broader vendor discovery and coordination",
+        },
       },
       {
-        feature: "Lighting & Ambient Decor",
-        essential: "Warm Fairy Lights & Table Accents",
-        signature: "Intelligent Ambient & Party Lighting Rig",
-        grand: "Multi-Zone Mood Lighting & Draped Canopies",
+        feature: "Third-party vendor communication",
+        values: {
+          essential: "Essential coordination",
+          premium: "Coordination across agreed service categories",
+          luxury: "Expanded multi-vendor coordination",
+        },
+      },
+      {
+        feature: "Decor, catering, photography, entertainment, equipment and staffing",
+        values: {
+          essential: "Vendor service costs quoted separately",
+          premium: "Vendor service costs quoted separately",
+          luxury: "Vendor service costs quoted separately",
+        },
       },
     ],
   },
   {
-    category: "Catering & Hospitality",
+    category: "Schedule & Event-Day Support",
     rows: [
       {
-        feature: "Buffet Dining Coordination",
-        essential: "Coordination available as add-on",
-        signature: "Multi-Course Gourmet Buffet Planning",
-        grand: "Curated Live Gourmet Counters & Fusion Dining",
+        feature: "Event planning checklist",
+        values: {
+          essential: "Core checklist",
+          premium: "Detailed planning checklist",
+          luxury: "Comprehensive planning checklist",
+        },
       },
       {
-        feature: "Live Food & Mocktails",
-        essential: "Optional add-on available",
-        signature: "Live Chaat & Refreshment Stations",
-        grand: "Multi-Station Experiential Food Bars",
+        feature: "Run-of-show / event timeline",
+        values: {
+          essential: "Timeline guidance",
+          premium: "Detailed run-of-show",
+          luxury: "Comprehensive run-of-show and contingency coordination",
+        },
+      },
+      {
+        feature: "Event-day coordination scope",
+        values: {
+          essential: "Guidance and checklist",
+          premium: "Coordination oversight within agreed scope",
+          luxury: "Expanded coordination oversight within agreed scope",
+        },
       },
     ],
   },
   {
-    category: "Photography & Cinematography",
+    category: "Commercial Clarity",
     rows: [
       {
-        feature: "Still Photography",
-        essential: "Candid Coverage (3 Hours)",
-        signature: "Full Celebration Candid Coverage",
-        grand: "Duo Lead Candid + Traditional Coverage",
+        feature: "Eventsika planning fee",
+        values: {
+          essential: "Per person, based on guest count",
+          premium: "Per person, based on guest count",
+          luxury: "Per person, based on guest count",
+        },
       },
       {
-        feature: "Cinematic Film & Reels",
-        essential: "Optional add-on available",
-        signature: "4K Cinematic Highlight Reel",
-        grand: "Full Cinematography Team + Drone + Teasers",
-      },
-    ],
-  },
-  {
-    category: "Entertainment & Sound",
-    rows: [
-      {
-        feature: "Music & Sound System",
-        essential: "High-Fidelity Bluetooth Sound & Playlist",
-        signature: "Professional DJ & Party Sound Setup",
-        grand: "Live Acoustic / Sufi Band & Celebrity Host",
-      },
-    ],
-  },
-  {
-    category: "Coordination & Management",
-    rows: [
-      {
-        feature: "On-Ground Management Team",
-        essential: "1 Dedicated On-Site Event Coordinator",
-        signature: "1 Lead Floor Manager + 2 Operations Staff",
-        grand: "Comprehensive End-to-End Concierge Team",
+        feature: "Vendor estimate treatment",
+        values: {
+          essential: "Indicative until vendor-confirmed",
+          premium: "Indicative until vendor-confirmed",
+          luxury: "Indicative until vendor-confirmed",
+        },
       },
       {
-        feature: "Valet & Guest Hospitality",
-        essential: "Optional add-on available",
-        signature: "Dedicated Welcome Coordination",
-        grand: "Complete Valet, Concierge & Guest Desk",
-      },
-    ],
-  },
-  {
-    category: "Invitations & Stationery",
-    rows: [
-      {
-        feature: "Digital Invitations",
-        essential: "Digital WhatsApp Invitation Design",
-        signature: "Animated WhatsApp Video Invitation",
-        grand: "Animated Video + Interactive RSVP Microsite",
-      },
-      {
-        feature: "Physical Keepsakes & Favors",
-        essential: "Optional add-on available",
-        signature: "Coordination available as add-on",
-        grand: "Curated Luxury Boxed Keepsake Hampers",
-      },
-    ],
-  },
-  {
-    category: "Execution & Teardown",
-    rows: [
-      {
-        feature: "Setup & Post-Event Dismantling",
-        essential: "✓ Included",
-        signature: "✓ Included",
-        grand: "✓ Included",
+        feature: "Final proposal",
+        values: {
+          essential: "Confirms scope and pricing",
+          premium: "Confirms scope and pricing",
+          luxury: "Confirms scope and pricing",
+        },
       },
     ],
   },
@@ -148,150 +141,85 @@ export default function PackageComparison() {
       aria-labelledby="comparison-heading"
     >
       <div className={styles.container}>
-        {/* Section Header */}
         <div className={styles.header}>
-          <p className={styles.eyebrow}>COMPARE INCLUSIONS</p>
+          <p className={styles.eyebrow}>COMPARE PLANNING SUPPORT</p>
           <h2 id="comparison-heading" className={styles.title}>
-            Detailed Inclusions Comparison
+            Detailed Package Comparison
           </h2>
           <p className={styles.description}>
-            A side-by-side breakdown of features, staffing, and deliverables
-            across all three celebration tiers.
+            Compare planning and coordination support. Vendor services such as
+            food, decor, photography, entertainment, equipment and staffing are
+            quoted separately; displayed vendor estimates are indicative.
           </p>
         </div>
 
-        {/* Comparison Matrix Table */}
         <div
           className={styles.tableScrollContainer}
           tabIndex={0}
           role="region"
-          aria-label="Package inclusions comparison table"
+          aria-label="Planning package comparison table"
         >
           <table className={styles.comparisonTable}>
             <thead>
               <tr>
                 <th scope="col" className={styles.featureColHeader}>
-                  <span className={styles.headerColTitle}>
-                    Deliverables &amp; Inclusions
-                  </span>
+                  <span className={styles.headerColTitle}>Planning Scope</span>
                 </th>
-                <th scope="col" className={styles.packageColHeader}>
-                  <div className={styles.packageHeaderBox}>
-                    <span className={styles.packageName}>Essential</span>
-                    <span className={styles.packagePrice}>₹1,500 / guest</span>
-                  </div>
-                </th>
-                <th
-                  scope="col"
-                  className={`${styles.packageColHeader} ${styles.popularColHeader}`}
-                >
-                  <div className={styles.packageHeaderBox}>
-                    <span className={styles.popularBadge}>OUR SIGNATURE</span>
-                    <span className={styles.packageName}>Signature</span>
-                    <span className={styles.packagePrice}>₹2,500 / guest</span>
-                  </div>
-                </th>
-                <th scope="col" className={styles.packageColHeader}>
-                  <div className={styles.packageHeaderBox}>
-                    <span className={styles.packageName}>Grand</span>
-                    <span className={styles.packagePrice}>₹3,500 / guest</span>
-                  </div>
-                </th>
+                {PACKAGES_CONFIG.map((pkg) => (
+                  <th
+                    key={pkg.id}
+                    scope="col"
+                    className={
+                      pkg.id === "premium"
+                        ? styles.popularColHeader + " " + styles.packageColHeader
+                        : styles.packageColHeader
+                    }
+                  >
+                    <div className={styles.packageHeaderBox}>
+                      {pkg.badge && (
+                        <span className={styles.popularBadge}>{pkg.badge}</span>
+                      )}
+                      <span className={styles.packageName}>{pkg.name}</span>
+                      <span className={styles.packagePrice}>
+                        {formatPackageRate(pkg.pricePerPerson)}
+                      </span>
+                    </div>
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody>
-              {COMPARISON_DATA.map((catGroup) => (
-                <Fragment key={catGroup.category}>
-                  <tr className={styles.categoryRow}>
-                    <th
-                      colSpan={4}
-                      scope="colgroup"
-                      className={styles.categoryHeader}
-                    >
-                      {catGroup.category}
+            {COMPARISON_DATA.map((catGroup) => (
+              <tbody key={catGroup.category}>
+                <tr className={styles.categoryRow}>
+                  <th
+                    colSpan={4}
+                    scope="colgroup"
+                    className={styles.categoryHeader}
+                  >
+                    {catGroup.category}
+                  </th>
+                </tr>
+                {catGroup.rows.map((row) => (
+                  <tr key={row.feature} className={styles.dataRow}>
+                    <th scope="row" className={styles.featureCell}>
+                      {row.feature}
                     </th>
-                  </tr>
-                  {catGroup.rows.map((row) => (
-                    <tr key={row.feature} className={styles.dataRow}>
-                      <th scope="row" className={styles.featureCell}>
-                        {row.feature}
-                      </th>
-                      <td className={styles.dataCell}>
-                        {row.essential === "✓ Included" ? (
-                          <span className={styles.checkValue}>
-                            <svg
-                              className={styles.checkIcon}
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              aria-hidden="true"
-                            >
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                            <span>Included</span>
-                          </span>
-                        ) : row.essential === "—" ? (
-                          <span className={styles.dashValue}>—</span>
-                        ) : (
-                          <span>{row.essential}</span>
-                        )}
-                      </td>
+                    {PACKAGES_CONFIG.map((pkg) => (
                       <td
-                        className={`${styles.dataCell} ${styles.popularDataCell}`}
+                        key={pkg.id}
+                        className={
+                          pkg.id === "premium"
+                            ? styles.dataCell + " " + styles.popularDataCell
+                            : styles.dataCell
+                        }
                       >
-                        {row.signature === "✓ Included" ? (
-                          <span className={styles.checkValue}>
-                            <svg
-                              className={styles.checkIcon}
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              aria-hidden="true"
-                            >
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                            <span>Included</span>
-                          </span>
-                        ) : row.signature === "—" ? (
-                          <span className={styles.dashValue}>—</span>
-                        ) : (
-                          <span>{row.signature}</span>
-                        )}
+                        {row.values[pkg.id]}
                       </td>
-                      <td className={styles.dataCell}>
-                        {row.grand === "✓ Included" ? (
-                          <span className={styles.checkValue}>
-                            <svg
-                              className={styles.checkIcon}
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              aria-hidden="true"
-                            >
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                            <span>Included</span>
-                          </span>
-                        ) : row.grand === "—" ? (
-                          <span className={styles.dashValue}>—</span>
-                        ) : (
-                          <span>{row.grand}</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </Fragment>
-              ))}
-            </tbody>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            ))}
           </table>
         </div>
       </div>
