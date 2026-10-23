@@ -12,7 +12,7 @@ const packageQuote = {
   combinedEstimateRupees: 88000,
 };
 
-const makeLead = (quote = packageQuote): ValidatedLeadInput => ({
+const makeLead = (quote: ValidatedLeadInput["packageQuote"] = packageQuote): ValidatedLeadInput => ({
   userName: "Aditi Rao",
   userPhone: "9876543210",
   city: "Delhi",
