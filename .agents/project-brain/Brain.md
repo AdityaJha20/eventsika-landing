@@ -10,7 +10,7 @@
 | :--- | :--- |
 | **Project Name** | Eventsika (`landing`) |
 | **Document Path** | [`.agents/project-brain/Brain.md`](file:///c:/Users/gcad1/Documents/eventsika-landing/.agents/project-brain/Brain.md) |
-| **Brain Version** | `1.7.0` |
+| **Brain Version** | `1.8.0` |
 | **Creation Date** | `2026-08-30` |
 | **Last Verified** | `2026-10-24` |
 | **Target Framework** | Next.js `16.4.3` (React `19.2.8`, App Router) |
@@ -62,7 +62,7 @@ All dependencies and versions are verified directly from `package.json` and proj
 | **Rate Limiter (Public)** | In-Memory Map | Public Intake Defense | Sliding window IP rate limiter with automated 5-minute cleanup cycles (`rate-limit.ts`) |
 | **Cryptography** | Native `node:crypto` | Secure Token Generation & Timing Safety | 256-bit secure reservation tokens (`crypto.randomBytes(32)`) and timing-safe token verification (`crypto.timingSafeEqual`) |
 | **ESLint** | `^9` | Linting & Standards | Flat config format (`eslint.config.mjs`) using `eslint-config-next: 16.4.3` |
-| **Test Framework** | `vitest: ^4.1.11` | Automated Testing | Unit & integration test suites (47 test files, 640 tests passing) |
+| **Test Framework** | `vitest: ^4.1.11` | Automated Testing | Unit & integration test suites (48 test files, 703 tests passing) |
 | **Mailer Engine** | Native Fetch | Backend Dispatch | Zero-dependency REST dispatchers for Resend, SendGrid, and Custom Webhooks |
 | **Payment Gateway** | Native Fetch | Backend Adapter | Zero-dependency REST adapter for Cashfree PG API (2023-08-01) with 10s AbortController |
 | **Checkout SDK** | Dynamic Web SDK v3 | Client Modal Checkout | Dynamically loaded Cashfree JS SDK (`https://sdk.cashfree.com/js/v3/cashfree.js`) initializing `_modal` checkout without adding npm dependencies |
@@ -251,6 +251,7 @@ landing/
 │   │   ├── diwali-consultation/           # Special 1-on-1 advisory promotion route
 │   │   ├── for-vendors/                   # Vendor partner network route
 │   │   ├── login/                         # Client & Partner portal login route
+│   │   ├── estimate/                      # Branded indicative estimate page (/estimate), print stylesheet & tests
 │   │   ├── packages/                      # Packages, comparison & customizer route
 │   │   ├── services/                      # Services catalog & estimator route
 │   │   ├── globals.css                    # Design tokens, CSS custom properties, resets
@@ -405,6 +406,7 @@ landing/
 | `/` | Page (Static) | [`src/app/page.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/page.tsx) | Main landing page. Contains Hero intake form (`#plan-event`), How It Works, Services, Event Types, Packages, and Vendor preview. |
 | `/services` | Page (Static) | [`src/app/services/page.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/services/page.tsx) | Comprehensive celebration service directory with 6 curated service categories (01 Decor & Styling, 02 Catering & Cuisine, 03 Rituals & Blessings, 04 Entertainment & Performers, 05 Photography & Films, 06 Invitations & Favours). Price labels for decor, catering, photography and videography are derived from the pricing catalog ("from" the lowest tier rate); rituals, entertainment and invitations show "Request a custom quote". Hosts the shared [`PackageCustomizer`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/PackageCustomizer.tsx) (the former flat `ServiceEstimator` was removed), [`ServicesFAQ`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/ServicesFAQ.tsx), and consultation CTA routing to `/diwali-consultation`. |
 | `/packages` | Page (Static) | [`src/app/packages/page.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/packages/page.tsx) | Primary pricing page: the shared [`PackageCustomizer`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/PackageCustomizer.tsx) (tier selection, guest count, eight optional per-guest services), the catalog-driven [`PackageComparison`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/PackageComparison.tsx), and six venue/format "settings we style" cards that are always "Request a custom quote" (no numeric starting prices). `OfferCatalog` JSON-LD is generated from the catalog by `packages-structured-data.ts` and contains only the 3 tier rates and 24 service rates. |
+| `/estimate` | Page (Dynamic, `noindex`) | [`src/app/estimate/page.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/estimate/page.tsx) | Branded "Indicative Event Estimate" document rendered server-side from `?package=…&packageGuests=…&packageAddons=…` (`parsePackageQuoteParams`, `calculatePackageEstimate`, `estimateLineItems`). Shows the real logo, package, guests, IST estimate date, one line per charge (rate per person × guests = subtotal), totals, a not-an-invoice disclaimer, a "Contact Eventsika about this estimate" link to the prefilled `/#plan-event` form (no auto-submit), and a "Print / Save as PDF" button (`window.print()`) backed by a print stylesheet that hides nav, footer and controls. Invalid or missing selections render an accessible recovery state with no prices. |
 | `/for-vendors` | Page (Static) | [`src/app/for-vendors/page.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/for-vendors/page.tsx) | Partner acquisition landing page with value props and multi-category [`VendorApplicationForm`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/VendorApplicationForm.tsx). |
 | `/diwali-consultation` | Page (Static) | [`src/app/diwali-consultation/page.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/diwali-consultation/page.tsx) | High-intent promotional landing page for 1-on-1 strategy consultations at authoritative ₹2,999. Hosts the interactive customer booking modal (`BookingExperience.tsx`, `ConsultationBookingModal.tsx`), slot inventory picker, intake form, 15-minute reservation timer, and Cashfree Web SDK checkout. |
 | `/login` | Page (Static) | [`src/app/login/page.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/login/page.tsx) | Client & Partner portal authentication page. Features client-side validation and authenticates directly against `/api/admin/auth/login`. |
@@ -439,7 +441,7 @@ landing/
   - [`Navbar.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/Navbar.tsx): Mobile toggle menu state, active route highlighting via `usePathname()`.
   - [`Services.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/Services.tsx): 3D CSS flip-card state (`transform-style: preserve-3d`) toggled via click or keyboard navigation (`Enter` / `Space`).
   - [`EventTypes.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/EventTypes.tsx): Synchronized hover/click tab list updating active high-resolution editorial imagery on the left column.
-  - [`PackageCustomizer.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/PackageCustomizer.tsx): The single shared estimator. Shows the decor package rate, eight unchecked optional per-guest services priced for the selected tier, and a live breakdown (Decor Package, Selected Services, Total Estimated Per Person, Indicative Event Estimate); tier changes keep selected services. Carries the tier, exact guest count, and selected service IDs to the hero enquiry form via `buildPackageQuoteHref`. `Hero.tsx` parses the link with `parsePackageQuoteSearch` and shows the same breakdown on the form, review and success steps.
+  - [`PackageCustomizer.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/PackageCustomizer.tsx): The single shared estimator. Shows the decor package rate, eight unchecked optional per-guest services priced for the selected tier, and a live breakdown (Decor Package, Selected Services, Total Estimated Per Person, Indicative Event Estimate); tier changes keep selected services. Its CTA ("View My Indicative Estimate") opens the branded `/estimate` page via `buildEstimateHref`, carrying the tier, exact guest count, and selected service IDs. The estimate page's "Contact Eventsika about this estimate" CTA then links to the hero enquiry form via `buildPackageQuoteHref`; `Hero.tsx` parses it with `parsePackageQuoteSearch` and shows the same per-line breakdown (`estimateLineItems` / `describeEstimateLine`) on the form, review and success steps via the exported `PackageQuoteSummaryItems`.
   - [`VendorApplicationForm.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/VendorApplicationForm.tsx) & [`LoginForm.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/LoginForm.tsx): Controlled inputs, field-level error validation, interactive feedback notices, and authentication handshakes.
   - **Consultation Booking & Checkout Components (`src/components/consultation/`)**:
     - [`BookingExperience.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/consultation/BookingExperience.tsx): Client trigger button and modal mount point.
@@ -1256,7 +1258,7 @@ ADMIN
   - `npm test`: Executes all Vitest test suites once (`vitest run`).
   - `npm run test:watch`: Runs Vitest in interactive watch mode.
 * **Automated Test Architecture**:
-  - Vitest test framework covering 47 test files (640 passing tests).
+  - Vitest test framework covering 48 test files (703 passing tests).
   - Tests co-located in `__tests__/` subdirectories across route handlers, security boundaries, rate limiting, validation schemas, repositories, services, and helper sanitizers.
 * **Key Git Commits**:
   - `20916c3`: `feat(payment): add consultation and payment foundation` (Step 1)
@@ -1393,7 +1395,7 @@ These areas can be iterated on and refined with standard pre-commit verification
 - [x] **Payment Step 3 — Cashfree Adapter**: Native fetch adapter targeting Cashfree PG API (2023-08-01), 10s timeout, automatic 409 recovery, and server-only credential security.
 - [x] **Payment Step 4 — Secure Order Creation**: Gateway-First order creation, 120s reservation safety threshold, deterministic order ID, PostgreSQL 23505 conflict reconciliation, and atomic status transition (`slot_held` → `awaiting_payment`).
 - [x] **Payment Step 5 — Customer Checkout Experience**: Stitch-inspired luxury booking modal on `/diwali-consultation`, 9-state machine, live slot picker, client-validated customer intake form, live 15m hold timer, authoritative ₹2,999 checkout view, Cashfree Web SDK v3 modal integration, and presentation-only pending state.
-- [x] Vitest automated testing suite with 47 test files and 640 passing tests.
+- [x] Vitest automated testing suite with 48 test files and 703 passing tests.
 
 ---
 
@@ -1402,7 +1404,7 @@ These areas can be iterated on and refined with standard pre-commit verification
 ## 24. Current Project State
 
 * **Build Health**: Clean TypeScript compilation (`0 errors`), valid ESLint 9 checks, successful Next.js 16.4.3 production build (verified 2026-10-24 on `feat/event-pricing-calculator`).
-* **Test Health**: 47 Vitest test files, 640 tests passing with zero failures (verified 2026-10-24 on `feat/event-pricing-calculator`).
+* **Test Health**: 48 Vitest test files, 703 tests passing with zero failures (verified 2026-10-24 on `feat/branded-estimate-summary`).
 * **Development Server**: Operational on `http://localhost:3000`.
 * **Git Checkpoint**: Merged into `main` via commit [`26f4c34`](file:///c:/Users/gcad1/Documents/eventsika-landing); working tree is clean.
 * **Current Operational Priority**: Transitioning to Payment Step 6 (Webhook Ingestion, Server Verification & Payment Confirmation).
@@ -1471,6 +1473,12 @@ Every AI agent working in the Eventsika repository must adhere to the following 
 
 
 ## 28. Change Log
+
+### 2026-10-24 — Branded estimate page (`feat/branded-estimate-summary`, uncommitted at time of writing)
+- Added the `/estimate` route (`EstimateDocument.tsx`, `PrintEstimateButton.tsx`, `estimate.module.css`) as the destination of the calculator CTA, with screen, mobile (stacked labelled rows) and print layouts. No new dependencies; PDF output uses the browser's print dialog.
+- Added `estimateLineItems`/`describeEstimateLine` to `packages-config.ts` and `buildEstimateHref`/`parsePackageQuoteParams` to `package-quote.ts`; URL parameter names are unchanged.
+- Hero quote summary now itemises each line (rate × guests = subtotal) and shows "No optional services selected" instead of ₹0.
+- Tests: `src/app/estimate/__tests__/estimate-page.test.ts` (63 tests). Verification: `npm audit` 0 vulnerabilities; ESLint clean (run with `--ignore-pattern ".claude/**"` because a separate CSP worktree lives under `.claude/worktrees/`); `tsc --noEmit --incremental false` clean; Vitest 48 files / 703 tests; `next build` succeeded with `/estimate` dynamic and `/`, `/packages`, `/services` static. Not deployed.
 
 ### 2026-10-24
 - **Approved Per-Guest Pricing Model (`feat/event-pricing-calculator`, uncommitted at time of writing)**:
