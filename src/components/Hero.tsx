@@ -7,10 +7,11 @@ import HeroFireworks from "./HeroFireworks";
 import styles from "./Hero.module.css";
 import {
   calculatePackageEstimate,
+  describeEstimateLine,
   ESTIMATE_DISCLAIMER,
+  estimateLineItems,
   formatCurrency,
   formatPerPersonRate,
-  getPackageTier,
   type PackageEstimate,
 } from "@/lib/packages-config";
 import {
@@ -87,18 +88,16 @@ function getLocationSearchSnapshot(): string {
   return window.location.search;
 }
 
-function PackageQuoteSummaryItems({ estimate }: { estimate: PackageEstimate }) {
-  const tier = getPackageTier(estimate.tierId);
-  const serviceSummary = estimate.services
-    .map((service) => `${service.name} (${formatPerPersonRate(service.ratePerPerson)})`)
-    .join(", ");
+/** Quote breakdown shared by the form, review and success steps. */
+export function PackageQuoteSummaryItems({ estimate }: { estimate: PackageEstimate }) {
+  const [decorLine, ...serviceLines] = estimateLineItems(estimate);
 
   return (
     <>
       <div className={styles.summaryItem}>
         <span className={styles.summaryKey}>Decor Package</span>
         <span className={styles.summaryVal}>
-          {tier.name} · {formatPerPersonRate(estimate.decorRatePerPerson)}
+          {decorLine.label} · {describeEstimateLine(decorLine)}
         </span>
       </div>
       <div className={styles.summaryItem}>
@@ -111,15 +110,23 @@ function PackageQuoteSummaryItems({ estimate }: { estimate: PackageEstimate }) {
       </div>
       <div className={styles.summaryItem}>
         <span className={styles.summaryKey}>Selected Optional Services</span>
-        <span className={styles.summaryVal}>{serviceSummary || "None selected"}</span>
+        <span className={styles.summaryVal}>
+          {serviceLines.length > 0
+            ? serviceLines
+                .map((line) => `${line.label} · ${describeEstimateLine(line)}`)
+                .join("; ")
+            : "No optional services selected"}
+        </span>
       </div>
       <div className={styles.summaryItem}>
         <span className={styles.summaryKey}>Optional Services Subtotal</span>
-        <span className={styles.summaryVal}>{formatCurrency(estimate.servicesSubtotal)}</span>
+        <span className={styles.summaryVal}>
+          {serviceLines.length > 0 ? formatCurrency(estimate.servicesSubtotal) : "None selected"}
+        </span>
       </div>
       <div className={styles.summaryItem}>
         <span className={styles.summaryKey}>Total Estimated Per Person</span>
-        <span className={styles.summaryVal}>{formatCurrency(estimate.perPersonTotal)}</span>
+        <span className={styles.summaryVal}>{formatPerPersonRate(estimate.perPersonTotal)}</span>
       </div>
       <div className={styles.summaryItem}>
         <span className={styles.summaryKey}>Indicative Event Estimate</span>
