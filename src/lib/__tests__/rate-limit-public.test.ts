@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { checkRateLimit, _resetAdminRateLimitsForTesting, UpstashRedisRateLimitStore } from "../rate-limit";
+import { checkRateLimit, _resetAdminRateLimitsForTesting, UpstashRedisRateLimitStore, recordAdminLoginSuccess, _setAdminRateLimitStoreForTesting, IAdminRateLimitStore } from "../rate-limit";
 import { Redis } from "@upstash/redis";
+import { logger } from "@/lib/backend/logger/logger";
 
 describe("Public Distributed & In-Memory Rate Limiting (src/lib/rate-limit.ts)", () => {
   beforeEach(() => {
@@ -68,5 +69,35 @@ describe("Public Distributed & In-Memory Rate Limiting (src/lib/rate-limit.ts)",
     const result = await checkRateLimit(fakeRequest, "leads", { limit: 5 });
     expect(result.isAllowed).toBe(false);
     expect(result.isUnavailable).toBe(true);
+  });
+
+  it("swallows and logs error when clearing admin login limits fails during success record", async () => {
+    // 1. Arrange
+    const errorSpy = vi.spyOn(logger, "error").mockImplementation(() => {});
+    const thrownError = new Error("Mock store error on recordSuccess");
+
+    const mockStore: IAdminRateLimitStore = {
+      checkLimits: vi.fn(),
+      recordFailure: vi.fn(),
+      recordSuccess: vi.fn().mockRejectedValue(thrownError),
+      clear: vi.fn(),
+    };
+
+    _setAdminRateLimitStoreForTesting(mockStore);
+
+    const fakeRequest = new Request("http://localhost:3000/admin/login", {
+      headers: { "x-real-ip": "198.51.100.82" },
+    });
+    const fakeEmail = "admin@example.com";
+
+    // 2. Act
+    await recordAdminLoginSuccess(fakeRequest, fakeEmail);
+
+    // 3. Assert
+    expect(mockStore.recordSuccess).toHaveBeenCalled();
+    expect(errorSpy).toHaveBeenCalledWith(
+      "Failed to clear admin login limits upon success",
+      thrownError
+    );
   });
 });
