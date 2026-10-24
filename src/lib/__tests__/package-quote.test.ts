@@ -27,8 +27,10 @@ function searchOf(href: string): string {
 describe("Package quote URL handoff", () => {
   it("keeps legacy quote data out of the module that ships in public pages", () => {
     expect(Object.keys(packageQuoteHandoff).sort()).toEqual([
+      "buildEstimateHref",
       "buildPackageQuoteHref",
       "guestCountRangeFor",
+      "parsePackageQuoteParams",
       "parsePackageQuoteSearch",
       "serviceOptionsForPackageQuote",
     ]);

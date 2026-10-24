@@ -18,7 +18,7 @@ import {
   type OptionalServiceId,
   type PackageTierId,
 } from "@/lib/packages-config";
-import { buildPackageQuoteHref } from "@/lib/package-quote";
+import { buildEstimateHref } from "@/lib/package-quote";
 import styles from "./PackageCustomizer.module.css";
 
 export interface PackageCustomizerProps {
@@ -85,7 +85,7 @@ export default function PackageCustomizer({
   };
 
   const estimate = calculatePackageEstimate(guestCount, selectedPkg.id, selectedServiceIds);
-  const quoteHref = buildPackageQuoteHref({
+  const estimateHref = buildEstimateHref({
     tierId: selectedPkg.id,
     guestCount: estimate.guestCount,
     serviceIds: estimate.services.map((service) => service.id),
@@ -388,8 +388,8 @@ export default function PackageCustomizer({
 
             <div className={styles.divider} />
 
-            <Link href={quoteHref} className={styles.ctaButton}>
-              Request Detailed Quote
+            <Link href={estimateHref} className={styles.ctaButton}>
+              View My Indicative Estimate
             </Link>
 
             <p className={styles.disclaimer}>*{ESTIMATE_DISCLAIMER}</p>

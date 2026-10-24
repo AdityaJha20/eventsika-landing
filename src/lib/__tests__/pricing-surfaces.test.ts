@@ -123,8 +123,9 @@ describe("Shared package customizer", () => {
     expect(html).toContain("Includes: Decor only");
     expect(html).toContain("tax treatment will be confirmed in the final quote");
     expect(html).toContain(
-      'href="/?package=premium&amp;packageGuests=25&amp;packageAddons=#plan-event"',
+      'href="/estimate?package=premium&amp;packageGuests=25&amp;packageAddons="',
     );
+    expect(html).toContain("View My Indicative Estimate");
   });
 });
 

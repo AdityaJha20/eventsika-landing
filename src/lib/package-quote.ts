@@ -34,8 +34,33 @@ const SERVICE_OPTION_FOR_SERVICE: Readonly<Record<OptionalServiceId, ServiceOpti
   videography: "Photography & Films",
 };
 
+function packageQuoteQuery(selection: PackageQuoteSelection): string {
+  return `package=${selection.tierId}&packageGuests=${selection.guestCount}&packageAddons=${selection.serviceIds.join(",")}`;
+}
+
+/** Homepage enquiry form, prefilled with the selection. */
 export function buildPackageQuoteHref(selection: PackageQuoteSelection): string {
-  return `/?package=${selection.tierId}&packageGuests=${selection.guestCount}&packageAddons=${selection.serviceIds.join(",")}#plan-event`;
+  return `/?${packageQuoteQuery(selection)}#plan-event`;
+}
+
+/** Branded indicative estimate page for the selection. */
+export function buildEstimateHref(selection: PackageQuoteSelection): string {
+  return `/estimate?${packageQuoteQuery(selection)}`;
+}
+
+/**
+ * Parses Next.js page `searchParams`. Repeated parameters are ambiguous and
+ * rejected rather than guessed.
+ */
+export function parsePackageQuoteParams(
+  params: Readonly<Record<string, string | string[] | undefined>>,
+): PackageQuoteSelection | null {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (Array.isArray(value)) return null;
+    if (value !== undefined) search.set(key, value);
+  }
+  return parsePackageQuoteSearch(search.toString());
 }
 
 /**

@@ -203,6 +203,42 @@ export interface PackageEstimate {
   total: number;
 }
 
+export interface EstimateLineItem {
+  id: "decor" | OptionalServiceId;
+  label: string;
+  ratePerPerson: number;
+  quantity: number;
+  subtotal: number;
+}
+
+/**
+ * Itemised view of an estimate: the decor package first, then one line per
+ * selected optional service, each charged per guest.
+ */
+export function estimateLineItems(estimate: PackageEstimate): EstimateLineItem[] {
+  const tier = getPackageTier(estimate.tierId);
+  return [
+    {
+      id: "decor",
+      label: `${tier.name} Decor Package`,
+      ratePerPerson: estimate.decorRatePerPerson,
+      quantity: estimate.guestCount,
+      subtotal: estimate.packageSubtotal,
+    },
+    ...estimate.services.map((service) => ({
+      id: service.id,
+      label: service.name,
+      ratePerPerson: service.ratePerPerson,
+      quantity: estimate.guestCount,
+      subtotal: service.subtotal,
+    })),
+  ];
+}
+
+export function describeEstimateLine(line: EstimateLineItem): string {
+  return `${formatPerPersonRate(line.ratePerPerson)} × ${line.quantity} guests = ${formatCurrency(line.subtotal)}`;
+}
+
 /**
  * Calculates the indicative event estimate:
  *
