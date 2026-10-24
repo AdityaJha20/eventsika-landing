@@ -45,7 +45,7 @@ const IPV6_REGEX = /^[0-9a-fA-F:]+$/;
 /**
  * Validates whether a candidate string is a syntactically valid IPv4 or IPv6 address.
  */
-export function isValidIp(ip: string): boolean {
+function isValidIp(ip: string): boolean {
   if (!ip || ip.length > 45) return false;
   return IPV4_REGEX.test(ip) || IPV6_REGEX.test(ip);
 }
