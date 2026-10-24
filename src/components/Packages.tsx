@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   PACKAGES_CONFIG,
   DEFAULT_PACKAGE_ID,
+  BASE_PACKAGE_INCLUSION,
   formatPackageRate,
   type PackageTierConfig,
 } from "@/lib/packages-config";
@@ -26,19 +27,19 @@ const HOME_PACKAGE_PRESENTATION: Record<
     number: "01",
     image: "/images/packages/living-room-dinner.webp",
     description:
-      "For intimate gatherings where you need the important details brought together beautifully.",
+      "For intimate gatherings that call for a warm, well-considered decor setting.",
   },
   premium: {
     number: "02",
     image: "/images/packages/driveway-lawns.webp",
     description:
-      "For celebrations that need detailed planning and coordination across chosen vendors.",
+      "For celebrations with more spaces and moments to dress, styled in richer detail.",
   },
   luxury: {
     number: "03",
     image: "/images/packages/grand-celebration.webp",
     description:
-      "For more involved celebrations that need comprehensive planning and multi-vendor coordination.",
+      "For milestone occasions that deserve our most elaborate decor treatment.",
   },
 };
 
@@ -60,7 +61,7 @@ export default function Packages() {
             Thoughtfully planned, beautifully delivered.
           </h2>
           <p className={styles.description}>
-            Choose your planning and coordination tier. Third-party vendor services are quoted separately; vendor estimates are indicative until confirmed.
+            Each package includes decor only, priced per guest. Add optional services such as food, floral styling or photography at the published per-guest rate for your package.
           </p>
         </div>
 
@@ -94,7 +95,7 @@ export default function Packages() {
                 tabIndex={0}
                 onClick={handleSelect}
                 onKeyDown={handleKeyDown}
-                aria-label={`${pkg.name} Package — ${formatPackageRate(pkg.pricePerPerson)}`}
+                aria-label={`${pkg.name} Decor Package — ${formatPackageRate(pkg.pricePerPerson)}`}
                 className={`${styles.card} ${
                   isPremium ? styles.premiumCard : ""
                 } ${isSelected ? styles.cardSelected : ""}`}
@@ -120,6 +121,9 @@ export default function Packages() {
                     <span className={styles.packageNumber}>{meta.number}</span>
                     <h3 className={styles.packageName}>{pkg.name}</h3>
                     <span className={styles.packageRate}>{formatPackageRate(pkg.pricePerPerson)}</span>
+                    <span className={styles.packageInclusion}>
+                      Includes: {BASE_PACKAGE_INCLUSION}
+                    </span>
                     <p className={styles.packageTagline}>{pkg.tagline}</p>
                     <p className={styles.packageDescription}>
                       {meta.description}

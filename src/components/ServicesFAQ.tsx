@@ -22,7 +22,7 @@ const FAQ_DATA: FAQItem[] = [
     question:
       "How does custom pricing work for larger guest counts or multi-day celebrations?",
     answer:
-      "Displayed prices are starting ballpark estimates. For larger guest counts, multi-day functions, or custom themes, we prepare an itemized proposal tailored to your specific requirements.",
+      "Decor packages and optional services are priced per guest, so your indicative estimate scales with your guest count. Services without a published rate, such as rituals, entertainment and invitations, are quoted individually. Supplier availability, scope and tax treatment are confirmed in your final quote.",
   },
   {
     id: "faq-3",

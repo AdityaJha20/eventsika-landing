@@ -89,27 +89,108 @@ describe("validateLeadInput", () => {
   });
 
   describe("Package quote validation", () => {
-    it("recomputes package prices on the server and ignores client-supplied totals", () => {
-      const result = validateLeadInput({
-        ...getValidPayload(),
-        packageTier: "premium",
-        packageGuestCount: 25,
-        packageVendorAddonIds: ["photography-films", "live-music"],
-        packagePlanningFeeRupees: 1,
-        packageVendorEstimateRupees: 1,
-        packageCombinedEstimateRupees: 2,
-      });
+    const quotePayload = (overrides: Record<string, unknown> = {}) => ({
+      ...getValidPayload(),
+      packageTier: "premium",
+      packageGuestCount: 25,
+      packageVendorAddonIds: [],
+      ...overrides,
+    });
+
+    it("recomputes the estimate on the server and ignores tampered client totals", () => {
+      const result = validateLeadInput(
+        quotePayload({
+          packageVendorAddonIds: ["food", "photography"],
+          packagePlanningFeeRupees: 1,
+          packageVendorEstimateRupees: 1,
+          packageCombinedEstimateRupees: 2,
+          packageSubtotalRupees: 1,
+          totalEstimateRupees: 2,
+          perPersonTotal: 1,
+        }),
+      );
 
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.packageQuote).toEqual({
           tierId: "premium",
           guestCount: 25,
-          vendorAddonIds: ["photography-films", "live-music"],
-          planningFeeRupees: 50000,
-          vendorEstimateRupees: 38000,
-          combinedEstimateRupees: 88000,
+          serviceIds: ["food", "photography"],
+          packageSubtotalRupees: 50000,
+          servicesSubtotalRupees: 25 * (2600 + 750),
+          totalEstimateRupees: 25 * (2000 + 2600 + 750),
         });
+      }
+    });
+
+    it.each([
+      ["essential", 37500],
+      ["premium", 50000],
+      ["luxury", 62500],
+    ])("charges decor only for a %s package with no services", (packageTier, total) => {
+      const result = validateLeadInput(quotePayload({ packageTier }));
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.packageQuote?.servicesSubtotalRupees).toBe(0);
+        expect(result.data.packageQuote?.totalEstimateRupees).toBe(total);
+      }
+    });
+
+    it("treats a missing service list as no optional services", () => {
+      const { packageVendorAddonIds: _omitted, ...payload } = quotePayload();
+      void _omitted;
+      const result = validateLeadInput(payload);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.packageQuote?.serviceIds).toEqual([]);
+        expect(result.data.packageQuote?.totalEstimateRupees).toBe(50000);
+      }
+    });
+
+    it.each([
+      ["essential", 145000],
+      ["premium", 197250],
+      ["luxury", 255725],
+    ])("charges all eight services per guest for %s at 25 guests", (packageTier, total) => {
+      const result = validateLeadInput(
+        quotePayload({
+          packageTier,
+          packageVendorAddonIds: [
+            "videography",
+            "photography",
+            "light-sound",
+            "valet",
+            "housekeeping",
+            "bartending",
+            "floral",
+            "food",
+          ],
+        }),
+      );
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.packageQuote?.serviceIds).toEqual([
+          "food",
+          "floral",
+          "bartending",
+          "housekeeping",
+          "valet",
+          "light-sound",
+          "photography",
+          "videography",
+        ]);
+        expect(result.data.packageQuote?.totalEstimateRupees).toBe(total);
+      }
+    });
+
+    it("never charges a duplicated service twice", () => {
+      const result = validateLeadInput(
+        quotePayload({ packageVendorAddonIds: ["valet", "valet", "food"] }),
+      );
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.packageQuote?.serviceIds).toEqual(["food", "valet"]);
+        expect(result.data.packageQuote?.servicesSubtotalRupees).toBe(25 * (2600 + 156));
       }
     });
 
@@ -125,33 +206,48 @@ describe("validateLeadInput", () => {
     it.each([9, 10001, 25.5, "25", null])(
       "rejects invalid exact package guest counts: %s",
       (packageGuestCount) => {
-        const result = validateLeadInput({
-          ...getValidPayload(),
-          packageTier: "premium",
-          packageGuestCount,
-          packageVendorAddonIds: [],
-        });
-
+        const result = validateLeadInput(quotePayload({ packageGuestCount }));
         expect(result.success).toBe(false);
       },
     );
 
-    it("rejects unknown package tiers and vendor estimate identifiers", () => {
-      const invalidTier = validateLeadInput({
-        ...getValidPayload(),
-        packageTier: "royal",
-        packageGuestCount: 25,
-        packageVendorAddonIds: [],
-      });
-      const invalidAddon = validateLeadInput({
-        ...getValidPayload(),
-        packageTier: "premium",
-        packageGuestCount: 25,
-        packageVendorAddonIds: ["unapproved-addon"],
-      });
+    it.each([10, 10000])("accepts the guest-count boundary %i", (packageGuestCount) => {
+      const result = validateLeadInput(quotePayload({ packageGuestCount }));
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.packageQuote?.totalEstimateRupees).toBe(packageGuestCount * 2000);
+      }
+    });
 
-      expect(invalidTier.success).toBe(false);
-      expect(invalidAddon.success).toBe(false);
+    it.each([["royal"], ["signature"], ["PREMIUM"], [""]])(
+      "rejects the unknown package tier %j when a quote is requested",
+      (packageTier) => {
+        const result = validateLeadInput(
+          quotePayload({ packageTier, packageVendorAddonIds: ["food"] }),
+        );
+        expect(result.success).toBe(false);
+      },
+    );
+
+    it.each([
+      [["unapproved-addon"]],
+      [["food", 7]],
+      [[null]],
+      ["food"],
+      [["food", "floral", "bartending", "housekeeping", "valet", "light-sound", "photography", "videography", "food"]],
+    ])("rejects invalid optional service selections: %j", (packageVendorAddonIds) => {
+      const result = validateLeadInput(quotePayload({ packageVendorAddonIds }));
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects legacy flat add-on IDs with a prompt to rebuild the estimate", () => {
+      const result = validateLeadInput(
+        quotePayload({ packageVendorAddonIds: ["photography-films", "live-music"] }),
+      );
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("rebuild your estimate");
+      }
     });
   });
 

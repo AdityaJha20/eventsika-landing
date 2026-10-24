@@ -6,12 +6,18 @@ import Link from "next/link";
 import HeroFireworks from "./HeroFireworks";
 import styles from "./Hero.module.css";
 import {
-  ADDONS_CONFIG,
   calculatePackageEstimate,
+  ESTIMATE_DISCLAIMER,
   formatCurrency,
-  PACKAGES_CONFIG,
-  type PackageTierConfig,
+  formatPerPersonRate,
+  getPackageTier,
+  type PackageEstimate,
 } from "@/lib/packages-config";
+import {
+  guestCountRangeFor,
+  parsePackageQuoteSearch,
+  serviceOptionsForPackageQuote,
+} from "@/lib/package-quote";
 
 const CITY_OPTIONS = [
   "Delhi",
@@ -67,38 +73,6 @@ const BUDGET_OPTIONS = [
   "₹5,00,000+",
 ];
 
-interface PackageQuoteSelection {
-  tierId: PackageTierConfig["id"];
-  guestCount: number;
-  vendorAddonIds: string[];
-}
-
-function guestCountRangeFor(count: number): string {
-  if (count <= 10) return "2–10 guests";
-  if (count <= 30) return "10–30 guests";
-  if (count <= 50) return "30–50 guests";
-  if (count <= 100) return "50–100 guests";
-  if (count <= 200) return "100–200 guests";
-  return "200+ guests";
-}
-
-function serviceOptionsForAddons(addonIds: readonly string[]): string[] {
-  const mappedServices: Record<string, string> = {
-    "live-chaat": "Food & Catering",
-    "photography-films": "Photography & Films",
-    "live-music": "Music & Entertainment",
-    hampers: "More",
-    "valet-concierge": "More",
-  };
-  return Array.from(
-    new Set(
-      addonIds
-        .map((id) => mappedServices[id])
-        .filter((service): service is string => typeof service === "string")
-    )
-  );
-}
-
 function subscribeToLocationSearch(onStoreChange: () => void) {
   window.addEventListener("popstate", onStoreChange);
   window.addEventListener("pageshow", onStoreChange);
@@ -113,39 +87,46 @@ function getLocationSearchSnapshot(): string {
   return window.location.search;
 }
 
-function parsePackageQuoteSelection(search: string): PackageQuoteSelection | null {
-  const params = new URLSearchParams(search);
-  const tierId = params.get("package");
-  const rawGuestCount = params.get("packageGuests");
-  const rawAddonIds = params.get("packageAddons") || "";
+function PackageQuoteSummaryItems({ estimate }: { estimate: PackageEstimate }) {
+  const tier = getPackageTier(estimate.tierId);
+  const serviceSummary = estimate.services
+    .map((service) => `${service.name} (${formatPerPersonRate(service.ratePerPerson)})`)
+    .join(", ");
 
-  if (!tierId || rawGuestCount === null) return null;
-
-  const selectedPackage = PACKAGES_CONFIG.find((pkg) => pkg.id === tierId);
-  const exactGuestCount = Number(rawGuestCount);
-  const vendorAddonIds = rawAddonIds ? rawAddonIds.split(",") : [];
-  const hasOnlyKnownAddons = vendorAddonIds.every((id) =>
-    ADDONS_CONFIG.some((addon) => addon.id === id)
+  return (
+    <>
+      <div className={styles.summaryItem}>
+        <span className={styles.summaryKey}>Decor Package</span>
+        <span className={styles.summaryVal}>
+          {tier.name} · {formatPerPersonRate(estimate.decorRatePerPerson)}
+        </span>
+      </div>
+      <div className={styles.summaryItem}>
+        <span className={styles.summaryKey}>Package Guest Count</span>
+        <span className={styles.summaryVal}>{estimate.guestCount} guests</span>
+      </div>
+      <div className={styles.summaryItem}>
+        <span className={styles.summaryKey}>Decor Package Subtotal</span>
+        <span className={styles.summaryVal}>{formatCurrency(estimate.packageSubtotal)}</span>
+      </div>
+      <div className={styles.summaryItem}>
+        <span className={styles.summaryKey}>Selected Optional Services</span>
+        <span className={styles.summaryVal}>{serviceSummary || "None selected"}</span>
+      </div>
+      <div className={styles.summaryItem}>
+        <span className={styles.summaryKey}>Optional Services Subtotal</span>
+        <span className={styles.summaryVal}>{formatCurrency(estimate.servicesSubtotal)}</span>
+      </div>
+      <div className={styles.summaryItem}>
+        <span className={styles.summaryKey}>Total Estimated Per Person</span>
+        <span className={styles.summaryVal}>{formatCurrency(estimate.perPersonTotal)}</span>
+      </div>
+      <div className={styles.summaryItem}>
+        <span className={styles.summaryKey}>Indicative Event Estimate</span>
+        <span className={styles.summaryVal}>{formatCurrency(estimate.total)}</span>
+      </div>
+    </>
   );
-  const hasNoDuplicateAddons =
-    new Set(vendorAddonIds).size === vendorAddonIds.length;
-
-  if (
-    !selectedPackage ||
-    !Number.isInteger(exactGuestCount) ||
-    exactGuestCount < 10 ||
-    exactGuestCount > 10000 ||
-    !hasOnlyKnownAddons ||
-    !hasNoDuplicateAddons
-  ) {
-    return null;
-  }
-
-  return {
-    tierId: selectedPackage.id,
-    guestCount: exactGuestCount,
-    vendorAddonIds,
-  };
 }
 
 function isValidPhoneNumber(phone: string): boolean {
@@ -188,12 +169,12 @@ export default function Hero() {
     getLocationSearchSnapshot,
     () => ""
   );
-  const packageQuoteSelection = parsePackageQuoteSelection(locationSearch);
+  const packageQuoteSelection = parsePackageQuoteSearch(locationSearch);
   const guestCount = packageQuoteSelection
     ? guestCountRangeFor(packageQuoteSelection.guestCount)
     : guestCountInput;
-  const quoteServiceOptions = packageQuoteSelection
-    ? serviceOptionsForAddons(packageQuoteSelection.vendorAddonIds)
+  const quoteServiceOptions: string[] = packageQuoteSelection
+    ? serviceOptionsForPackageQuote(packageQuoteSelection.serviceIds)
     : [];
   const selectedServices = [
     ...quoteServiceOptions.filter((service) => !excludedQuoteServices.includes(service)),
@@ -204,11 +185,8 @@ export default function Hero() {
     ? calculatePackageEstimate(
         packageQuoteSelection.guestCount,
         packageQuoteSelection.tierId,
-        packageQuoteSelection.vendorAddonIds
+        packageQuoteSelection.serviceIds
       )
-    : null;
-  const selectedQuotePackage = packageQuoteSelection
-    ? PACKAGES_CONFIG.find((pkg) => pkg.id === packageQuoteSelection.tierId)
     : null;
 
   const toggleService = (service: string) => {
@@ -302,7 +280,7 @@ export default function Hero() {
           honeypot,
           packageTier: packageQuoteSelection?.tierId ?? null,
           packageGuestCount: packageQuoteSelection?.guestCount ?? null,
-          packageVendorAddonIds: packageQuoteSelection?.vendorAddonIds ?? [],
+          packageVendorAddonIds: packageQuoteSelection?.serviceIds ?? [],
         }),
       });
 
@@ -397,39 +375,10 @@ export default function Hero() {
 
             {formStep === "form" && (
               <form onSubmit={handleReview} className={styles.form}>
-                {packageQuoteSelection && packageQuoteEstimate && selectedQuotePackage && (
+                {packageQuoteEstimate && (
                   <div className={styles.summaryGrid} aria-live="polite">
-                    <div className={styles.summaryItem}>
-                      <span className={styles.summaryKey}>Selected Planning Package</span>
-                      <span className={styles.summaryVal}>
-                        {selectedQuotePackage.name} · {formatCurrency(selectedQuotePackage.pricePerPerson)} / person
-                      </span>
-                    </div>
-                    <div className={styles.summaryItem}>
-                      <span className={styles.summaryKey}>Package Guest Count</span>
-                      <span className={styles.summaryVal}>{packageQuoteSelection.guestCount} guests</span>
-                    </div>
-                    <div className={styles.summaryItem}>
-                      <span className={styles.summaryKey}>Eventsika Planning Fee</span>
-                      <span className={styles.summaryVal}>{formatCurrency(packageQuoteEstimate.planningFee)}</span>
-                    </div>
-                    <div className={styles.summaryItem}>
-                      <span className={styles.summaryKey}>Selected Vendor Services</span>
-                      <span className={styles.summaryVal}>
-                        {packageQuoteSelection.vendorAddonIds.map((id) => ADDONS_CONFIG.find((addon) => addon.id === id)?.name || id).join(", ") || "None selected"}
-                      </span>
-                    </div>
-                    <div className={styles.summaryItem}>
-                      <span className={styles.summaryKey}>Selected Vendor Estimates</span>
-                      <span className={styles.summaryVal}>{formatCurrency(packageQuoteEstimate.selectedVendorEstimate)}</span>
-                    </div>
-                    <div className={styles.summaryItem}>
-                      <span className={styles.summaryKey}>Indicative Combined Estimate</span>
-                      <span className={styles.summaryVal}>{formatCurrency(packageQuoteEstimate.combinedEstimate)}</span>
-                    </div>
-                    <p className={styles.consentText}>
-                      Planning and coordination only. Vendor prices are estimates, not confirmed costs; additional vendor services and tax treatment will be clarified in the final proposal.
-                    </p>
+                    <PackageQuoteSummaryItems estimate={packageQuoteEstimate} />
+                    <p className={styles.consentText}>{ESTIMATE_DISCLAIMER}</p>
                   </div>
                 )}
                 {/* Row 1: Name + Phone */}
@@ -739,25 +688,8 @@ export default function Hero() {
                     </span>
                   </div>
 
-                  {packageQuoteSelection && packageQuoteEstimate && selectedQuotePackage && (
-                    <>
-                      <div className={styles.summaryItem}>
-                        <span className={styles.summaryKey}>Planning Package</span>
-                        <span className={styles.summaryVal}>{selectedQuotePackage.name} · {packageQuoteSelection.guestCount} guests</span>
-                      </div>
-                      <div className={styles.summaryItem}>
-                        <span className={styles.summaryKey}>Planning Fee</span>
-                        <span className={styles.summaryVal}>{formatCurrency(packageQuoteEstimate.planningFee)}</span>
-                      </div>
-                      <div className={styles.summaryItem}>
-                        <span className={styles.summaryKey}>Indicative Vendor Estimates</span>
-                        <span className={styles.summaryVal}>{formatCurrency(packageQuoteEstimate.selectedVendorEstimate)}</span>
-                      </div>
-                      <div className={styles.summaryItem}>
-                        <span className={styles.summaryKey}>Indicative Combined Estimate</span>
-                        <span className={styles.summaryVal}>{formatCurrency(packageQuoteEstimate.combinedEstimate)}</span>
-                      </div>
-                    </>
+                  {packageQuoteEstimate && (
+                    <PackageQuoteSummaryItems estimate={packageQuoteEstimate} />
                   )}
                   <div className={styles.summaryItem}>
                     <span className={styles.summaryKey}>Budget</span>
@@ -835,25 +767,8 @@ export default function Hero() {
                     </span>
                   </div>
 
-                  {packageQuoteSelection && packageQuoteEstimate && selectedQuotePackage && (
-                    <>
-                      <div className={styles.summaryItem}>
-                        <span className={styles.summaryKey}>Planning Package</span>
-                        <span className={styles.summaryVal}>{selectedQuotePackage.name} · {packageQuoteSelection.guestCount} guests</span>
-                      </div>
-                      <div className={styles.summaryItem}>
-                        <span className={styles.summaryKey}>Planning Fee</span>
-                        <span className={styles.summaryVal}>{formatCurrency(packageQuoteEstimate.planningFee)}</span>
-                      </div>
-                      <div className={styles.summaryItem}>
-                        <span className={styles.summaryKey}>Indicative Vendor Estimates</span>
-                        <span className={styles.summaryVal}>{formatCurrency(packageQuoteEstimate.selectedVendorEstimate)}</span>
-                      </div>
-                      <div className={styles.summaryItem}>
-                        <span className={styles.summaryKey}>Indicative Combined Estimate</span>
-                        <span className={styles.summaryVal}>{formatCurrency(packageQuoteEstimate.combinedEstimate)}</span>
-                      </div>
-                    </>
+                  {packageQuoteEstimate && (
+                    <PackageQuoteSummaryItems estimate={packageQuoteEstimate} />
                   )}
                   <div className={styles.summaryItem}>
                     <span className={styles.summaryKey}>Budget</span>

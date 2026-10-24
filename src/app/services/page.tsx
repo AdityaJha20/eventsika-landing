@@ -2,10 +2,24 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
-import ServiceEstimator from "@/components/ServiceEstimator";
+import PackageCustomizer from "@/components/PackageCustomizer";
 import ServicesFAQ from "@/components/ServicesFAQ";
 import Footer from "@/components/Footer";
+import {
+  CUSTOM_QUOTE_LABEL,
+  PACKAGES_CONFIG,
+  formatPerPersonRate,
+  getLowestServiceRate,
+} from "@/lib/packages-config";
 import styles from "./services.module.css";
+
+const LOWEST_PACKAGE_RATE = Math.min(
+  ...PACKAGES_CONFIG.map((pkg) => pkg.pricePerPerson)
+);
+
+function fromRate(label: string, ratePerPerson: number): string {
+  return `${label} from ${formatPerPersonRate(ratePerPerson)}`;
+}
 
 export const metadata: Metadata = {
   title: "Services | Bespoke Celebration Services",
@@ -39,12 +53,12 @@ const SERVICES_DATA = [
   {
     number: "01 // SERVICE",
     title: "Decor & Styling",
-    price: "Starting from ₹25,000",
+    price: fromRate("Decor packages", LOWEST_PACKAGE_RATE),
     description:
-      "From home living rooms and terrace settings to lawns and banquet halls, our team shapes the visual atmosphere of your celebration with fresh floral design, ambient lighting, tailored backdrops, and coordinated seating.",
+      "From home living rooms and terrace settings to lawns and banquet halls, our team shapes the visual atmosphere of your celebration with ambient accents, tailored backdrops, and coordinated seating. Fresh floral styling can be added as an optional per-guest service.",
     features: [
       "Mandaps, Stage Backdrops & Thematic Settings",
-      "Fresh Marigold, Jasmine & Seasonal Floral Styling",
+      fromRate("Optional Floral Styling", getLowestServiceRate("floral")),
       "Ambient Fairy Lights & Warm Lantern Accents",
       "Diwan Seating & Coordinated Lounge Arrangements",
       "Welcome Entrances & Photo Corner Details",
@@ -58,7 +72,7 @@ const SERVICES_DATA = [
   {
     number: "02 // SERVICE",
     title: "Catering & Cuisine",
-    price: "Starting from ₹650 / plate",
+    price: fromRate("Food & catering", getLowestServiceRate("food")),
     description:
       "Thoughtfully planned celebration dining for family gatherings and festive occasions. We coordinate authentic regional dishes, live cooking counters, and traditional dessert spreads served with attentive hospitality and high hygiene standards.",
     features: [
@@ -77,7 +91,7 @@ const SERVICES_DATA = [
   {
     number: "03 // SERVICE",
     title: "Rituals & Blessings",
-    price: "Starting from ₹12,000 / event",
+    price: CUSTOM_QUOTE_LABEL,
     description:
       "Structured coordination for traditional Indian ceremonies, family pujas, and sacred milestones. We assist with experienced pandits, ritual planning, authentic samagri, and ceremonial arrangements so rituals flow smoothly alongside your wider celebration.",
     features: [
@@ -96,7 +110,7 @@ const SERVICES_DATA = [
   {
     number: "04 // SERVICE",
     title: "Entertainment & Performers",
-    price: "Starting from ₹15,000",
+    price: CUSTOM_QUOTE_LABEL,
     description:
       "Curated music and entertainment designed to match the mood of each celebration segment. From classical morning recitals and folk troupes to energetic Sangeet DJs, live singers, and interactive hosts, we bring the right artists to your event.",
     features: [
@@ -105,7 +119,7 @@ const SERVICES_DATA = [
       "Traditional Shehnai, Dhol & Percussion Troupes",
       "Professional Event Emcees & Celebration Hosts",
       "Family Game Coordination & Children's Activity Hosts",
-      "Ambient Stage Lighting & Audio Setup Support",
+      fromRate("Optional Light & Sound", getLowestServiceRate("light-sound")),
     ],
     image: "/images/service-entertainment-performers.png",
     alt: "Live celebration music, acoustic artists, and sangeet DJ entertainment",
@@ -115,7 +129,7 @@ const SERVICES_DATA = [
   {
     number: "05 // SERVICE",
     title: "Photography & Films",
-    price: "Starting from ₹18,000 / day",
+    price: `${fromRate("Photography", getLowestServiceRate("photography"))} · ${fromRate("Videography", getLowestServiceRate("videography"))}`,
     description:
       "Thoughtful visual documentation capturing spontaneous family moments, important rituals, and genuine emotion. Our team provides candid photography, family portraits, and highlight films that preserve the spirit of your day without feeling intrusive.",
     features: [
@@ -134,7 +148,7 @@ const SERVICES_DATA = [
   {
     number: "06 // SERVICE",
     title: "Invitations & Favours",
-    price: "Starting from ₹5,000",
+    price: CUSTOM_QUOTE_LABEL,
     description:
       "Set the tone before your celebration begins with cohesive stationery, guest communications, and gifting. We coordinate digital invitations, RSVP microsites, physical cards, and curated gift hampers tailored to your family's occasion.",
     features: [
@@ -271,8 +285,8 @@ export default function ServicesPage() {
           </div>
         </section>
 
-        {/* Instant Service Cost Estimator */}
-        <ServiceEstimator />
+        {/* Shared Decor Package & Optional Service Estimator */}
+        <PackageCustomizer />
 
         {/* Frequently Asked Questions */}
         <ServicesFAQ />

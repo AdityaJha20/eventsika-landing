@@ -8,7 +8,11 @@ import {
   CITY_OPTIONS,
 } from "@/lib/backend/constants/allowlists";
 import styles from "./leads.module.css";
-import { ADDONS_CONFIG, formatCurrency, PACKAGES_CONFIG } from "@/lib/packages-config";
+import { formatCurrency, formatPerPersonRate } from "@/lib/packages-config";
+import {
+  summarizePackageQuote,
+  type PackageQuoteSummaryService,
+} from "@/lib/package-quote-summary";
 
 interface LeadsWorkspaceProps {
   initialLeads: SavedLeadRecord[];
@@ -49,6 +53,12 @@ function formatDisplayDateTime(isoStr: string): string {
   } catch {
     return isoStr;
   }
+}
+
+function describeQuoteService(service: PackageQuoteSummaryService): string {
+  return service.ratePerPerson !== null
+    ? `${service.name} (${formatPerPersonRate(service.ratePerPerson)})`
+    : service.name;
 }
 
 function isRecentSubmission(isoStr: string): boolean {
@@ -183,6 +193,10 @@ export function LeadsWorkspace({ initialLeads, metrics }: LeadsWorkspaceProps) {
     return found || filteredLeads[0];
   }, [filteredLeads, selectedLeadId]);
 
+  const activeQuote = activeLead?.packageQuote
+    ? summarizePackageQuote(activeLead.packageQuote)
+    : null;
+
   const handleSelectLead = (leadId: string) => {
     setSelectedLeadId(leadId);
     setIsMobileDossierOpen(true);
@@ -207,15 +221,18 @@ export function LeadsWorkspace({ initialLeads, metrics }: LeadsWorkspaceProps) {
       `Budget: ${activeLead.budgetRange}`,
       `Phone: +91 ${activeLead.userPhone} (WhatsApp: Verified)`,
       `Services: ${activeLead.selectedServices.join(", ")}`,
-      ...(activeLead.packageQuote
+      ...(activeQuote
         ? [
-            `Planning Package: ${PACKAGES_CONFIG.find((pkg) => pkg.id === activeLead.packageQuote?.tierId)?.name || activeLead.packageQuote.tierId}`,
-            `Package Guest Count: ${activeLead.packageQuote.guestCount}`,
-            `Eventsika Planning Fee: ${formatCurrency(activeLead.packageQuote.planningFeeRupees)}`,
-            `Selected Vendor Services: ${activeLead.packageQuote.vendorAddonIds.map((id) => ADDONS_CONFIG.find((addon) => addon.id === id)?.name || id).join(", ") || "None selected"}`,
-            `Indicative Vendor Estimate: ${formatCurrency(activeLead.packageQuote.vendorEstimateRupees)}`,
-            `Indicative Combined Estimate: ${formatCurrency(activeLead.packageQuote.combinedEstimateRupees)}`,
-            "Vendor services are quoted separately; estimates are not confirmed all-inclusive prices. Tax treatment is to be clarified.",
+            `${activeQuote.packageLabel}: ${activeQuote.tierName}${activeQuote.decorRatePerPerson !== null ? ` · ${formatPerPersonRate(activeQuote.decorRatePerPerson)}` : ""}`,
+            `Package Guest Count: ${activeQuote.guestCount}`,
+            `${activeQuote.packageLabel} Subtotal: ${formatCurrency(activeQuote.packageSubtotal)}`,
+            `${activeQuote.servicesLabel}: ${activeQuote.services.map(describeQuoteService).join(", ") || "None selected"}`,
+            `${activeQuote.servicesLabel} Subtotal: ${formatCurrency(activeQuote.servicesSubtotal)}`,
+            ...(activeQuote.perPersonTotal !== null
+              ? [`Total Estimated Per Person: ${formatCurrency(activeQuote.perPersonTotal)}`]
+              : []),
+            `Indicative Event Estimate: ${formatCurrency(activeQuote.total)}`,
+            activeQuote.note,
           ]
         : []),
       `Submitted: ${formatDisplayDateTime(activeLead.createdAt)}`,
@@ -768,43 +785,48 @@ export function LeadsWorkspace({ initialLeads, metrics }: LeadsWorkspaceProps) {
                   </div>
                 </section>
 
-                {activeLead.packageQuote && (
+                {activeQuote && (
                   <section className={styles.dossierSectionBlock} aria-labelledby="headingPackageQuote">
                     <div className={styles.sectionHeading}>
                       <h3 id="headingPackageQuote" className={styles.sectionTitle}>
-                        Selected Planning Package
+                        {activeQuote.isLegacyQuote ? "Selected Package (Legacy Quote)" : "Selected Decor Package"}
                       </h3>
                       <span className={styles.sectionTag}>Indicative Estimate</span>
                     </div>
                     <div className={styles.specsGrid}>
                       <div className={styles.specCard}>
                         <span className={styles.fieldLabel}>Package Tier</span>
-                        <span className={styles.specValue}>
-                          {PACKAGES_CONFIG.find((pkg) => pkg.id === activeLead.packageQuote?.tierId)?.name || activeLead.packageQuote.tierId}
-                        </span>
-                        <span className={styles.specMeta}>{activeLead.packageQuote.guestCount} guests</span>
-                      </div>
-                      <div className={styles.specCard}>
-                        <span className={styles.fieldLabel}>Eventsika Planning Fee</span>
-                        <span className={styles.specValue}>{formatCurrency(activeLead.packageQuote.planningFeeRupees)}</span>
-                        <span className={styles.specMeta}>Based on selected package and guest count</span>
-                      </div>
-                      <div className={styles.specCard}>
-                        <span className={styles.fieldLabel}>Selected Vendor Estimates</span>
-                        <span className={styles.specValue}>{formatCurrency(activeLead.packageQuote.vendorEstimateRupees)}</span>
+                        <span className={styles.specValue}>{activeQuote.tierName}</span>
                         <span className={styles.specMeta}>
-                          {activeLead.packageQuote.vendorAddonIds.map((id) => ADDONS_CONFIG.find((addon) => addon.id === id)?.name || id).join(", ") || "No optional vendor estimates selected"}
+                          {activeQuote.guestCount} guests
+                          {activeQuote.decorRatePerPerson !== null
+                            ? ` · ${formatPerPersonRate(activeQuote.decorRatePerPerson)}`
+                            : ""}
                         </span>
                       </div>
                       <div className={styles.specCard}>
-                        <span className={styles.fieldLabel}>Indicative Combined Estimate</span>
-                        <span className={styles.specValue}>{formatCurrency(activeLead.packageQuote.combinedEstimateRupees)}</span>
-                        <span className={styles.specMeta}>Not a confirmed all-inclusive event quote</span>
+                        <span className={styles.fieldLabel}>{activeQuote.packageLabel}</span>
+                        <span className={styles.specValue}>{formatCurrency(activeQuote.packageSubtotal)}</span>
+                        <span className={styles.specMeta}>Package subtotal as recorded</span>
+                      </div>
+                      <div className={styles.specCard}>
+                        <span className={styles.fieldLabel}>{activeQuote.servicesLabel}</span>
+                        <span className={styles.specValue}>{formatCurrency(activeQuote.servicesSubtotal)}</span>
+                        <span className={styles.specMeta}>
+                          {activeQuote.services.map(describeQuoteService).join(", ") || "No optional services selected"}
+                        </span>
+                      </div>
+                      <div className={styles.specCard}>
+                        <span className={styles.fieldLabel}>Indicative Event Estimate</span>
+                        <span className={styles.specValue}>{formatCurrency(activeQuote.total)}</span>
+                        <span className={styles.specMeta}>
+                          {activeQuote.perPersonTotal !== null
+                            ? `${formatCurrency(activeQuote.perPersonTotal)} per person · not a final quote`
+                            : "Not a final quote"}
+                        </span>
                       </div>
                     </div>
-                    <p className={styles.specMeta}>
-                      Third-party vendor services are quoted separately. Vendor estimates remain indicative until confirmed; tax treatment will be clarified in the final proposal.
-                    </p>
+                    <p className={styles.specMeta}>{activeQuote.note}</p>
                   </section>
                 )}
 
