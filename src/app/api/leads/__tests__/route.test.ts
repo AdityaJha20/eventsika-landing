@@ -231,6 +231,107 @@ describe("POST /api/leads Integration Contract", () => {
     });
   });
 
+  describe("Package quote submissions", () => {
+    const postLead = (payload: Record<string, unknown>, ip: string) =>
+      POST(
+        new NextRequest("http://localhost:3000/api/leads", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-real-ip": ip,
+          },
+          body: JSON.stringify(payload),
+        }),
+      );
+
+    it("passes only the server-recomputed estimate to the lead service", async () => {
+      const processLeadSpy = vi.spyOn(leadService, "processLead").mockResolvedValueOnce({
+        success: true,
+        leadId: "test-lead-uuid",
+        message: "Celebration details submitted successfully.",
+      });
+
+      const response = await postLead(
+        {
+          ...getValidLeadPayload(),
+          packageTier: "essential",
+          packageGuestCount: 25,
+          packageVendorAddonIds: [
+            "food",
+            "floral",
+            "bartending",
+            "housekeeping",
+            "valet",
+            "light-sound",
+            "photography",
+            "videography",
+          ],
+          packageCombinedEstimateRupees: 1,
+          totalEstimateRupees: 1,
+        },
+        "198.51.100.30",
+      );
+
+      expect(response.status).toBe(200);
+      expect(processLeadSpy).toHaveBeenCalledTimes(1);
+      expect(processLeadSpy.mock.calls[0][0].packageQuote).toEqual({
+        tierId: "essential",
+        guestCount: 25,
+        serviceIds: [
+          "food",
+          "floral",
+          "bartending",
+          "housekeeping",
+          "valet",
+          "light-sound",
+          "photography",
+          "videography",
+        ],
+        packageSubtotalRupees: 37500,
+        servicesSubtotalRupees: 107500,
+        totalEstimateRupees: 145000,
+      });
+    });
+
+    it.each([
+      ["an unknown service", { packageVendorAddonIds: ["fireworks"] }],
+      ["a legacy flat add-on", { packageVendorAddonIds: ["live-chaat"] }],
+      ["an unknown tier", { packageTier: "grand" }],
+      ["an out-of-range guest count", { packageGuestCount: 5 }],
+    ])("rejects %s with HTTP 400 before persistence", async (_label, overrides) => {
+      const processLeadSpy = vi.spyOn(leadService, "processLead");
+
+      const response = await postLead(
+        {
+          ...getValidLeadPayload(),
+          packageTier: "premium",
+          packageGuestCount: 25,
+          packageVendorAddonIds: [],
+          ...overrides,
+        },
+        "198.51.100.31",
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.success).toBe(false);
+      expect(processLeadSpy).not.toHaveBeenCalled();
+    });
+
+    it("still accepts ordinary enquiries without a package quote", async () => {
+      const processLeadSpy = vi.spyOn(leadService, "processLead").mockResolvedValueOnce({
+        success: true,
+        leadId: "test-lead-uuid",
+        message: "Celebration details submitted successfully.",
+      });
+
+      const response = await postLead(getValidLeadPayload(), "198.51.100.32");
+
+      expect(response.status).toBe(200);
+      expect(processLeadSpy.mock.calls[0][0].packageQuote).toBeNull();
+    });
+  });
+
   describe("Cross-origin submission protection", () => {
     it("rejects cross-origin requests with HTTP 403 and prevents lead processing", async () => {
       const processLeadSpy = vi.spyOn(leadService, "processLead");

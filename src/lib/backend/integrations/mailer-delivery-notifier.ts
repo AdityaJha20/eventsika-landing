@@ -1,5 +1,6 @@
 import { sendNotificationEmail } from "../../mailer";
-import { ADDONS_CONFIG, formatCurrency, PACKAGES_CONFIG } from "../../packages-config";
+import { formatCurrency, formatPerPersonRate } from "../../packages-config";
+import { summarizePackageQuote } from "../../package-quote-summary";
 import { ValidatedLeadInput } from "../validation/lead-schema";
 import { ValidatedVendorInput } from "../validation/vendor-schema";
 import { DeliveryResult, IDeliveryNotifier } from "./delivery-notifier.interface";
@@ -33,25 +34,29 @@ export class MailerDeliveryNotifier implements IDeliveryNotifier {
     };
 
     if (lead.packageQuote) {
-      const selectedPackage = PACKAGES_CONFIG.find(
-        (pkg) => pkg.id === lead.packageQuote?.tierId
+      const quote = summarizePackageQuote(lead.packageQuote);
+      const serviceLines = quote.services.map((service) =>
+        service.ratePerPerson !== null && service.subtotal !== null
+          ? `${service.name} · ${formatPerPersonRate(service.ratePerPerson)} · ${formatCurrency(service.subtotal)}`
+          : service.name
       );
-      const vendorNames = lead.packageQuote.vendorAddonIds.map((id) =>
-        ADDONS_CONFIG.find((addon) => addon.id === id)?.name || id
-      );
-      payloadData["Eventsika Planning Package"] =
-        selectedPackage?.name || lead.packageQuote.tierId;
-      payloadData["Package Guest Count"] = String(lead.packageQuote.guestCount);
-      payloadData["Eventsika Planning Fee (INR)"] =
-        formatCurrency(lead.packageQuote.planningFeeRupees);
-      payloadData["Selected Vendor Estimate Items"] =
-        vendorNames.length ? vendorNames : ["None selected"];
-      payloadData["Indicative Vendor Estimate (INR)"] =
-        formatCurrency(lead.packageQuote.vendorEstimateRupees);
-      payloadData["Combined Indicative Estimate (INR)"] =
-        formatCurrency(lead.packageQuote.combinedEstimateRupees);
-      payloadData["Estimate Disclaimer"] =
-        "Planning and coordination fee only; third-party vendor costs are quoted separately. Vendor amounts are indicative, not confirmed. Tax treatment will be clarified in the final proposal.";
+      payloadData[quote.packageLabel] =
+        quote.decorRatePerPerson !== null
+          ? `${quote.tierName} · ${formatPerPersonRate(quote.decorRatePerPerson)}`
+          : quote.tierName;
+      payloadData["Package Guest Count"] = String(quote.guestCount);
+      payloadData[`${quote.packageLabel} Subtotal (INR)`] =
+        formatCurrency(quote.packageSubtotal);
+      payloadData[quote.servicesLabel] =
+        serviceLines.length ? serviceLines : ["None selected"];
+      payloadData[`${quote.servicesLabel} Subtotal (INR)`] =
+        formatCurrency(quote.servicesSubtotal);
+      if (quote.perPersonTotal !== null) {
+        payloadData["Total Estimated Per Person (INR)"] =
+          formatCurrency(quote.perPersonTotal);
+      }
+      payloadData["Indicative Event Estimate (INR)"] = formatCurrency(quote.total);
+      payloadData["Estimate Note"] = quote.note;
     }
 
     if (context?.requestId) {

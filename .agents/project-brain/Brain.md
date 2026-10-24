@@ -10,10 +10,10 @@
 | :--- | :--- |
 | **Project Name** | Eventsika (`landing`) |
 | **Document Path** | [`.agents/project-brain/Brain.md`](file:///c:/Users/gcad1/Documents/eventsika-landing/.agents/project-brain/Brain.md) |
-| **Brain Version** | `1.6.0` |
+| **Brain Version** | `1.7.0` |
 | **Creation Date** | `2026-08-30` |
-| **Last Verified** | `2026-09-21` |
-| **Target Framework** | Next.js `16.3.0` (React `19.2.8`, App Router) |
+| **Last Verified** | `2026-10-24` |
+| **Target Framework** | Next.js `16.4.3` (React `19.2.8`, App Router) |
 | **Primary Domain** | `https://eventsika.in` |
 | **Support Inbox** | `care@eventsika.in` |
 | **Operational Rule** | **Brain-First**: Consult `Brain.md` before initiating any non-trivial architectural, feature, or refactoring task. |
@@ -28,8 +28,8 @@
 
 ### Primary Capabilities & Core Value Proposition
 1. **Curated Celebration Services**: Venue decor & floral styling, gourmet catering, live counters, ritual & puja arrangements, photography & cinematography, live entertainment, and bespoke invitations.
-2. **Transparent Tiered Pricing**: Three planning-and-coordination tiers—Essential (₹1,500/person), Premium (₹2,000/person), and Luxury (₹2,500/person)—with a shared live estimator. These fees cover Eventsika planning and coordination; third-party vendor services are quoted separately and any displayed vendor estimates are indicative until confirmed. The six fixed starting-price venue/event packages on `/packages` remain a separate catalogue ranging from ₹35,000 to ₹3,25,000.
-3. **Interactive Lead Generation Engine**: Validated celebration intake form (`#plan-event`) with server-side rate limiting and honeypot protection. Package-customizer enquiries carry the selected tier, exact guest count, and selected vendor estimate IDs into the lead form; the backend recomputes monetary values before persistence and notification. Leads without a package quote remain supported.
+2. **Transparent Per-Guest Pricing**: Three decor packages—Essential (₹1,500/person), Premium (₹2,000/person), and Luxury (₹2,500/person)—each including **decor only**, plus eight optional per-guest services (food & catering, floral styling, bartending, housekeeping, valet & concierge, light & sound, photography, videography) whose rate depends on the selected tier. `perPersonTotal = decor rate + selected service rates`; `indicativeTotal = guestCount × perPersonTotal`. One shared live calculator (`PackageCustomizer`) serves the homepage, `/packages`, and `/services`. Estimates are indicative; supplier availability, the final quote, and tax treatment are confirmed separately. Services without an approved rate (rituals, entertainment, invitations) and the six venue/format settings on `/packages` display "Request a custom quote" instead of a number.
+3. **Interactive Lead Generation Engine**: Validated celebration intake form (`#plan-event`) with server-side rate limiting and honeypot protection. Package-customizer enquiries carry the selected tier, exact guest count, and selected optional service IDs into the lead form; the backend recomputes every monetary value from the trusted catalog before persistence and notification. Leads without a package quote remain supported, and historical leads with legacy flat add-ons render with their originally recorded amounts.
 4. **Curated Vendor Partner Network**: Transparent vendor partner application and onboarding registry (`/for-vendors`, `/admin/vendors`) capturing business profiles, portfolio links, and specialized categories.
 5. **Seasonal Strategy Consultations**: High-intent 1-on-1 celebration planning advisory sessions (`/diwali-consultation`).
 6. **Client & Partner Authentication Portal**: Dedicated portal entry point (`/login`) featuring client-side validation, secure Supabase SSR session handshake, and direct operational support routing.
@@ -49,7 +49,7 @@ All dependencies and versions are verified directly from `package.json` and proj
 
 | Technology | Version | Category / Purpose | Key Architectural Notes |
 | :--- | :--- | :--- | :--- |
-| **Next.js** | `16.3.0` | Core Framework | App Router, Server Components default, Turbopack, standalone production build |
+| **Next.js** | `16.4.3` | Core Framework | App Router, Server Components default, Turbopack, standalone production build |
 | **React** | `19.2.8` | UI Library | Concurrent rendering, React 19 Action & Component APIs |
 | **React DOM** | `19.2.8` | DOM Renderer | Browser mounting & SSR hydration |
 | **TypeScript** | `^5` | Language | Strict mode (`strict: true`), bundler module resolution, path alias `@/*` -> `./src/*` |
@@ -61,8 +61,8 @@ All dependencies and versions are verified directly from `package.json` and proj
 | **Distributed Cache / Rate Limiter** | `@upstash/redis: ^1.38.3` | Distributed Abuse Prevention | Atomic Redis Lua scripts for multi-layer admin auth rate limiting; fails closed in prod |
 | **Rate Limiter (Public)** | In-Memory Map | Public Intake Defense | Sliding window IP rate limiter with automated 5-minute cleanup cycles (`rate-limit.ts`) |
 | **Cryptography** | Native `node:crypto` | Secure Token Generation & Timing Safety | 256-bit secure reservation tokens (`crypto.randomBytes(32)`) and timing-safe token verification (`crypto.timingSafeEqual`) |
-| **ESLint** | `^9` | Linting & Standards | Flat config format (`eslint.config.mjs`) using `eslint-config-next: 16.3.0` |
-| **Test Framework** | `vitest: ^4.1.11` | Automated Testing | Unit & integration test suites (33 test files, 342 tests passing) |
+| **ESLint** | `^9` | Linting & Standards | Flat config format (`eslint.config.mjs`) using `eslint-config-next: 16.4.3` |
+| **Test Framework** | `vitest: ^4.1.11` | Automated Testing | Unit & integration test suites (47 test files, 640 tests passing) |
 | **Mailer Engine** | Native Fetch | Backend Dispatch | Zero-dependency REST dispatchers for Resend, SendGrid, and Custom Webhooks |
 | **Payment Gateway** | Native Fetch | Backend Adapter | Zero-dependency REST adapter for Cashfree PG API (2023-08-01) with 10s AbortController |
 | **Checkout SDK** | Dynamic Web SDK v3 | Client Modal Checkout | Dynamically loaded Cashfree JS SDK (`https://sdk.cashfree.com/js/v3/cashfree.js`) initializing `_modal` checkout without adding npm dependencies |
@@ -285,10 +285,9 @@ landing/
 │   │   ├── HowItWorks.tsx / .module.css   # 3-step celebration process overview
 │   │   ├── LoginForm.tsx / .module.css    # Portal login component & validation
 │   │   ├── Navbar.tsx / .module.css       # Global header, navigation, & animated SVG logo
-│   │   ├── PackageComparison.tsx / .module.css # Tier matrix comparison table
-│   │   ├── PackageCustomizer.tsx / .module.css # Interactive tier customization widget
-│   │   ├── Packages.tsx / .module.css     # Homepage package highlights
-│   │   ├── ServiceEstimator.tsx / .module.css  # Interactive budget & guest cost estimator
+│   │   ├── PackageComparison.tsx / .module.css # Catalog-driven decor + optional service rate matrix
+│   │   ├── PackageCustomizer.tsx / .module.css # Shared live per-guest estimator (home, /packages, /services)
+│   │   ├── Packages.tsx / .module.css     # Homepage decor package cards + embedded estimator
 │   │   ├── Services.tsx / .module.css     # Interactive 3D flip card service grid
 │   │   ├── ServicesFAQ.tsx / .module.css  # Expandable service FAQ accordions
 │   │   ├── VendorApplicationForm.tsx / .module.css # Partner application form
@@ -375,6 +374,10 @@ landing/
 │       │       ├── vendor-schema.ts
 │       │       └── __tests__/             # Validation schemas unit tests
 │       ├── mailer.ts                      # Multi-provider zero-dependency email dispatcher
+│       ├── packages-config.ts             # Single public pricing catalog + authoritative estimate calculation
+│       ├── package-quote.ts               # Public quote URL handoff + lead-form mapping (ships in public bundles)
+│       ├── package-quote-summary.ts       # Server/admin-only stored quote summaries + legacy add-on labels
+│       ├── packages-structured-data.ts    # /packages OfferCatalog JSON-LD generated from the catalog
 │       └── rate-limit.ts                  # Hybrid rate limiter (In-memory public + Upstash Redis admin)
 ├── supabase/                              # Version-controlled Supabase migrations
 │   └── migrations/                        # PostgreSQL DDL migrations (tables, RLS, indexes)
@@ -400,8 +403,8 @@ landing/
 | Route | Type | Component / File | Purpose & Key Interactions |
 | :--- | :--- | :--- | :--- |
 | `/` | Page (Static) | [`src/app/page.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/page.tsx) | Main landing page. Contains Hero intake form (`#plan-event`), How It Works, Services, Event Types, Packages, and Vendor preview. |
-| `/services` | Page (Static) | [`src/app/services/page.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/services/page.tsx) | Comprehensive celebration service directory with 6 curated service categories (01 Decor & Styling, 02 Catering & Cuisine, 03 Rituals & Blessings, 04 Entertainment & Performers, 05 Photography & Films, 06 Invitations & Favours), dynamic [`ServiceEstimator`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/ServiceEstimator.tsx), [`ServicesFAQ`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/ServicesFAQ.tsx), and consultation CTA routing to `/diwali-consultation`. |
-| `/packages` | Page (Static) | [`src/app/packages/page.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/packages/page.tsx) | Curated tiered package explorer with interactive [`PackageCustomizer`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/PackageCustomizer.tsx) and side-by-side [`PackageComparison`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/PackageComparison.tsx). |
+| `/services` | Page (Static) | [`src/app/services/page.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/services/page.tsx) | Comprehensive celebration service directory with 6 curated service categories (01 Decor & Styling, 02 Catering & Cuisine, 03 Rituals & Blessings, 04 Entertainment & Performers, 05 Photography & Films, 06 Invitations & Favours). Price labels for decor, catering, photography and videography are derived from the pricing catalog ("from" the lowest tier rate); rituals, entertainment and invitations show "Request a custom quote". Hosts the shared [`PackageCustomizer`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/PackageCustomizer.tsx) (the former flat `ServiceEstimator` was removed), [`ServicesFAQ`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/ServicesFAQ.tsx), and consultation CTA routing to `/diwali-consultation`. |
+| `/packages` | Page (Static) | [`src/app/packages/page.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/packages/page.tsx) | Primary pricing page: the shared [`PackageCustomizer`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/PackageCustomizer.tsx) (tier selection, guest count, eight optional per-guest services), the catalog-driven [`PackageComparison`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/PackageComparison.tsx), and six venue/format "settings we style" cards that are always "Request a custom quote" (no numeric starting prices). `OfferCatalog` JSON-LD is generated from the catalog by `packages-structured-data.ts` and contains only the 3 tier rates and 24 service rates. |
 | `/for-vendors` | Page (Static) | [`src/app/for-vendors/page.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/for-vendors/page.tsx) | Partner acquisition landing page with value props and multi-category [`VendorApplicationForm`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/VendorApplicationForm.tsx). |
 | `/diwali-consultation` | Page (Static) | [`src/app/diwali-consultation/page.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/diwali-consultation/page.tsx) | High-intent promotional landing page for 1-on-1 strategy consultations at authoritative ₹2,999. Hosts the interactive customer booking modal (`BookingExperience.tsx`, `ConsultationBookingModal.tsx`), slot inventory picker, intake form, 15-minute reservation timer, and Cashfree Web SDK checkout. |
 | `/login` | Page (Static) | [`src/app/login/page.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/login/page.tsx) | Client & Partner portal authentication page. Features client-side validation and authenticates directly against `/api/admin/auth/login`. |
@@ -412,7 +415,7 @@ landing/
 | `/robots.txt` | Metadata | [`src/app/robots.ts`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/robots.ts) | Dynamic SEO robot instructions allowing all crawling except `/api/` and `/admin/` endpoints. |
 | `/sitemap.xml` | Metadata | [`src/app/sitemap.ts`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/sitemap.ts) | Dynamic XML sitemap indexing all canonical public routes with priority ratings. |
 | `/api/health` | API (Dynamic) | [`src/app/api/health/route.ts`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/api/health/route.ts) | GET endpoint for application health and uptime verification (`{ status: "healthy", timestamp, version }`). |
-| `/api/leads` | API (Dynamic) | [`src/app/api/leads/route.ts`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/api/leads/route.ts) | POST endpoint for celebration inquiries. Rate limited (5/10m), 50KB capped, deduplicated, validates core enquiry fields and optional package quote IDs/guest count, recomputes planning/vendor estimates server-side, persists the quote with the lead, and dispatches email/webhook. The additive package quote migration has been applied and verified in Supabase; merge and deploy this repository change separately. |
+| `/api/leads` | API (Dynamic) | [`src/app/api/leads/route.ts`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/api/leads/route.ts) | POST endpoint for celebration inquiries. Rate limited (5/10m), 50KB capped, deduplicated, validates core enquiry fields and the optional package quote (tier ID, exact guest count 10–10,000, optional service IDs; legacy flat add-on IDs are rejected with a "rebuild your estimate" message), recomputes the decor subtotal, services subtotal and total from the trusted catalog (client totals are never read; duplicate IDs are charged once), persists the quote with the lead, and dispatches email/webhook. No schema change: the decor subtotal is stored in `package_planning_fee_rupees` and the services subtotal in `package_vendor_estimate_rupees`. |
 | `/api/vendor-applications` | API (Dynamic) | [`src/app/api/vendor-applications/route.ts`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/api/vendor-applications/route.ts) | POST endpoint for vendor partner applications. Rate limited, deduplicated, validates portfolio URLs & category arrays. |
 | `/api/consultations/slots` | API (Dynamic) | [`src/app/api/consultations/slots/route.ts`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/api/consultations/slots/route.ts) | GET dynamic slot availability. Evaluated in `Asia/Kolkata` with JIT slot materialization, 30-day window, Mon–Sat schedule, 30 req/min rate limit, `Cache-Control: no-store, private`. |
 | `/api/consultations/reserve` | API (Dynamic) | [`src/app/api/consultations/reserve/route.ts`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/app/api/consultations/reserve/route.ts) | POST atomic 15-minute slot hold and draft consultation creation. Rate limited (5/10m), 50KB ceiling, returns 256-bit cryptographically secure reservation token. |
@@ -436,7 +439,7 @@ landing/
   - [`Navbar.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/Navbar.tsx): Mobile toggle menu state, active route highlighting via `usePathname()`.
   - [`Services.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/Services.tsx): 3D CSS flip-card state (`transform-style: preserve-3d`) toggled via click or keyboard navigation (`Enter` / `Space`).
   - [`EventTypes.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/EventTypes.tsx): Synchronized hover/click tab list updating active high-resolution editorial imagery on the left column.
-  - [`PackageCustomizer.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/PackageCustomizer.tsx): Calculates Eventsika's per-person planning fee separately from selected indicative third-party vendor estimates and carries the tier, exact guest count, and selected vendor estimate IDs to the hero enquiry form. [`ServiceEstimator.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/ServiceEstimator.tsx) remains a separate flat indicative service estimator.
+  - [`PackageCustomizer.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/PackageCustomizer.tsx): The single shared estimator. Shows the decor package rate, eight unchecked optional per-guest services priced for the selected tier, and a live breakdown (Decor Package, Selected Services, Total Estimated Per Person, Indicative Event Estimate); tier changes keep selected services. Carries the tier, exact guest count, and selected service IDs to the hero enquiry form via `buildPackageQuoteHref`. `Hero.tsx` parses the link with `parsePackageQuoteSearch` and shows the same breakdown on the form, review and success steps.
   - [`VendorApplicationForm.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/VendorApplicationForm.tsx) & [`LoginForm.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/LoginForm.tsx): Controlled inputs, field-level error validation, interactive feedback notices, and authentication handshakes.
   - **Consultation Booking & Checkout Components (`src/components/consultation/`)**:
     - [`BookingExperience.tsx`](file:///c:/Users/gcad1/Documents/eventsika-landing/src/components/consultation/BookingExperience.tsx): Client trigger button and modal mount point.
@@ -1253,7 +1256,7 @@ ADMIN
   - `npm test`: Executes all Vitest test suites once (`vitest run`).
   - `npm run test:watch`: Runs Vitest in interactive watch mode.
 * **Automated Test Architecture**:
-  - Vitest test framework covering 33 test suites (342 passing tests).
+  - Vitest test framework covering 47 test files (640 passing tests).
   - Tests co-located in `__tests__/` subdirectories across route handlers, security boundaries, rate limiting, validation schemas, repositories, services, and helper sanitizers.
 * **Key Git Commits**:
   - `20916c3`: `feat(payment): add consultation and payment foundation` (Step 1)
@@ -1314,6 +1317,7 @@ The repository includes 6 purpose-built skills located in [`.agents/skills/`](fi
 | **ADR-08** | **Local dotLottie WebAssembly Player for Hero Celebration Animation** | Adding festive celebratory visual motion to homepage hero while strictly avoiding third-party CDN roundtrips, CSP violations, and render-blocking scripts. | Uses `@lottiefiles/dotlottie-web: 0.80.0` with self-hosted `/animation/dotlottie-player.wasm` and `/animation/Fireworks.lottie`. Enforces `pointer-events: none`, `aria-hidden="true"`, and honors `prefers-reduced-motion: reduce`. |
 | **ADR-09** | **Decoupling Services Marketing Editorial Copy from Backend Database Contracts** | Customer-facing service categories evolve to suit presentation appeal without breaking database allowlists. | Editorial copy, pricing displays, and photography on `/services` are decoupled from canonical backend definitions (`SERVICE_OPTIONS` in `allowlists.ts`). |
 | **ADR-10** | **Dynamic Cashfree Web SDK v3 Loader with Strict Presentation-Only Authority** | Customer checkout requires opening Cashfree's modal overlay without adding bloated npm wrappers or granting client confirmation privileges. | Cashfree JS SDK (`https://sdk.cashfree.com/js/v3/cashfree.js`) is dynamically loaded on demand. Client callback transitions to pending presentation view only; payment and slot confirmation authority resides strictly on the server in Step 6. |
+| **ADR-11** | **Single Public Pricing Catalog for Per-Guest Decor Packages & Optional Services** | Hardcoded price tables in components and a second flat estimator drifted from each other and from approved rates. | `src/lib/packages-config.ts` is the only place public rates exist. UI, JSON-LD, lead validation, email and admin consume it; the server recomputes every estimate. Services or formats without an approved rate show "Request a custom quote". Stored quotes are displayed as recorded (per-service rates only when they reconcile exactly with the current catalog). This supersedes ADR-09 for prices; ADR-09 still applies to editorial copy. |
 
 ---
 
@@ -1338,7 +1342,7 @@ Do NOT modify these components or systems without explicit user approval and a d
 These areas can be iterated on and refined with standard pre-commit verification:
 1. **Marketing Copy & Headings**: Text, feature descriptions, testimonials, and FAQs across landing sections.
 2. **Component-Specific Visual Styles**: Padding, margins, typography sizes, and layouts within localized `*.module.css` files.
-3. **Per-person planning tiers**: IDs, prices, taglines, planning scope, vendor estimate amounts, and estimation helpers in `src/lib/packages-config.ts` (`PACKAGES_CONFIG` and `ADDONS_CONFIG`). The homepage cards, live customizer, and comparison rates consume this shared configuration. `src/app/packages/page.tsx` is a separate six-item fixed starting-price venue/event catalogue and should not be changed as part of the per-person tier update.
+3. **Public pricing catalog**: Decor tier rates (`PACKAGES_CONFIG`), optional per-guest service rates (`OPTIONAL_SERVICES_CONFIG`), copy, and the estimate calculation live only in `src/lib/packages-config.ts`. Every pricing surface (homepage cards, customizer, comparison, `/services` labels, JSON-LD, lead validation, email, admin) reads from it; never add a price table to a component. Only owner-approved public selling prices belong here—never internal costs, margins, or markups. Changing a rate requires updating `src/lib/__tests__/packages-config.test.ts`; stored leads keep their recorded amounts.
 4. **New Service Categories**: Additional items in `SERVICES_DATA` (`services/page.tsx`).
 5. **New Unit or E2E Tests**: Adding test suites without touching production logic.
 
@@ -1352,7 +1356,10 @@ These areas can be iterated on and refined with standard pre-commit verification
 2. **Cashfree Sandbox Browser Gateway Error (Unverified Root Cause)**: During browser testing, the checkout flow correctly invoked Cashfree, but the Cashfree sandbox returned a high-traffic/gateway error. Root cause remains unverified (potential Cashfree sandbox gateway outage or test credential limitation).
 3. **Next.js 16 Proxy Convention Notice**: Next.js 16 deprecates the `middleware` file convention in favor of `proxy`. Codemod migration (`npx @next/codemod@canary middleware-to-proxy .`) is tracked for canary-to-stable transition.
 4. **Legacy `page.module.css`**: Contains default boilerplate CSS from initial `create-next-app` initialization. Unused by current components but retained to avoid unnecessary breaking diffs.
-5. **Public Route Rate Limiting Scope**: In-memory rate limiting for public endpoints (`/api/leads`, `/api/vendor-applications`, `/api/consultations/*`) is per Node process. Sufficient for current single-instance traffic; upgrade public routes to Redis if horizontal autoscaling is deployed. (Admin auth is already distributed via Upstash Redis).\n6. **Package Quote Migration Applied**: `supabase/migrations/20261023120521_add_package_quote_to_leads.sql` adds optional package quote fields and a selected vendor estimate ID array. The migration was applied and verified on remote Supabase project `mswbfuguigogoumrxqmo`; Supabase records it as version `20261023120521`, matching the checked-in filename. The quote-handoff application code is on PR #26 and must be merged/deployed separately.
+5. **Public Route Rate Limiting Scope**: In-memory rate limiting for public endpoints (`/api/leads`, `/api/vendor-applications`, `/api/consultations/*`) is per Node process. Sufficient for current single-instance traffic; upgrade public routes to Redis if horizontal autoscaling is deployed. (Admin auth is already distributed via Upstash Redis).
+6. **Package Quote Columns Reused for the Per-Guest Model**: `supabase/migrations/20261023120521_add_package_quote_to_leads.sql` (applied and verified on remote project `mswbfuguigogoumrxqmo` as version `20261023120521`) is unchanged. Under the decor-package model the legacy column names hold new meanings: `package_planning_fee_rupees` = decor package subtotal, `package_vendor_estimate_rupees` = selected optional services subtotal, `package_vendor_addon_ids` = optional service IDs. All existing CHECK constraints still hold. The SQL column `COMMENT`s still describe the old planning-fee/vendor-estimate meaning; updating them needs a separate migration.
+7. **Legacy Package-Only Quotes Are Indistinguishable**: Historical leads with legacy flat add-on IDs (`live-chaat`, `photography-films`, `live-music`, `hampers`, `valet-concierge`) are detected and shown as "Planning & coordination fee (legacy quote)" with recorded amounts. A historical lead with a tier but no add-ons cannot be told apart from a new decor-only quote (same IDs, same per-person amounts), so it is labelled "Decor Package". A `package_pricing_model` column would resolve this but has not been proposed as a migration.
+8. **Lowest Budget Band vs. Smallest Quote (UNRESOLVED — owner decision)**: The smallest possible estimate (Essential, 10 guests, no services) is ₹15,000, below the lowest lead-form budget band (`₹25,000 – ₹50,000`). Package-only estimates below ₹25,000 occur for Essential at 10–16 guests (₹15,000–₹24,000) and Premium at 10–12 guests (₹20,000–₹24,000); Luxury at 10 guests is exactly ₹25,000. Current behaviour: the budget band is a required, customer-chosen field that the server validates only against the allowlist; it is never compared with the package estimate, so such leads submit normally with the estimate and the chosen band recorded side by side. Enforcement is application-only (`BUDGET_OPTIONS` in `src/lib/backend/constants/allowlists.ts`, duplicated in `src/components/Hero.tsx`); `leads.budget_range` is a plain `VARCHAR(50)` with no CHECK constraint, so adding a band would need no migration. No replacement band has been chosen; the options (add a lower band, keep as-is, or preselect a band from the estimate) are a commercial decision for the owner.
 
 ---
 
@@ -1367,8 +1374,9 @@ These areas can be iterated on and refined with standard pre-commit verification
 - [x] Services page consultation CTA routing directly to `/diwali-consultation`.
 - [x] Interactive 3D flip-card services showcase with responsive touch and keyboard support.
 - [x] Dynamic 2-column interactive event occasions showcase (`EventTypes.tsx`).
-- [x] Interactive Package Customizer and side-by-side Package Comparison matrix (`/packages`).
-- [x] Interactive Celebration Service Cost Estimator & Accordion FAQ (`/services`).
+- [x] Per-guest decor package pricing (Essential/Premium/Luxury) with eight optional per-guest services, one shared live calculator (homepage, `/packages`, `/services`), and a catalog-driven comparison matrix.
+- [x] Server-recomputed package quote handoff into the lead form, email notification, and admin dossier, with legacy-quote display compatibility.
+- [x] Accordion FAQ (`/services`).
 - [x] Vendor Partner Network application form & acquisition portal (`/for-vendors`).
 - [x] Client & Partner portal authentication with Supabase SSR session cookies (`/login`).
 - [x] Concierge Operations Suite with Executive Operations Dashboard (`/admin`).
@@ -1385,7 +1393,7 @@ These areas can be iterated on and refined with standard pre-commit verification
 - [x] **Payment Step 3 — Cashfree Adapter**: Native fetch adapter targeting Cashfree PG API (2023-08-01), 10s timeout, automatic 409 recovery, and server-only credential security.
 - [x] **Payment Step 4 — Secure Order Creation**: Gateway-First order creation, 120s reservation safety threshold, deterministic order ID, PostgreSQL 23505 conflict reconciliation, and atomic status transition (`slot_held` → `awaiting_payment`).
 - [x] **Payment Step 5 — Customer Checkout Experience**: Stitch-inspired luxury booking modal on `/diwali-consultation`, 9-state machine, live slot picker, client-validated customer intake form, live 15m hold timer, authoritative ₹2,999 checkout view, Cashfree Web SDK v3 modal integration, and presentation-only pending state.
-- [x] Vitest automated testing suite with 33 test files and 342 passing tests.
+- [x] Vitest automated testing suite with 47 test files and 640 passing tests.
 
 ---
 
@@ -1393,8 +1401,8 @@ These areas can be iterated on and refined with standard pre-commit verification
 
 ## 24. Current Project State
 
-* **Build Health**: Clean TypeScript compilation (`0 errors`), valid ESLint 9 checks, successful Next.js 16.3.0 standalone production build.
-* **Test Health**: 33 Vitest test suites passing (342 tests passing with zero failures at verified Step 5 checkpoint; not re-run during this documentation-only task).
+* **Build Health**: Clean TypeScript compilation (`0 errors`), valid ESLint 9 checks, successful Next.js 16.4.3 production build (verified 2026-10-24 on `feat/event-pricing-calculator`).
+* **Test Health**: 47 Vitest test files, 640 tests passing with zero failures (verified 2026-10-24 on `feat/event-pricing-calculator`).
 * **Development Server**: Operational on `http://localhost:3000`.
 * **Git Checkpoint**: Merged into `main` via commit [`26f4c34`](file:///c:/Users/gcad1/Documents/eventsika-landing); working tree is clean.
 * **Current Operational Priority**: Transitioning to Payment Step 6 (Webhook Ingestion, Server Verification & Payment Confirmation).
@@ -1463,6 +1471,15 @@ Every AI agent working in the Eventsika repository must adhere to the following 
 
 
 ## 28. Change Log
+
+### 2026-10-24
+- **Approved Per-Guest Pricing Model (`feat/event-pricing-calculator`, uncommitted at time of writing)**:
+  - Replaced planning-fee tiers and five flat vendor add-ons with decor-only packages (Essential ₹1,500, Premium ₹2,000, Luxury ₹2,500 per guest) and eight optional per-guest services with tier-specific rates, all defined once in `src/lib/packages-config.ts`.
+  - Rebuilt `PackageCustomizer`, `PackageComparison`, homepage `Packages` cards, and the hero quote summaries on the shared catalog; removed `ServiceEstimator` in favour of the shared calculator on `/services`.
+  - `/packages`: calculator-first layout, venue/format cards switched to "Request a custom quote", catalog-generated `OfferCatalog` JSON-LD. `/services`: catalog-derived price labels; rituals, entertainment and invitations unpriced.
+  - Lead API recomputes decor/services/total server-side, rejects legacy add-on IDs, and dedupes service IDs. Email and admin dossier use `summarizePackageQuote` (legacy-aware, never recalculates stored amounts). No database migration.
+  - Pre-PR review: added a 10/25/100-guest acceptance matrix with hand-computed totals and an end-to-end test (`package-quote-flow.test.ts`) asserting the customizer, URL prefill, server recomputation, stored row, notification email and rendered admin dossier report identical figures, plus a legacy admin render check. Clarified the hero label to "Selected Optional Services" and retitled the calculator "Build Your Indicative Estimate". Split legacy-quote display code into `package-quote-summary.ts` after a build scan found the legacy add-on name map in the public `/`, `/packages` and `/services` bundle; public pages now import only the handoff helpers in `package-quote.ts`.
+  - Verification: see Section 24 for the final audit, lint, type-check, test and build results. Not deployed.
 
 ### 2026-09-21
 - **Customer-Facing Consultation Booking & Cashfree Web Checkout Experience (Step 5 — Commits [`86ed613`](file:///c:/Users/gcad1/Documents/eventsika-landing), [`26f4c34`](file:///c:/Users/gcad1/Documents/eventsika-landing))**:

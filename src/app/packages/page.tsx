@@ -5,289 +5,146 @@ import Navbar from "@/components/Navbar";
 import PackageCustomizer from "@/components/PackageCustomizer";
 import PackageComparison from "@/components/PackageComparison";
 import Footer from "@/components/Footer";
+import {
+  CUSTOM_QUOTE_LABEL,
+  PACKAGES_CONFIG,
+  formatPerPersonRate,
+} from "@/lib/packages-config";
+import {
+  buildPackagesOfferCatalogJsonLd,
+  serializeJsonLd,
+} from "@/lib/packages-structured-data";
 import styles from "./packages.module.css";
 
+const LOWEST_PACKAGE_RATE = Math.min(
+  ...PACKAGES_CONFIG.map((pkg) => pkg.pricePerPerson)
+);
+
 export const metadata: Metadata = {
-  title: "Packages | Transparent Celebration Pricing",
-  description:
-    "Explore thoughtfully structured celebration tiers designed for transparent budgeting. Select a curated foundation or customize every detail to match your vision.",
+  title: "Packages | Decor Packages Priced Per Guest",
+  description: `Essential, Premium and Luxury decor packages from ${formatPerPersonRate(LOWEST_PACKAGE_RATE)}. Add optional per-guest services such as food, floral styling and photography, and see an indicative estimate instantly.`,
   alternates: {
     canonical: "/packages",
   },
 };
 
-interface PackageTier {
+interface CelebrationSetting {
   id: string;
   name: string;
   guestRange: string;
-  price: string;
-  badge?: string;
   description: string;
-  features: string[];
-  ctaText: string;
-  ctaHref: string;
-  isPopular?: boolean;
+  ideas: string[];
   image?: string;
 }
 
-const PACKAGE_TIERS: PackageTier[] = [
+/**
+ * Venue and format inspiration. These settings have no approved fixed price,
+ * so they are always quoted individually.
+ */
+const CELEBRATION_SETTINGS: CelebrationSetting[] = [
   {
     id: "balcony-terrace",
     name: "Balcony / Terrace",
     guestRange: "10 TO 30 GUESTS",
-    price: "Starting at ₹35,000",
     image: "/images/packages/balcony-terrace.webp",
     description:
       "Open-air ambient styling with warm fairy lighting, cozy floor cushions, and intimate terrace decor.",
-    features: [
-      "Signature Floral Canopy & Fairy Light Mesh",
+    ideas: [
+      "Floral Canopy & Fairy Light Mesh",
       "Low Diwan Seating & Floor Cushions Setup",
-      "High-Fidelity Bluetooth Sound System & Playlist",
+      "Bluetooth Sound System & Playlist",
       "Ambient Brass Lanterns & Marigold Accents",
-      "1 Dedicated On-Site Event Coordinator",
+      "On-Site Event Coordinator",
       "Digital WhatsApp Invitation Design",
-      "Complete Setup & Post-Event Dismantling",
+      "Setup & Post-Event Dismantling",
     ],
-    ctaText: "Select Balcony / Terrace",
-    ctaHref: "/#plan-event",
-    isPopular: false,
   },
   {
     id: "driveway-lawns",
     name: "Driveway / Lawns",
     guestRange: "50 TO 120 GUESTS",
-    price: "Starting at ₹1,25,000",
-    badge: "MOST POPULAR",
     image: "/images/packages/driveway-lawns.webp",
     description:
-      "Our most popular all-in-one celebration package with signature decor, catering, DJ, and full management.",
-    features: [
-      "Grand Entrance Toran + Themed Floral & Fabric Stage",
-      "Multi-Course Gourmet Buffet Catering (50 Guests Included)",
+      "Spacious driveway and lawn celebrations with room for staging, dining, and dancing under the open sky.",
+    ideas: [
+      "Entrance Toran + Themed Floral & Fabric Stage",
+      "Multi-Course Buffet Catering",
       "Live Chaat / Mocktail Corner with Uniformed Staff",
-      "Candid Photography + Cinematic 4K Highlight Video",
-      "Professional DJ, Party Sound & Intelligent Lighting Rig",
-      "Lead Floor Manager + 2 On-Ground Operations Staff",
+      "Candid Photography + Highlight Video",
+      "DJ, Party Sound & Lighting Rig",
+      "Floor Manager & On-Ground Operations Staff",
     ],
-    ctaText: "Select Driveway / Lawns",
-    ctaHref: "/#plan-event",
-    isPopular: true,
   },
   {
     id: "living-rooms-dinner",
     name: "Living Rooms / Family Dinner",
     guestRange: "10 TO 35 GUESTS",
-    price: "Starting at ₹45,000",
     image: "/images/packages/living-room-dinner.webp",
     description:
       "Designed for cozy apartment living rooms, family dinners, and intimate milestone gatherings at home.",
-    features: [
-      "Signature Floral Backdrop or Mandap Styling",
+    ideas: [
+      "Floral Backdrop or Mandap Styling",
       "Ambient Fairy Lights & Dining Table Centerpieces",
-      "Candid Photography Coverage (3 Hours)",
-      "High-Fidelity Bluetooth Sound System & Playlist",
-      "1 Dedicated On-Site Event Coordinator",
+      "Candid Photography Coverage",
+      "Bluetooth Sound System & Playlist",
+      "On-Site Event Coordinator",
       "Digital WhatsApp Invitation Design",
-      "Complete Setup & Post-Event Dismantling",
+      "Setup & Post-Event Dismantling",
     ],
-    ctaText: "Select Living Rooms / Dinner",
-    ctaHref: "/#plan-event",
-    isPopular: false,
   },
   {
     id: "showrooms-offices",
     name: "Showrooms / Offices",
     guestRange: "25 TO 100+ GUESTS",
-    price: "Starting at ₹65,000",
     image: "/images/packages/showroom-office.webp",
     description:
       "Sophisticated corporate celebrations, brand launches, or office milestone events with sleek modern decor.",
-    features: [
+    ideas: [
       "Modern Corporate Stage & Backdrop Branding",
-      "Artisanal High-Tea & Finger Food Catering",
-      "Professional AV, Microphones & Ambient Lighting",
+      "High-Tea & Finger Food Catering",
+      "AV, Microphones & Ambient Lighting",
       "Corporate Event Photography & Highlight Reel",
-      "Dedicated On-Site Floor Management Team",
+      "On-Site Floor Management Team",
       "Welcome Desk & Registration Setup Assistance",
     ],
-    ctaText: "Select Showrooms / Offices",
-    ctaHref: "/#plan-event",
-    isPopular: false,
   },
   {
     id: "grand-celebrations",
     name: "Grand Celebrations",
     guestRange: "120+ GUESTS",
-    price: "Starting at ₹3,25,000",
     image: "/images/packages/grand-celebration.webp",
     description:
-      "Luxury full-scale transformation for milestone anniversaries, grand housewarmings, and pre-wedding soirees.",
-    features: [
-      "Custom Architectural Fabrication, Flower Chandeliers & Draped Canopies",
-      "Live Gourmet Counter Showcase (Indian, Continental, Artisanal Desserts)",
-      "Full Cinematography Team with Drone & Candid Duo",
-      "Live Sufi / Acoustic Fusion Band & Celebrity Anchor",
-      "Complete Guest Concierge, Valet Management & Luggage Assistance",
-      "Luxury Boxed Physical Keepsake Invites + Favors",
-      "Comprehensive End-to-End Execution Team",
+      "Full-scale transformation for milestone anniversaries, grand housewarmings, and pre-wedding soirees.",
+    ideas: [
+      "Custom Fabrication, Flower Chandeliers & Draped Canopies",
+      "Live Gourmet Counters (Indian, Continental, Desserts)",
+      "Cinematography Team with Drone & Candid Duo",
+      "Live Sufi / Acoustic Fusion Band & Anchor",
+      "Guest Concierge & Valet Management",
+      "Boxed Keepsake Invites + Favors",
       "Animated Video WhatsApp Invitation & RSVP Microsite",
     ],
-    ctaText: "Select Grand Celebrations",
-    ctaHref: "/#plan-event",
-    isPopular: false,
   },
   {
     id: "small-budget-wedding",
     name: "Small Budget Wedding",
     guestRange: "30 TO 80 GUESTS",
-    price: "Starting at ₹85,000",
     image: "/images/packages/small-budget-wedding.webp",
     description:
-      "Tasteful intimate Indian wedding, roka, or engagement setup with beautiful economical decor and full coordination.",
-    features: [
+      "Tasteful intimate Indian wedding, roka, or engagement setup with beautiful decor and thoughtful coordination.",
+    ideas: [
       "Traditional Floral Mandap / Roka Ceremony Backdrop",
       "Brass Urlis with Floating Florals & Ambient Diyas",
-      "Candid Wedding Photography (Full Ceremony Coverage)",
-      "Traditional Welcome Drinks & Refreshment Catering Setup",
-      "1 Dedicated Wedding Day Coordinator on Site",
+      "Candid Wedding Photography",
+      "Welcome Drinks & Refreshment Catering Setup",
+      "Wedding Day Coordinator on Site",
       "Digital Animated Invitation & RSVP Coordination",
-      "Complete Setup & Post-Event Dismantling",
+      "Setup & Post-Event Dismantling",
     ],
-    ctaText: "Select Small Budget Wedding",
-    ctaHref: "/#plan-event",
-    isPopular: false,
   },
 ];
 
-const packagesJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "OfferCatalog",
-  name: "Eventsika Celebration Packages",
-  description:
-    "Thoughtfully structured celebration tiers designed for transparent budgeting for Indian celebrations at home.",
-  itemListElement: [
-    {
-      "@type": "Offer",
-      name: "Balcony / Terrace",
-      description:
-        "Open-air ambient styling with warm fairy lighting, cozy floor cushions, and intimate terrace decor. (10 to 30 guests).",
-      price: 35000,
-      priceCurrency: "INR",
-      url: "https://eventsika.in/packages#balcony-terrace",
-      itemOffered: {
-        "@type": "Service",
-        name: "Balcony / Terrace Celebration Package",
-        description:
-          "Includes signature floral canopy, fairy light mesh, low diwan seating, bluetooth sound system, and on-site coordinator.",
-        provider: {
-          "@type": "Organization",
-          name: "Eventsika",
-          url: "https://eventsika.in",
-        },
-      },
-    },
-    {
-      "@type": "Offer",
-      name: "Driveway / Lawns",
-      description:
-        "Our most popular all-in-one celebration package with signature decor, catering, DJ, and full management. (50 to 120 guests).",
-      price: 125000,
-      priceCurrency: "INR",
-      url: "https://eventsika.in/packages#driveway-lawns",
-      itemOffered: {
-        "@type": "Service",
-        name: "Driveway / Lawns Celebration Package",
-        description:
-          "Includes entrance toran, themed floral & fabric stage, multi-course buffet catering for 50 guests, live chaat/mocktail corner, candid photography & 4K video, DJ & lighting rig, and floor management.",
-        provider: {
-          "@type": "Organization",
-          name: "Eventsika",
-          url: "https://eventsika.in",
-        },
-      },
-    },
-    {
-      "@type": "Offer",
-      name: "Living Rooms / Family Dinner",
-      description:
-        "Designed for cozy apartment living rooms, family dinners, and intimate milestone gatherings at home. (10 to 35 guests).",
-      price: 45000,
-      priceCurrency: "INR",
-      url: "https://eventsika.in/packages#living-rooms-dinner",
-      itemOffered: {
-        "@type": "Service",
-        name: "Living Rooms / Family Dinner Celebration Package",
-        description:
-          "Includes signature floral styling, ambient fairy lights, candid photography coverage (3 hours), sound system, on-site coordinator, and WhatsApp invitation design.",
-        provider: {
-          "@type": "Organization",
-          name: "Eventsika",
-          url: "https://eventsika.in",
-        },
-      },
-    },
-    {
-      "@type": "Offer",
-      name: "Showrooms / Offices",
-      description:
-        "Sophisticated corporate celebrations, brand launches, or office milestone events with sleek modern decor. (25 to 100+ guests).",
-      price: 65000,
-      priceCurrency: "INR",
-      url: "https://eventsika.in/packages#showrooms-offices",
-      itemOffered: {
-        "@type": "Service",
-        name: "Showrooms / Offices Celebration Package",
-        description:
-          "Includes modern corporate stage & backdrop branding, artisanal high-tea catering, AV & lighting, photography, and floor management.",
-        provider: {
-          "@type": "Organization",
-          name: "Eventsika",
-          url: "https://eventsika.in",
-        },
-      },
-    },
-    {
-      "@type": "Offer",
-      name: "Grand Celebrations",
-      description:
-        "Luxury full-scale transformation for milestone anniversaries, grand housewarmings, and pre-wedding soirees. (120+ guests).",
-      price: 325000,
-      priceCurrency: "INR",
-      url: "https://eventsika.in/packages#grand-celebrations",
-      itemOffered: {
-        "@type": "Service",
-        name: "Grand Celebrations Package",
-        description:
-          "Includes custom architectural fabrication, live gourmet counter showcase, full cinematography team with drone, live fusion band & celebrity anchor, valet & guest concierge, and keepsake invitations.",
-        provider: {
-          "@type": "Organization",
-          name: "Eventsika",
-          url: "https://eventsika.in",
-        },
-      },
-    },
-    {
-      "@type": "Offer",
-      name: "Small Budget Wedding",
-      description:
-        "Tasteful intimate Indian wedding, roka, or engagement setup with beautiful economical decor and full coordination. (30 to 80 guests).",
-      price: 85000,
-      priceCurrency: "INR",
-      url: "https://eventsika.in/packages#small-budget-wedding",
-      itemOffered: {
-        "@type": "Service",
-        name: "Small Budget Wedding Package",
-        description:
-          "Includes traditional floral mandap/roka backdrop, brass urlis with floating florals, wedding photography, welcome drinks & catering coordination, and dedicated wedding day coordinator.",
-        provider: {
-          "@type": "Organization",
-          name: "Eventsika",
-          url: "https://eventsika.in",
-        },
-      },
-    },
-  ],
-};
+const packagesJsonLd = buildPackagesOfferCatalogJsonLd();
 
 const breadcrumbJsonLd = {
   "@context": "https://schema.org",
@@ -314,13 +171,13 @@ export default function PackagesPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(packagesJsonLd),
+          __html: serializeJsonLd(packagesJsonLd),
         }}
       />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(breadcrumbJsonLd),
+          __html: serializeJsonLd(breadcrumbJsonLd),
         }}
       />
       <Navbar />
@@ -333,44 +190,49 @@ export default function PackagesPage() {
           <div className={styles.container}>
             <p className={styles.eyebrow}>OUR PACKAGES</p>
             <h1 id="packages-hero-heading" className={styles.title}>
-              Transparent Celebration Pricing
+              Decor Packages, Priced Per Guest
             </h1>
             <p className={styles.description}>
-              Choose the level of support that feels right for your
-              celebration. Every package can be tailored to your occasion.
+              Choose Essential, Premium or Luxury decor from{" "}
+              {formatPerPersonRate(LOWEST_PACKAGE_RATE)}. Each package includes
+              decor only; add the optional services you need, each charged per
+              guest at your package&apos;s rate.
             </p>
           </div>
         </section>
 
-        {/* Packages Grid Section */}
+        {/* Live Package Customizer — primary pricing experience */}
+        <PackageCustomizer />
+
+        {/* Detailed Inclusions Comparison */}
+        <PackageComparison />
+
+        {/* Celebration Settings (custom quote) */}
         <section
           className={styles.tiersSection}
-          aria-labelledby="packages-tier-heading"
+          aria-labelledby="packages-settings-heading"
         >
           <div className={styles.tiersContainer}>
-            <h2 id="packages-tier-heading" className={styles.srOnly}>
-              Celebration Package Tiers
-            </h2>
+            <div className={styles.sectionHeader}>
+              <p className={styles.eyebrow}>CELEBRATION SETTINGS</p>
+              <h2 id="packages-settings-heading" className={styles.sectionTitle}>
+                Settings We Style
+              </h2>
+              <p className={styles.description}>
+                Looking for a specific setting? These formats are quoted
+                individually. Share your details and we will prepare a custom
+                quote, or estimate any setting with a decor package above.
+              </p>
+            </div>
 
             <ul className={styles.grid}>
-              {PACKAGE_TIERS.map((pkg) => (
-                <li
-                  key={pkg.id}
-                  className={`${styles.card} ${
-                    pkg.isPopular ? styles.popularCard : ""
-                  }`}
-                >
-                  {pkg.badge && (
-                    <div className={styles.badgeWrapper}>
-                      <span className={styles.popularBadge}>{pkg.badge}</span>
-                    </div>
-                  )}
-
-                  {pkg.image && (
+              {CELEBRATION_SETTINGS.map((setting) => (
+                <li key={setting.id} id={setting.id} className={styles.card}>
+                  {setting.image && (
                     <div className={styles.imageWrapper}>
                       <Image
-                        src={pkg.image}
-                        alt={pkg.name}
+                        src={setting.image}
+                        alt={setting.name}
                         fill
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         className={styles.cardImage}
@@ -379,21 +241,23 @@ export default function PackagesPage() {
                   )}
 
                   <div className={styles.cardHeader}>
-                    <span className={styles.guestRange}>{pkg.guestRange}</span>
-                    <h3 className={styles.packageName}>{pkg.name}</h3>
-                    <div className={styles.priceTag}>{pkg.price}</div>
+                    <span className={styles.guestRange}>{setting.guestRange}</span>
+                    <h3 className={styles.packageName}>{setting.name}</h3>
+                    <div className={styles.priceTag}>{CUSTOM_QUOTE_LABEL}</div>
                     <p className={styles.packageDescription}>
-                      {pkg.description}
+                      {setting.description}
                     </p>
                   </div>
 
                   <div className={styles.divider} />
 
                   <div className={styles.featuresSection}>
-                    <p className={styles.featuresTitle}>What&apos;s Included:</p>
+                    <p className={styles.featuresTitle}>
+                      Ideas to Include in Your Quote:
+                    </p>
                     <ul className={styles.featureList}>
-                      {pkg.features.map((feature) => (
-                        <li key={feature} className={styles.featureItem}>
+                      {setting.ideas.map((idea) => (
+                        <li key={idea} className={styles.featureItem}>
                           <svg
                             className={styles.checkIcon}
                             viewBox="0 0 24 24"
@@ -406,20 +270,15 @@ export default function PackagesPage() {
                           >
                             <polyline points="20 6 9 17 4 12" />
                           </svg>
-                          <span>{feature}</span>
+                          <span>{idea}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
 
                   <div className={styles.cardFooter}>
-                    <Link
-                      href={pkg.ctaHref}
-                      className={`${styles.ctaButton} ${
-                        pkg.isPopular ? styles.popularCta : ""
-                      }`}
-                    >
-                      {pkg.ctaText}
+                    <Link href="/#plan-event" className={styles.ctaButton}>
+                      {CUSTOM_QUOTE_LABEL}
                     </Link>
                   </div>
                 </li>
@@ -427,12 +286,6 @@ export default function PackagesPage() {
             </ul>
           </div>
         </section>
-
-        {/* Live Package Customizer */}
-        <PackageCustomizer />
-
-        {/* Detailed Inclusions Comparison */}
-        <PackageComparison />
       </main>
       <Footer />
     </>

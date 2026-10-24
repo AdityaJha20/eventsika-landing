@@ -12,7 +12,15 @@ import {
   ServiceOption,
   BudgetOption,
 } from "../constants/allowlists";
-import { ADDONS_CONFIG, calculatePackageEstimate, PACKAGES_CONFIG, type PackageTierConfig } from "../../packages-config";
+import {
+  calculatePackageEstimate,
+  isOptionalServiceId,
+  isPackageTierId,
+  MAX_GUEST_COUNT,
+  MIN_GUEST_COUNT,
+  OPTIONAL_SERVICES_CONFIG,
+} from "../../packages-config";
+import { isLegacyAddonId, type PackageQuoteRecord } from "../../package-quote-summary";
 import { validateIndianPhone } from "./phone";
 import { validateEventDate } from "./date";
 
@@ -30,17 +38,17 @@ export interface RawLeadPayload {
   honeypot?: unknown;
   packageTier?: unknown;
   packageGuestCount?: unknown;
+  /** Selected optional service IDs; the field name predates the per-person service model. */
   packageVendorAddonIds?: unknown;
 }
 
-export interface ValidatedPackageQuote {
-  tierId: PackageTierConfig["id"];
-  guestCount: number;
-  vendorAddonIds: string[];
-  planningFeeRupees: number;
-  vendorEstimateRupees: number;
-  combinedEstimateRupees: number;
-}
+/**
+ * Server-calculated package quote. Persisted to the existing `package_*`
+ * lead columns: the decor package subtotal is stored in
+ * `package_planning_fee_rupees` and the selected-services subtotal in
+ * `package_vendor_estimate_rupees`.
+ */
+export type ValidatedPackageQuote = PackageQuoteRecord;
 
 export interface ValidatedLeadInput {
   userName: string;
@@ -221,19 +229,15 @@ export function validateLeadInput(raw: unknown): LeadValidationResult {
   let packageQuote: ValidatedPackageQuote | null = null;
 
   if (packageQuoteRequested) {
-    const selectedTier = PACKAGES_CONFIG.find(
-      (pkg) => pkg.id === payload.packageTier
-    );
-
-    if (!selectedTier) {
-      return { success: false, error: "Please select a valid planning package." };
+    if (!isPackageTierId(payload.packageTier)) {
+      return { success: false, error: "Please select a valid decor package." };
     }
 
     if (
       typeof payload.packageGuestCount !== "number" ||
       !Number.isInteger(payload.packageGuestCount) ||
-      payload.packageGuestCount < 10 ||
-      payload.packageGuestCount > 10000
+      payload.packageGuestCount < MIN_GUEST_COUNT ||
+      payload.packageGuestCount > MAX_GUEST_COUNT
     ) {
       return {
         success: false,
@@ -246,38 +250,42 @@ export function validateLeadInput(raw: unknown): LeadValidationResult {
       payload.packageVendorAddonIds !== null &&
       !Array.isArray(payload.packageVendorAddonIds)
     ) {
-      return { success: false, error: "Invalid vendor estimate selection." };
+      return { success: false, error: "Invalid optional service selection." };
     }
 
-    const rawAddonIds = Array.isArray(payload.packageVendorAddonIds)
+    const rawServiceIds: unknown[] = Array.isArray(payload.packageVendorAddonIds)
       ? payload.packageVendorAddonIds
       : [];
 
-    if (
-      rawAddonIds.length > ADDONS_CONFIG.length ||
-      rawAddonIds.some(
-        (id) =>
-          typeof id !== "string" ||
-          !ADDONS_CONFIG.some((addon) => addon.id === id)
-      )
-    ) {
-      return { success: false, error: "One or more vendor estimate selections are invalid." };
+    if (rawServiceIds.some((id) => typeof id === "string" && isLegacyAddonId(id))) {
+      return {
+        success: false,
+        error: "Our package pricing has been updated. Please rebuild your estimate and submit again.",
+      };
     }
 
-    const vendorAddonIds = Array.from(new Set(rawAddonIds as string[]));
+    if (
+      rawServiceIds.length > OPTIONAL_SERVICES_CONFIG.length ||
+      !rawServiceIds.every(isOptionalServiceId)
+    ) {
+      return { success: false, error: "One or more optional service selections are invalid." };
+    }
+
+    // Client-supplied totals are never read; the estimate is recomputed from
+    // the trusted catalog, and duplicate IDs collapse to a single charge.
     const estimate = calculatePackageEstimate(
       payload.packageGuestCount,
-      selectedTier.id,
-      vendorAddonIds
+      payload.packageTier,
+      rawServiceIds
     );
 
     packageQuote = {
-      tierId: selectedTier.id,
+      tierId: estimate.tierId,
       guestCount: estimate.guestCount,
-      vendorAddonIds,
-      planningFeeRupees: estimate.planningFee,
-      vendorEstimateRupees: estimate.selectedVendorEstimate,
-      combinedEstimateRupees: estimate.combinedEstimate,
+      serviceIds: estimate.services.map((service) => service.id),
+      packageSubtotalRupees: estimate.packageSubtotal,
+      servicesSubtotalRupees: estimate.servicesSubtotal,
+      totalEstimateRupees: estimate.total,
     };
   }
 

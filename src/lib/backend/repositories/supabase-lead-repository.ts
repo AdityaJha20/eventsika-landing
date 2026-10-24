@@ -47,12 +47,14 @@ export class SupabaseLeadRepository implements ILeadRepository {
         budget_range: lead.budgetRange,
         whatsapp_consent: lead.whatsappConsent,
         request_id: context?.requestId || null,
+        // Legacy column names: planning_fee holds the decor package subtotal,
+        // vendor_estimate the selected optional services subtotal.
         package_tier: lead.packageQuote?.tierId ?? null,
         package_guest_count: lead.packageQuote?.guestCount ?? null,
-        package_vendor_addon_ids: lead.packageQuote?.vendorAddonIds ?? [],
-        package_planning_fee_rupees: lead.packageQuote?.planningFeeRupees ?? null,
-        package_vendor_estimate_rupees: lead.packageQuote?.vendorEstimateRupees ?? null,
-        package_combined_estimate_rupees: lead.packageQuote?.combinedEstimateRupees ?? null,
+        package_vendor_addon_ids: lead.packageQuote?.serviceIds ?? [],
+        package_planning_fee_rupees: lead.packageQuote?.packageSubtotalRupees ?? null,
+        package_vendor_estimate_rupees: lead.packageQuote?.servicesSubtotalRupees ?? null,
+        package_combined_estimate_rupees: lead.packageQuote?.totalEstimateRupees ?? null,
       })
       .select("id, created_at")
       .single();
@@ -109,12 +111,12 @@ export class SupabaseLeadRepository implements ILeadRepository {
           ? {
               tierId: row.package_tier as NonNullable<ValidatedLeadInput["packageQuote"]>["tierId"],
               guestCount: row.package_guest_count,
-              vendorAddonIds: Array.isArray(row.package_vendor_addon_ids)
+              serviceIds: Array.isArray(row.package_vendor_addon_ids)
                 ? row.package_vendor_addon_ids.filter((id: unknown): id is string => typeof id === "string")
                 : [],
-              planningFeeRupees: row.package_planning_fee_rupees,
-              vendorEstimateRupees: row.package_vendor_estimate_rupees,
-              combinedEstimateRupees: row.package_combined_estimate_rupees,
+              packageSubtotalRupees: row.package_planning_fee_rupees,
+              servicesSubtotalRupees: row.package_vendor_estimate_rupees,
+              totalEstimateRupees: row.package_combined_estimate_rupees,
             }
           : null,
     }));

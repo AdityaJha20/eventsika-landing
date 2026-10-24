@@ -176,7 +176,18 @@
   font-weight: 700;
   color: var(--primary);
   display: block;
-  margin-bottom: 0.65rem;
+  margin-bottom: 0.4rem;
+}
+
+.packageInclusion {
+  display: block;
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 0.75rem;
 }
 
 .packageTagline {
