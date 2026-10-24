@@ -12,6 +12,7 @@ import {
   ServiceOption,
   BudgetOption,
 } from "../constants/allowlists";
+import { ADDONS_CONFIG, calculatePackageEstimate, PACKAGES_CONFIG, type PackageTierConfig } from "../../packages-config";
 import { validateIndianPhone } from "./phone";
 import { validateEventDate } from "./date";
 
@@ -27,6 +28,18 @@ export interface RawLeadPayload {
   budgetRange?: unknown;
   whatsappConsent?: unknown;
   honeypot?: unknown;
+  packageTier?: unknown;
+  packageGuestCount?: unknown;
+  packageVendorAddonIds?: unknown;
+}
+
+export interface ValidatedPackageQuote {
+  tierId: PackageTierConfig["id"];
+  guestCount: number;
+  vendorAddonIds: string[];
+  planningFeeRupees: number;
+  vendorEstimateRupees: number;
+  combinedEstimateRupees: number;
 }
 
 export interface ValidatedLeadInput {
@@ -41,6 +54,7 @@ export interface ValidatedLeadInput {
   budgetRange: BudgetOption;
   whatsappConsent: boolean;
   isBot: boolean;
+  packageQuote: ValidatedPackageQuote | null;
 }
 
 export type LeadValidationResult =
@@ -77,6 +91,7 @@ export function validateLeadInput(raw: unknown): LeadValidationResult {
         budgetRange: "₹25,000 – ₹50,000",
         whatsappConsent: false,
         isBot: true,
+        packageQuote: null,
       },
     };
   }
@@ -188,7 +203,85 @@ export function validateLeadInput(raw: unknown): LeadValidationResult {
     };
   }
 
-  // 11. WhatsApp Consent
+  // 11. Optional package quote. All monetary values are recomputed server-side.
+  const hasPackageTier =
+    payload.packageTier !== undefined &&
+    payload.packageTier !== null &&
+    payload.packageTier !== "";
+  const hasPackageGuestCount =
+    payload.packageGuestCount !== undefined &&
+    payload.packageGuestCount !== null &&
+    payload.packageGuestCount !== "";
+  const hasVendorAddonSelection =
+    Array.isArray(payload.packageVendorAddonIds) &&
+    payload.packageVendorAddonIds.length > 0;
+  const packageQuoteRequested =
+    hasPackageTier || hasPackageGuestCount || hasVendorAddonSelection;
+
+  let packageQuote: ValidatedPackageQuote | null = null;
+
+  if (packageQuoteRequested) {
+    const selectedTier = PACKAGES_CONFIG.find(
+      (pkg) => pkg.id === payload.packageTier
+    );
+
+    if (!selectedTier) {
+      return { success: false, error: "Please select a valid planning package." };
+    }
+
+    if (
+      typeof payload.packageGuestCount !== "number" ||
+      !Number.isInteger(payload.packageGuestCount) ||
+      payload.packageGuestCount < 10 ||
+      payload.packageGuestCount > 10000
+    ) {
+      return {
+        success: false,
+        error: "Package guest count must be a whole number between 10 and 10,000.",
+      };
+    }
+
+    if (
+      payload.packageVendorAddonIds !== undefined &&
+      payload.packageVendorAddonIds !== null &&
+      !Array.isArray(payload.packageVendorAddonIds)
+    ) {
+      return { success: false, error: "Invalid vendor estimate selection." };
+    }
+
+    const rawAddonIds = Array.isArray(payload.packageVendorAddonIds)
+      ? payload.packageVendorAddonIds
+      : [];
+
+    if (
+      rawAddonIds.length > ADDONS_CONFIG.length ||
+      rawAddonIds.some(
+        (id) =>
+          typeof id !== "string" ||
+          !ADDONS_CONFIG.some((addon) => addon.id === id)
+      )
+    ) {
+      return { success: false, error: "One or more vendor estimate selections are invalid." };
+    }
+
+    const vendorAddonIds = Array.from(new Set(rawAddonIds as string[]));
+    const estimate = calculatePackageEstimate(
+      payload.packageGuestCount,
+      selectedTier.id,
+      vendorAddonIds
+    );
+
+    packageQuote = {
+      tierId: selectedTier.id,
+      guestCount: estimate.guestCount,
+      vendorAddonIds,
+      planningFeeRupees: estimate.planningFee,
+      vendorEstimateRupees: estimate.selectedVendorEstimate,
+      combinedEstimateRupees: estimate.combinedEstimate,
+    };
+  }
+
+  // 12. WhatsApp Consent
   const whatsappConsent = Boolean(payload.whatsappConsent);
   if (!whatsappConsent) {
     return {
@@ -211,6 +304,7 @@ export function validateLeadInput(raw: unknown): LeadValidationResult {
       budgetRange,
       whatsappConsent,
       isBot: false,
+      packageQuote,
     },
   };
 }

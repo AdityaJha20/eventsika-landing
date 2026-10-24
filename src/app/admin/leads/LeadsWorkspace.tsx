@@ -8,6 +8,7 @@ import {
   CITY_OPTIONS,
 } from "@/lib/backend/constants/allowlists";
 import styles from "./leads.module.css";
+import { ADDONS_CONFIG, formatCurrency, PACKAGES_CONFIG } from "@/lib/packages-config";
 
 interface LeadsWorkspaceProps {
   initialLeads: SavedLeadRecord[];
@@ -206,6 +207,17 @@ export function LeadsWorkspace({ initialLeads, metrics }: LeadsWorkspaceProps) {
       `Budget: ${activeLead.budgetRange}`,
       `Phone: +91 ${activeLead.userPhone} (WhatsApp: Verified)`,
       `Services: ${activeLead.selectedServices.join(", ")}`,
+      ...(activeLead.packageQuote
+        ? [
+            `Planning Package: ${PACKAGES_CONFIG.find((pkg) => pkg.id === activeLead.packageQuote?.tierId)?.name || activeLead.packageQuote.tierId}`,
+            `Package Guest Count: ${activeLead.packageQuote.guestCount}`,
+            `Eventsika Planning Fee: ${formatCurrency(activeLead.packageQuote.planningFeeRupees)}`,
+            `Selected Vendor Services: ${activeLead.packageQuote.vendorAddonIds.map((id) => ADDONS_CONFIG.find((addon) => addon.id === id)?.name || id).join(", ") || "None selected"}`,
+            `Indicative Vendor Estimate: ${formatCurrency(activeLead.packageQuote.vendorEstimateRupees)}`,
+            `Indicative Combined Estimate: ${formatCurrency(activeLead.packageQuote.combinedEstimateRupees)}`,
+            "Vendor services are quoted separately; estimates are not confirmed all-inclusive prices. Tax treatment is to be clarified.",
+          ]
+        : []),
       `Submitted: ${formatDisplayDateTime(activeLead.createdAt)}`,
     ].join("\n");
 
@@ -755,6 +767,46 @@ export function LeadsWorkspace({ initialLeads, metrics }: LeadsWorkspaceProps) {
                     </div>
                   </div>
                 </section>
+
+                {activeLead.packageQuote && (
+                  <section className={styles.dossierSectionBlock} aria-labelledby="headingPackageQuote">
+                    <div className={styles.sectionHeading}>
+                      <h3 id="headingPackageQuote" className={styles.sectionTitle}>
+                        Selected Planning Package
+                      </h3>
+                      <span className={styles.sectionTag}>Indicative Estimate</span>
+                    </div>
+                    <div className={styles.specsGrid}>
+                      <div className={styles.specCard}>
+                        <span className={styles.fieldLabel}>Package Tier</span>
+                        <span className={styles.specValue}>
+                          {PACKAGES_CONFIG.find((pkg) => pkg.id === activeLead.packageQuote?.tierId)?.name || activeLead.packageQuote.tierId}
+                        </span>
+                        <span className={styles.specMeta}>{activeLead.packageQuote.guestCount} guests</span>
+                      </div>
+                      <div className={styles.specCard}>
+                        <span className={styles.fieldLabel}>Eventsika Planning Fee</span>
+                        <span className={styles.specValue}>{formatCurrency(activeLead.packageQuote.planningFeeRupees)}</span>
+                        <span className={styles.specMeta}>Based on selected package and guest count</span>
+                      </div>
+                      <div className={styles.specCard}>
+                        <span className={styles.fieldLabel}>Selected Vendor Estimates</span>
+                        <span className={styles.specValue}>{formatCurrency(activeLead.packageQuote.vendorEstimateRupees)}</span>
+                        <span className={styles.specMeta}>
+                          {activeLead.packageQuote.vendorAddonIds.map((id) => ADDONS_CONFIG.find((addon) => addon.id === id)?.name || id).join(", ") || "No optional vendor estimates selected"}
+                        </span>
+                      </div>
+                      <div className={styles.specCard}>
+                        <span className={styles.fieldLabel}>Indicative Combined Estimate</span>
+                        <span className={styles.specValue}>{formatCurrency(activeLead.packageQuote.combinedEstimateRupees)}</span>
+                        <span className={styles.specMeta}>Not a confirmed all-inclusive event quote</span>
+                      </div>
+                    </div>
+                    <p className={styles.specMeta}>
+                      Third-party vendor services are quoted separately. Vendor estimates remain indicative until confirmed; tax treatment will be clarified in the final proposal.
+                    </p>
+                  </section>
+                )}
 
                 {/* SECTION C: Requested Service Modules */}
                 <section className={styles.dossierSectionBlock} aria-labelledby="headingServices">

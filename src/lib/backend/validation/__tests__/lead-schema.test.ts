@@ -88,6 +88,73 @@ describe("validateLeadInput", () => {
     });
   });
 
+  describe("Package quote validation", () => {
+    it("recomputes package prices on the server and ignores client-supplied totals", () => {
+      const result = validateLeadInput({
+        ...getValidPayload(),
+        packageTier: "premium",
+        packageGuestCount: 25,
+        packageVendorAddonIds: ["photography-films", "live-music"],
+        packagePlanningFeeRupees: 1,
+        packageVendorEstimateRupees: 1,
+        packageCombinedEstimateRupees: 2,
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.packageQuote).toEqual({
+          tierId: "premium",
+          guestCount: 25,
+          vendorAddonIds: ["photography-films", "live-music"],
+          planningFeeRupees: 50000,
+          vendorEstimateRupees: 38000,
+          combinedEstimateRupees: 88000,
+        });
+      }
+    });
+
+    it("keeps ordinary enquiries without a selected package quote unchanged", () => {
+      const result = validateLeadInput(getValidPayload());
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.packageQuote).toBeNull();
+      }
+    });
+
+    it.each([9, 10001, 25.5, "25", null])(
+      "rejects invalid exact package guest counts: %s",
+      (packageGuestCount) => {
+        const result = validateLeadInput({
+          ...getValidPayload(),
+          packageTier: "premium",
+          packageGuestCount,
+          packageVendorAddonIds: [],
+        });
+
+        expect(result.success).toBe(false);
+      },
+    );
+
+    it("rejects unknown package tiers and vendor estimate identifiers", () => {
+      const invalidTier = validateLeadInput({
+        ...getValidPayload(),
+        packageTier: "royal",
+        packageGuestCount: 25,
+        packageVendorAddonIds: [],
+      });
+      const invalidAddon = validateLeadInput({
+        ...getValidPayload(),
+        packageTier: "premium",
+        packageGuestCount: 25,
+        packageVendorAddonIds: ["unapproved-addon"],
+      });
+
+      expect(invalidTier.success).toBe(false);
+      expect(invalidAddon.success).toBe(false);
+    });
+  });
+
   describe("Allowlist bypass and validation errors", () => {
     it("rejects invalid city selections", () => {
       const result = validateLeadInput({ ...getValidPayload(), city: "Atlantis" });

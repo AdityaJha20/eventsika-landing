@@ -5,6 +5,7 @@ import {
   DEFAULT_PACKAGE_ID,
   GUEST_PRESETS,
   MIN_GUEST_COUNT,
+  MAX_GUEST_COUNT,
   formatCurrency,
   formatIndicativeVendorEstimate,
   formatPackageRate,
@@ -36,6 +37,7 @@ describe("Eventsika package pricing configuration", () => {
     expect(PACKAGES_CONFIG.some((pkg) => pkg.id === DEFAULT_PACKAGE_ID)).toBe(true);
     expect(DEFAULT_PACKAGE_ID).toBe("premium");
     expect(MIN_GUEST_COUNT).toBe(10);
+    expect(MAX_GUEST_COUNT).toBe(10000);
     expect(GUEST_PRESETS.length).toBeGreaterThan(0);
     expect(GUEST_PRESETS.every((count) => count >= MIN_GUEST_COUNT)).toBe(true);
   });
@@ -89,6 +91,11 @@ describe("Eventsika package pricing configuration", () => {
 
     expect(estimate.selectedVendorEstimate).toBe(20000);
     expect(estimate.combinedEstimate).toBe(35000);
+  });
+
+  it("caps estimates at the supported maximum guest count", () => {
+    expect(calculatePackageEstimate(10001, "luxury").guestCount).toBe(MAX_GUEST_COUNT);
+    expect(calculatePackageEstimate(10001, "luxury").planningFee).toBe(25000000);
   });
 
   it("formats currency and vendor estimates clearly", () => {

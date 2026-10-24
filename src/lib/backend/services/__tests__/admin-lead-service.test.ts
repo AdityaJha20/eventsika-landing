@@ -56,6 +56,7 @@ describe("AdminLeadService Suite", () => {
         isBot: false,
         createdAt: twoDaysAgo,
         updatedAt: twoDaysAgo,
+        packageQuote: null,
       },
       {
         id: "lead-2",
@@ -72,6 +73,7 @@ describe("AdminLeadService Suite", () => {
         isBot: false,
         createdAt: tenDaysAgo,
         updatedAt: tenDaysAgo,
+        packageQuote: null,
       },
       {
         id: "lead-3",
@@ -88,6 +90,7 @@ describe("AdminLeadService Suite", () => {
         isBot: false,
         createdAt: twoDaysAgo,
         updatedAt: twoDaysAgo,
+        packageQuote: null,
       },
     ];
 

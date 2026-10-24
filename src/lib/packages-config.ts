@@ -23,6 +23,7 @@ export interface AddonConfig {
 }
 
 export const MIN_GUEST_COUNT = 10;
+export const MAX_GUEST_COUNT = 10000;
 export const DEFAULT_GUEST_COUNT = 25;
 export const DEFAULT_PACKAGE_ID: PackageTierConfig["id"] = "premium";
 
@@ -124,9 +125,12 @@ export function calculatePackageEstimate(
   packageId: PackageTierConfig["id"],
   selectedAddonIds: readonly string[] = [],
 ): PackageEstimate {
-  const normalizedGuestCount = Math.max(
-    MIN_GUEST_COUNT,
-    Math.round(Number.isFinite(guestCount) ? guestCount : MIN_GUEST_COUNT),
+  const normalizedGuestCount = Math.min(
+    MAX_GUEST_COUNT,
+    Math.max(
+      MIN_GUEST_COUNT,
+      Math.round(Number.isFinite(guestCount) ? guestCount : MIN_GUEST_COUNT),
+    ),
   );
 
   const selectedPackage = PACKAGES_CONFIG.find((pkg) => pkg.id === packageId);
