@@ -1,19 +1,20 @@
 /**
  * Distributed & In-Memory Rate Limiting Architecture
  *
- * Provides:
- * 1. Fixed/sliding window rate limiter for public route handlers (leads, vendors).
- * 2. Multi-layer, distributed failed-attempt rate limiter for admin login:
- *    - Layer 1: Client IP address
- *    - Layer 2: Targeted account (SHA-256 hashed normalized email)
- *    - Layer 3: Combined (IP + Account)
- *    - Atomic pre-check slot reservation: prevents concurrent simultaneous requests from bypassing limits.
- *    - Tier-based progressive cooldown: Tier 1 (5 fails -> 15m), Tier 2 (10 fails -> 30m), Tier 3 (15+ fails -> 60m).
- *    - Extended observation retention (cooldown + 15m) ensuring escalation tiers are reachable.
- *    - Atomic Redis Lua script execution preventing race conditions.
- *    - Mandatory finite TTLs on all keys; zero unbounded state or memory exhaustion.
- *    - Fail-closed security guarantee in production.
- *    - Convenient in-memory fallback in development/testing.
+ * Supported Backends:
+ * 1. Distributed (Upstash Redis) - Default in production when configured.
+ *    - Cross-process, cross-instance, distributed rate limiting with atomic Lua scripts.
+ * 2. In-Memory ('RATE_LIMIT_BACKEND=memory')
+ *    - Process-local rate limiting for single-instance / low-traffic deployments (e.g. Hostinger Node.js).
+ *    - STRICT COMPROMISE NOTICE: In-memory counters are local to this Node process, reset upon
+ *      restart, and are NOT shared across separate processes or server instances.
+ *    - Bounded memory architecture: finite capacity ceilings (10,000 entries) with automatic
+ *      periodic expiry cleanup preventing unbounded heap growth and memory exhaustion.
+ *
+ * Security Invariants:
+ * - Fail-closed guarantee in production: Missing or invalid backend configuration safely blocks requests (HTTP 503).
+ * - Multi-layer admin authentication protection (IP, targeted account hash, combo) with progressive lockout.
+ * - Public endpoint fixed/sliding window throttling for celebration enquiries and vendor applications.
  */
 
 import { Redis } from "@upstash/redis";
@@ -25,16 +26,40 @@ interface RateLimitRecord {
   resetTime: number;
 }
 
+/**
+ * Maximum capacity bounds for in-memory stores to prevent memory exhaustion (OOM).
+ */
+export const MAX_PUBLIC_RATE_LIMIT_ENTRIES = 10_000;
+export const PUBLIC_CLEANUP_INTERVAL_MS = 60_000;
+
 // In-memory store for general API routes (leads, vendor applications)
 const rateLimitStore = new Map<string, RateLimitRecord>();
 
-let lastCleanup = Date.now();
-function cleanupStaleRecords(now: number) {
-  if (now - lastCleanup < 5 * 60 * 1000) return;
-  lastCleanup = now;
+let lastPublicCleanup = Date.now();
+
+function cleanupStalePublicRecords(now: number): void {
   for (const [key, record] of rateLimitStore.entries()) {
     if (now >= record.resetTime) {
       rateLimitStore.delete(key);
+    }
+  }
+  lastPublicCleanup = now;
+}
+
+function enforcePublicStoreCapacity(now: number): void {
+  if (rateLimitStore.size < MAX_PUBLIC_RATE_LIMIT_ENTRIES) return;
+
+  // First pass: purge all expired records
+  cleanupStalePublicRecords(now);
+
+  // If still at or over capacity, evict the oldest inserted entries (FIFO eviction)
+  if (rateLimitStore.size >= MAX_PUBLIC_RATE_LIMIT_ENTRIES) {
+    const toEvict = rateLimitStore.size - MAX_PUBLIC_RATE_LIMIT_ENTRIES + 100;
+    let evicted = 0;
+    for (const key of rateLimitStore.keys()) {
+      rateLimitStore.delete(key);
+      evicted++;
+      if (evicted >= toEvict) break;
     }
   }
 }
@@ -113,7 +138,7 @@ export interface RateLimitResult {
 }
 
 /**
- * In-memory fallback rate limiter for general API routes (used in development & test).
+ * In-memory fallback rate limiter for general API routes (used in development, test, and production memory mode).
  */
 function checkRateLimitInMemory(
   clientIp: string,
@@ -124,11 +149,14 @@ function checkRateLimitInMemory(
   const key = `${namespace}:${clientIp}`;
   const now = Date.now();
 
-  cleanupStaleRecords(now);
+  if (now - lastPublicCleanup >= PUBLIC_CLEANUP_INTERVAL_MS) {
+    cleanupStalePublicRecords(now);
+  }
 
   const record = rateLimitStore.get(key);
 
   if (!record || now >= record.resetTime) {
+    enforcePublicStoreCapacity(now);
     const resetTime = now + windowMs;
     rateLimitStore.set(key, { count: 1, resetTime });
     return {
@@ -162,12 +190,12 @@ function checkRateLimitInMemory(
  * Distributed & in-memory rate limiter for general API routes (leads, vendor applications).
  *
  * Production:
- * - Uses Upstash Redis with atomic Lua script and bounded key TTLs.
- * - Fails closed (isUnavailable: true) if Redis is unavailable, maintaining the rate-limit
- *   security boundary consistently with admin authentication.
+ * - Uses Upstash Redis when configured or RATE_LIMIT_BACKEND is 'upstash'.
+ * - Uses bounded in-memory store when RATE_LIMIT_BACKEND=memory is explicitly enabled.
+ * - Fails closed (isUnavailable: true) by default when no backend is configured or if Redis is unavailable.
  *
  * Development / Test:
- * - Uses in-memory Map store for offline zero-dependency development and testing.
+ * - Uses bounded in-memory Map store for offline zero-dependency development and testing.
  */
 export async function checkRateLimit(
   request: Request,
@@ -182,7 +210,7 @@ export async function checkRateLimit(
 
   const { store, isUnavailable } = getAdminRateLimitStore();
 
-  if (isProduction && (isUnavailable || !store)) {
+  if (isUnavailable || !store) {
     return {
       isAllowed: false,
       remaining: 0,
@@ -494,9 +522,13 @@ export class UpstashRedisRateLimitStore implements IAdminRateLimitStore {
 }
 
 /**
- * In-Memory Rate Limit Store for Development & Vitest.
+ * In-Memory Rate Limit Store for Development, Vitest, and Production Memory Mode.
  * Replicates exact dual-key, slot reservation, and progressive retention mathematics.
+ * Features bounded capacity and automatic stale entry cleanup to prevent unbounded memory growth.
  */
+export const MAX_ADMIN_RATE_LIMIT_ENTRIES = 10_000;
+export const ADMIN_CLEANUP_INTERVAL_MS = 60_000;
+
 interface MemoryEntry {
   count: number;
   tier: number;
@@ -506,9 +538,40 @@ interface MemoryEntry {
 
 class InMemoryAdminRateLimitStore implements IAdminRateLimitStore {
   private store = new Map<string, MemoryEntry>();
+  private lastCleanup = Date.now();
+
+  private cleanupStaleEntries(now: number): void {
+    for (const [key, entry] of this.store.entries()) {
+      if (now >= entry.expiresAt && (entry.lockedUntil === 0 || now >= entry.lockedUntil)) {
+        this.store.delete(key);
+      }
+    }
+    this.lastCleanup = now;
+  }
+
+  private enforceCapacity(now: number): void {
+    if (this.store.size < MAX_ADMIN_RATE_LIMIT_ENTRIES) return;
+
+    this.cleanupStaleEntries(now);
+
+    if (this.store.size >= MAX_ADMIN_RATE_LIMIT_ENTRIES) {
+      const toEvict = this.store.size - MAX_ADMIN_RATE_LIMIT_ENTRIES + 100;
+      let evicted = 0;
+      for (const key of this.store.keys()) {
+        this.store.delete(key);
+        evicted++;
+        if (evicted >= toEvict) break;
+      }
+    }
+  }
 
   async checkLimits(ip: string, emailHash?: string): Promise<AdminRateLimitResult> {
     const now = Date.now();
+
+    if (now - this.lastCleanup >= ADMIN_CLEANUP_INTERVAL_MS) {
+      this.cleanupStaleEntries(now);
+    }
+
     const dimensions: { key: string; reason: "ip" | "account" | "combo" }[] = [
       { key: `ip:${ip}`, reason: "ip" },
     ];
@@ -540,6 +603,7 @@ class InMemoryAdminRateLimitStore implements IAdminRateLimitStore {
     for (const { key, reason } of dimensions) {
       let entry = this.store.get(key);
       if (!entry || now >= entry.expiresAt) {
+        this.enforceCapacity(now);
         entry = { count: 0, tier: 1, expiresAt: now + 900_000, lockedUntil: 0 };
       }
 
@@ -596,8 +660,11 @@ class InMemoryAdminRateLimitStore implements IAdminRateLimitStore {
     }
 
     for (const key of keys) {
-      const entry = this.store.get(key);
-      if (!entry) continue;
+      let entry = this.store.get(key);
+      if (!entry) {
+        this.enforceCapacity(now);
+        entry = { count: 0, tier: 1, expiresAt: now + 900_000, lockedUntil: 0 };
+      }
 
       if (entry.count >= entry.tier * 5) {
         let cooldown = 900_000;
@@ -625,6 +692,15 @@ class InMemoryAdminRateLimitStore implements IAdminRateLimitStore {
 
   async clear(): Promise<void> {
     this.store.clear();
+    this.lastCleanup = Date.now();
+  }
+
+  getStoreSize(): number {
+    return this.store.size;
+  }
+
+  forceCleanup(now: number = Date.now()): void {
+    this.cleanupStaleEntries(now);
   }
 }
 
@@ -632,6 +708,42 @@ class InMemoryAdminRateLimitStore implements IAdminRateLimitStore {
 let customStoreOverride: IAdminRateLimitStore | null = null;
 let upstashSingleton: UpstashRedisRateLimitStore | null = null;
 const inMemorySingleton = new InMemoryAdminRateLimitStore();
+let hasWarnedMemoryProd = false;
+
+export type RateLimitBackendType = "memory" | "upstash" | "unknown" | "unconfigured";
+
+/**
+ * Resolves the configured rate limiting backend.
+ *
+ * Supported values for RATE_LIMIT_BACKEND:
+ * - 'memory': Explicitly enables the bounded in-memory rate limit store.
+ *             Safe for low-traffic single-instance deployments without Redis.
+ *             Note: Counters reset on server restart and are NOT shared across
+ *             separate processes or clustered instances.
+ * - 'upstash' | 'redis': Explicitly requires Upstash Redis.
+ * - unset / empty: Default behavior. If Upstash Redis is configured, uses Upstash.
+ *                  Otherwise in production, fails closed. In dev/test, uses memory.
+ * - Any other value: Unknown backend; rejected safely (fails closed).
+ */
+export function resolveRateLimitBackend(
+  env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env
+): {
+  backend: RateLimitBackendType;
+  raw?: string;
+} {
+  const raw = env.RATE_LIMIT_BACKEND;
+  if (typeof raw === "string" && raw.trim() !== "") {
+    const normalized = raw.trim().toLowerCase();
+    if (normalized === "memory") {
+      return { backend: "memory", raw };
+    }
+    if (normalized === "upstash" || normalized === "redis") {
+      return { backend: "upstash", raw };
+    }
+    return { backend: "unknown", raw };
+  }
+  return { backend: "unconfigured" };
+}
 
 export function _setAdminRateLimitStoreForTesting(store: IAdminRateLimitStore | null): void {
   customStoreOverride = store;
@@ -639,14 +751,35 @@ export function _setAdminRateLimitStoreForTesting(store: IAdminRateLimitStore | 
 
 export function _resetAdminRateLimitsForTesting(): void {
   rateLimitStore.clear();
+  lastPublicCleanup = Date.now();
   inMemorySingleton.clear();
   customStoreOverride = null;
+  upstashSingleton = null;
+  hasWarnedMemoryProd = false;
+}
+
+export function _getPublicRateLimitStoreSizeForTesting(): number {
+  return rateLimitStore.size;
+}
+
+export function _cleanupPublicRateLimitsForTesting(now?: number): void {
+  cleanupStalePublicRecords(now ?? Date.now());
+}
+
+export function _getAdminRateLimitStoreSizeForTesting(): number {
+  return inMemorySingleton.getStoreSize();
+}
+
+export function _cleanupAdminRateLimitsForTesting(now?: number): void {
+  inMemorySingleton.forceCleanup(now ?? Date.now());
 }
 
 /**
  * Resolves the active rate limit store according to environment security boundaries:
- * - Production: Strictly requires Upstash Redis. Fails closed (isUnavailable: true) if unconfigured.
+ * - Production with RATE_LIMIT_BACKEND=memory: Uses bounded in-memory store.
+ * - Production default (no backend set): Strictly requires Upstash Redis. Fails closed (isUnavailable: true) if unconfigured.
  * - Development/Test: Uses Upstash Redis if configured; safely falls back to InMemoryAdminRateLimitStore.
+ * - Unknown RATE_LIMIT_BACKEND: Rejects safely across all environments (fails closed).
  */
 export function getAdminRateLimitStore(): {
   store: IAdminRateLimitStore | null;
@@ -656,17 +789,40 @@ export function getAdminRateLimitStore(): {
     return { store: customStoreOverride, isUnavailable: false };
   }
 
-  const isConfigured = Boolean(
+  const { backend, raw } = resolveRateLimitBackend();
+  const isProduction = process.env.NODE_ENV === "production";
+
+  // 1. Unknown backend value -> reject safely / fail closed
+  if (backend === "unknown") {
+    logger.error(
+      `Unknown RATE_LIMIT_BACKEND configured: "${raw}". Must be "memory" or "upstash". Failing closed.`
+    );
+    return { store: null, isUnavailable: true };
+  }
+
+  // 2. Explicit memory backend
+  if (backend === "memory") {
+    if (isProduction && !hasWarnedMemoryProd) {
+      hasWarnedMemoryProd = true;
+      logger.warn(
+        "RATE_LIMIT_BACKEND=memory is active in production. Counters are in-memory (per Node process, not distributed) and reset upon restart."
+      );
+    }
+    return { store: inMemorySingleton, isUnavailable: false };
+  }
+
+  // 3. Upstash Redis backend: either explicitly selected ('upstash') or unconfigured default
+  const hasUpstashCredentials = Boolean(
     process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
   );
 
-  if (isConfigured) {
+  if (hasUpstashCredentials) {
     if (!upstashSingleton) {
       try {
         upstashSingleton = new UpstashRedisRateLimitStore();
       } catch (err) {
         logger.error("Failed to initialize Upstash Redis rate limit client", err);
-        if (process.env.NODE_ENV === "production") {
+        if (isProduction || backend === "upstash") {
           return { store: null, isUnavailable: true };
         }
       }
@@ -676,12 +832,20 @@ export function getAdminRateLimitStore(): {
     }
   }
 
-  // Production Fail-Closed Guarantee
-  if (process.env.NODE_ENV === "production") {
+  // Explicit 'upstash' backend requested but credentials missing -> fail closed
+  if (backend === "upstash") {
+    logger.error(
+      "RATE_LIMIT_BACKEND=upstash is configured but UPSTASH_REDIS credentials are missing. Failing closed."
+    );
     return { store: null, isUnavailable: true };
   }
 
-  // Non-production local fallback
+  // 4. Production Fail-Closed Guarantee (unconfigured and no Redis)
+  if (isProduction) {
+    return { store: null, isUnavailable: true };
+  }
+
+  // 5. Non-production local fallback
   return { store: inMemorySingleton, isUnavailable: false };
 }
 

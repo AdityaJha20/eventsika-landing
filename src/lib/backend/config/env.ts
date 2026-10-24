@@ -32,6 +32,10 @@ export interface ServerConfig {
     publishableKey: string;
     serviceRoleKey?: string;
   };
+  rateLimit: {
+    backend: "memory" | "upstash";
+    isMemory: boolean;
+  };
   redis: {
     url?: string;
     token?: string;
@@ -84,18 +88,38 @@ export function validateServerEnv(
     );
   }
 
-  // 2. Production Security Invariants
+  // 2. Rate Limiting Backend & Production Security Invariants
+  const rateLimitBackendRaw = (env.RATE_LIMIT_BACKEND || "").trim().toLowerCase();
+  const isMemoryRateLimit = rateLimitBackendRaw === "memory";
+
+  if (
+    rateLimitBackendRaw &&
+    rateLimitBackendRaw !== "memory" &&
+    rateLimitBackendRaw !== "upstash" &&
+    rateLimitBackendRaw !== "redis"
+  ) {
+    missing.push(
+      `RATE_LIMIT_BACKEND (invalid value '${env.RATE_LIMIT_BACKEND}'; must be 'memory' or 'upstash')`
+    );
+  }
+
   if (isProduction) {
     if (!isNonEmptyString(env.SUPABASE_SERVICE_ROLE_KEY)) {
       missing.push("SUPABASE_SERVICE_ROLE_KEY");
     }
 
-    if (!isNonEmptyString(env.UPSTASH_REDIS_REST_URL)) {
-      missing.push("UPSTASH_REDIS_REST_URL");
-    }
+    if (!isMemoryRateLimit) {
+      if (!isNonEmptyString(env.UPSTASH_REDIS_REST_URL)) {
+        missing.push("UPSTASH_REDIS_REST_URL");
+      }
 
-    if (!isNonEmptyString(env.UPSTASH_REDIS_REST_TOKEN)) {
-      missing.push("UPSTASH_REDIS_REST_TOKEN");
+      if (!isNonEmptyString(env.UPSTASH_REDIS_REST_TOKEN)) {
+        missing.push("UPSTASH_REDIS_REST_TOKEN");
+      }
+    } else {
+      warnings.push(
+        "RATE_LIMIT_BACKEND is set to 'memory' in production. Rate limits will be stored in-memory (per process, non-distributed) and reset upon restart."
+      );
     }
 
     // Cashfree Production Invariants
@@ -130,13 +154,15 @@ export function validateServerEnv(
         "SUPABASE_SERVICE_ROLE_KEY is unconfigured; database persistence will use in-memory fallback repository in dev/test."
       );
     }
-    if (
-      !isNonEmptyString(env.UPSTASH_REDIS_REST_URL) ||
-      !isNonEmptyString(env.UPSTASH_REDIS_REST_TOKEN)
-    ) {
-      warnings.push(
-        "UPSTASH_REDIS credentials unconfigured; rate limiters will use in-memory fallback in dev/test."
-      );
+    if (!isMemoryRateLimit) {
+      if (
+        !isNonEmptyString(env.UPSTASH_REDIS_REST_URL) ||
+        !isNonEmptyString(env.UPSTASH_REDIS_REST_TOKEN)
+      ) {
+        warnings.push(
+          "UPSTASH_REDIS credentials unconfigured; rate limiters will use in-memory fallback in dev/test."
+        );
+      }
     }
     if (
       !isNonEmptyString(env.CASHFREE_APP_ID) ||
@@ -201,6 +227,10 @@ export function getServerConfig(
     ? env.UPSTASH_REDIS_REST_TOKEN.trim()
     : undefined;
 
+  const rateLimitBackendRaw = (env.RATE_LIMIT_BACKEND || "").trim().toLowerCase();
+  const isMemoryRateLimit = rateLimitBackendRaw === "memory";
+  const rateLimitBackend: "memory" | "upstash" = isMemoryRateLimit ? "memory" : "upstash";
+
   const cashfreeAppId = isNonEmptyString(env.CASHFREE_APP_ID)
     ? env.CASHFREE_APP_ID.trim()
     : undefined;
@@ -238,6 +268,10 @@ export function getServerConfig(
       url: supabaseUrl,
       publishableKey,
       serviceRoleKey,
+    },
+    rateLimit: {
+      backend: rateLimitBackend,
+      isMemory: isMemoryRateLimit,
     },
     redis: {
       url: redisUrl,
