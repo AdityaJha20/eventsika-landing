@@ -218,4 +218,55 @@ describe("Server Environment Validation (src/lib/backend/config/env.ts)", () => 
       /Invalid CASHFREE_ENVIRONMENT: "invalid_env"/
     );
   });
+
+  describe("RATE_LIMIT_BACKEND configuration", () => {
+    it("permits missing Upstash Redis variables in production when RATE_LIMIT_BACKEND=memory", () => {
+      const prodMemoryEnv: NodeJS.ProcessEnv = {
+        ...validProductionEnv,
+        UPSTASH_REDIS_REST_URL: undefined,
+        UPSTASH_REDIS_REST_TOKEN: undefined,
+        RATE_LIMIT_BACKEND: "memory",
+      };
+
+      const result = validateServerEnv(prodMemoryEnv);
+      expect(result.isValid).toBe(true);
+      expect(result.missing).toHaveLength(0);
+      expect(result.warnings.some((w) => w.includes("RATE_LIMIT_BACKEND is set to 'memory'"))).toBe(true);
+
+      const config = getServerConfig(prodMemoryEnv);
+      expect(config.rateLimit.backend).toBe("memory");
+      expect(config.rateLimit.isMemory).toBe(true);
+      expect(config.redis.isConfigured).toBe(false);
+    });
+
+    it("rejects invalid RATE_LIMIT_BACKEND values in production", () => {
+      const invalidBackendEnv: NodeJS.ProcessEnv = {
+        ...validProductionEnv,
+        RATE_LIMIT_BACKEND: "dynamodb",
+      };
+
+      const result = validateServerEnv(invalidBackendEnv);
+      expect(result.isValid).toBe(false);
+      expect(result.missing.some((m) => m.includes("RATE_LIMIT_BACKEND"))).toBe(true);
+    });
+
+    it("rejects invalid RATE_LIMIT_BACKEND values in non-production", () => {
+      const devEnv: NodeJS.ProcessEnv = {
+        NODE_ENV: "development",
+        SUPABASE_URL: "https://example.supabase.co",
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_pub_key",
+        RATE_LIMIT_BACKEND: "memcached",
+      };
+
+      const result = validateServerEnv(devEnv);
+      expect(result.isValid).toBe(false);
+      expect(result.missing.some((m) => m.includes("RATE_LIMIT_BACKEND"))).toBe(true);
+    });
+
+    it("defaults to upstash backend when RATE_LIMIT_BACKEND is unset", () => {
+      const config = getServerConfig(validProductionEnv);
+      expect(config.rateLimit.backend).toBe("upstash");
+      expect(config.rateLimit.isMemory).toBe(false);
+    });
+  });
 });
