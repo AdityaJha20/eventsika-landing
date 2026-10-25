@@ -5,9 +5,10 @@ function getCspDirectives(): string {
   const directives = [
     "default-src 'self'",
     // unsafe-inline is required for Next.js hydration bootstrap scripts and static JSON-LD.
+    // wasm-unsafe-eval is required for DotLottie WebAssembly player in production and development.
     // unsafe-eval is restricted strictly to local development for Next.js Fast Refresh tooling.
     // https://sdk.cashfree.com is required for Cashfree Web Checkout SDK v3.
-    `script-src 'self' 'unsafe-inline' https://sdk.cashfree.com${isDev ? " 'unsafe-eval'" : ""}`,
+    `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://sdk.cashfree.com${isDev ? " 'unsafe-eval'" : ""}`,
     // unsafe-inline is required for Next.js CSS variable injection and CSS module styles.
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data:",

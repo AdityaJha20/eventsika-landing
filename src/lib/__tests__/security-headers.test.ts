@@ -33,8 +33,10 @@ describe("Next.js Security Headers Configuration", () => {
     expect(csp).toContain("connect-src 'self'");
     expect(csp).toContain("upgrade-insecure-requests");
 
-    // 2. Production Security Invariant: unsafe-eval MUST NOT be present in production
-    expect(csp).not.toContain("unsafe-eval");
+    // 2. Production Security Invariant: JavaScript unsafe-eval MUST NOT be present in production
+    expect(csp).not.toContain("'unsafe-eval'");
+    // WebAssembly compilation for DotLottie player requires wasm-unsafe-eval
+    expect(csp).toContain("'wasm-unsafe-eval'");
 
     // 3. Prohibit Overly Permissive / Wildcard Sources
     expect(csp).not.toContain("default-src *");
@@ -87,5 +89,42 @@ describe("Next.js Security Headers Configuration", () => {
     expect(getHeader("X-Content-Type-Options")).toBe("nosniff");
     expect(getHeader("Referrer-Policy")).toBe("strict-origin-when-cross-origin");
     expect(getHeader("Permissions-Policy")).toContain("camera=()");
+  });
+
+  it("permits wasm-unsafe-eval in production script-src while isolating unsafe-eval to development", async () => {
+    // Production check
+    vi.stubEnv("NODE_ENV", "production");
+    const prodConfigModule = await import("../../../next.config");
+    const prodHeaders = await prodConfigModule.default.headers!();
+    const prodCsp = prodHeaders.find((r: { source: string }) => r.source === "/(.*)")!.headers.find(
+      (h: { key: string }) => h.key === "Content-Security-Policy"
+    )!.value;
+
+    const prodScriptSrc = prodCsp
+      .split(";")
+      .map((d: string) => d.trim())
+      .find((d: string) => d.startsWith("script-src "));
+
+    expect(prodScriptSrc).toBeDefined();
+    expect(prodScriptSrc).toContain("'wasm-unsafe-eval'");
+    expect(prodScriptSrc).not.toContain("'unsafe-eval'");
+
+    // Development check
+    vi.resetModules();
+    vi.stubEnv("NODE_ENV", "development");
+    const devConfigModule = await import("../../../next.config");
+    const devHeaders = await devConfigModule.default.headers!();
+    const devCsp = devHeaders.find((r: { source: string }) => r.source === "/(.*)")!.headers.find(
+      (h: { key: string }) => h.key === "Content-Security-Policy"
+    )!.value;
+
+    const devScriptSrc = devCsp
+      .split(";")
+      .map((d: string) => d.trim())
+      .find((d: string) => d.startsWith("script-src "));
+
+    expect(devScriptSrc).toBeDefined();
+    expect(devScriptSrc).toContain("'wasm-unsafe-eval'");
+    expect(devScriptSrc).toContain("'unsafe-eval'");
   });
 });
