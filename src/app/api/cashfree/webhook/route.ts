@@ -6,6 +6,7 @@ import { verifyCashfreeWebhookSignature } from "@/lib/backend/security/webhook-s
 import {
   parseCashfreeWebhookPayload,
   NormalizedCashfreePaymentWebhook,
+  MAX_WEBHOOK_SIZE,
 } from "@/lib/backend/domain/webhook-types";
 import { paymentConfirmationService } from "@/lib/backend/services/payment-confirmation-service";
 import { SupabaseWebhookEventRepository } from "@/lib/backend/repositories/supabase-webhook-event-repository";
@@ -13,11 +14,6 @@ import { IWebhookEventRepository } from "@/lib/backend/repositories/webhook-even
 import { WebhookEventRecord } from "@/lib/backend/types/payment-and-consultation";
 
 export const dynamic = "force-dynamic";
-
-/**
- * Maximum allowable webhook payload size: 64 KB (65,536 bytes).
- */
-export const MAX_WEBHOOK_SIZE = 65536;
 
 /**
  * Checks whether an error represents a PostgreSQL unique constraint violation (code 23505).
