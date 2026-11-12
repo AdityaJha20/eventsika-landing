@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/lib/backend/supabase/server";
 import { logger } from "@/lib/backend/logger/logger";
 import { getOrCreateRequestId } from "@/lib/backend/utils/request-id";
 import { isAllowedOrigin } from "@/lib/backend/http/origin";
+import { cookies } from "next/headers";
 
 export async function POST(request: NextRequest) {
   const requestId = getOrCreateRequestId(request);
@@ -18,6 +19,7 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
     await supabase.auth.signOut();
+    cookies().delete("admin_token");
 
     logger.info("Admin logout executed", { requestId });
 
