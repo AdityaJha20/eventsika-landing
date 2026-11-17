@@ -8,19 +8,26 @@ import {
 } from "@/components/consultation/BookingExperience";
 import styles from "./diwali-consultation.module.css";
 
+const SEO_TITLE = "Personalized Celebration Planning Consultation";
+const SEO_DESCRIPTION =
+  "Book a 1-on-1 celebration planning consultation with Eventsika's planners. Get expert guidance on design, budgets, vendors and execution. Consultation fee ₹2,999.";
+
 export const metadata: Metadata = {
-  title: "Diwali Special Offer | 1-on-1 Event Planning Consultation",
-  description:
-    "Book an exclusive 1-on-1 celebration planning consultation with Eventsika's lead creative planners at our special Diwali promotional price of ₹2,999 (Regular ₹5,000). Limited-time offer.",
+  title: SEO_TITLE,
+  description: SEO_DESCRIPTION,
   alternates: {
     canonical: "/diwali-consultation",
   },
   openGraph: {
-    title: "Diwali Special Offer | Event Planning Consultation | Eventsika",
-    description:
-      "Diwali Special Offer: Book an expert 1-on-1 event planning consultation at ₹2,999 instead of ₹5,000. Plan with clarity, celebrate with confidence.",
+    title: `${SEO_TITLE} | Eventsika`,
+    description: SEO_DESCRIPTION,
     url: "https://eventsika.in/diwali-consultation",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SEO_TITLE} | Eventsika`,
+    description: SEO_DESCRIPTION,
   },
 };
 
@@ -100,12 +107,6 @@ const STEPS_DATA = [
 const TESTIMONIALS_DATA = [
   {
     quote:
-      "The consultation transformed how we approached our home Diwali gala. The team gave us exact floral and lighting vendor recommendations that fit our budget perfectly without cutting corners.",
-    name: "Priya & Anand Sharma",
-    city: "New Delhi",
-  },
-  {
-    quote:
       "Booking the consultation was the best decision for our festive anniversary celebration. We avoided two costly venue mistakes and walked away with a crystal-clear checklist.",
     name: "Ritu Malhotra",
     city: "Gurgaon",
@@ -127,7 +128,7 @@ const INCLUSIONS_DATA = [
   "Priority booking status for full execution coordination",
 ];
 
-export default function DiwaliConsultationPage() {
+export default function ConsultationPage() {
   return (
     <BookingModalProvider>
       <div className={styles.pageWrapper}>
@@ -135,56 +136,41 @@ export default function DiwaliConsultationPage() {
       <Navbar />
 
       <main id="main-content">
-        {/* 2. Diwali Offer Hero Section */}
-        <section className={styles.heroSection} aria-labelledby="diwali-hero-heading">
+        {/* 2. Consultation Hero Section */}
+        <section className={styles.heroSection} aria-labelledby="consultation-hero-heading">
           <div className={styles.container}>
             <div className={styles.heroGrid}>
-              {/* Left Column: Offer Details & Typography */}
+              {/* Left Column: Consultation Details & Typography */}
               <div className={styles.heroContent}>
-                {/* Diwali Offer Badge Framed by Symmetrical Diyas & Decorative Lines */}
+                {/* Eyebrow framed by champagne-gold lines, a pine sprig and a cranberry bauble */}
                 <div className={styles.heroBadgeWrapper}>
                   <span className={styles.badgeLine} aria-hidden="true" />
-                  <DiyaIcon className={styles.badgeDiya} />
-                  <span className={styles.heroEyebrow}>DIWALI SPECIAL OFFER</span>
-                  <DiyaIcon className={styles.badgeDiya} />
+                  <PineSprig className={styles.badgeSprig} />
+                  <span className={styles.heroEyebrow}>Personalized Celebration Consultation</span>
+                  <span className={styles.badgeBauble} aria-hidden="true" />
                   <span className={styles.badgeLine} aria-hidden="true" />
                 </div>
 
-                <h1 id="diwali-hero-heading" className={styles.heroTitle}>
-                  Your Celebration<br />
-                  Deserves a <span className={styles.heroTitleHighlight}>Brighter Beginning.</span>
+                <h1 id="consultation-hero-heading" className={styles.heroTitle}>
+                  Your Celebration,<br />
+                  <span className={styles.heroTitleHighlight}>Thoughtfully Planned.</span>
                 </h1>
 
                 <p className={styles.heroDescription}>
-                  This festive season, bring clarity, artistry, and seamless coordination to your celebration.
-                  Book an exclusive one-on-one consultation with our lead event architects at a limited-time
-                  promotional rate.
+                  From intimate family gatherings to unforgettable celebrations, get expert guidance on design,
+                  budgets, vendors and execution. Bring your vision to life with a thoughtfully planned experience.
                 </p>
 
-                {/* Hero Pricing Box */}
+                {/* Hero Consultation Fee */}
                 <div className={styles.heroPricingBox}>
                   <div className={styles.pricingHeaderRow}>
-                    <span className={styles.pricingBadge}>DIWALI SPECIAL</span>
-                    <span className={styles.urgencyTag}>
-                      <span>⭐</span>
-                      <span>Limited-time Diwali offer</span>
-                    </span>
+                    <span className={styles.pricingBadge}>Consultation Fee</span>
                   </div>
 
-                  <div className={styles.priceDisplayGroup}>
-                    <div className={styles.originalPriceWrapper}>
-                      <span className={styles.originalPriceLabel}>Original Price</span>
-                      <span className={styles.originalPrice}>₹5,000</span>
-                    </div>
-
-                    <div className={styles.offerPriceWrapper}>
-                      <span className={styles.offerPriceLabel}>Diwali Offer Price</span>
-                      <span className={styles.offerPrice}>₹2,999</span>
-                    </div>
-                  </div>
+                  <div className={styles.feeAmount}>₹2,999</div>
 
                   <p className={styles.pricingTerms}>
-                    Diwali Special Offer — Comprehensive 1-on-1 Consultation at ₹2,999 instead of ₹5,000.
+                    One-time fee for a dedicated 60-minute, 1-on-1 consultation with our planners.
                   </p>
                 </div>
 
@@ -253,8 +239,9 @@ export default function DiwaliConsultationPage() {
                 </div>
               </div>
 
-              {/* Right Column: Premium Diwali Image */}
+              {/* Right Column: Consultation Image */}
               <div className={styles.heroImageColumn}>
+                <PineSprig className={styles.imageSprig} withBauble />
                 <div className={styles.heroImageFrame}>
                   <Image
                     src="/images/diwali-consultation-hero.webp"
@@ -366,6 +353,7 @@ export default function DiwaliConsultationPage() {
         <section className={styles.howSection} aria-labelledby="how-heading">
           <div className={styles.container}>
             <div className={styles.sectionHeader}>
+              <SeasonalDivider />
               <div className={styles.eyebrow}>SIMPLE 3-STEP PROCESS</div>
               <h2 id="how-heading" className={styles.sectionTitle}>
                 How Your Consultation Unfolds
@@ -387,12 +375,15 @@ export default function DiwaliConsultationPage() {
           </div>
         </section>
 
-        {/* 6. Promotional Price Card Section */}
+        {/* 6. Consultation Fee Card Section */}
         <section className={styles.pricingSection} aria-labelledby="pricing-heading">
           <div className={styles.container}>
             <div className={styles.pricingCardWrapper}>
               <div className={styles.pricingMasterCard}>
-                <span className={styles.promoBadgeFloating}>DIWALI SPECIAL</span>
+                <span className={styles.promoBadgeFloating}>
+                  <StarAccent />
+                  Signature Consultation
+                </span>
 
                 <h2 id="pricing-heading" className={styles.cardTitle}>
                   1-on-1 Celebration Planning Consultation
@@ -403,10 +394,9 @@ export default function DiwaliConsultationPage() {
 
                 {/* Price Display */}
                 <div className={styles.priceBlockCenter}>
-                  <div className={styles.strikethroughOriginal}>₹5,000</div>
-                  <span className={styles.originalLabelText}>Original Consultation Price</span>
+                  <span className={styles.oneTimeFeeLabel}>Consultation Fee</span>
                   <div className={styles.dominantOfferPrice}>₹2,999</div>
-                  <span className={styles.oneTimeFeeLabel}>ONE-TIME CONSULTATION FEE</span>
+                  <span className={styles.originalLabelText}>One-time fee · 60-minute session</span>
                 </div>
 
                 {/* Inclusions List */}
@@ -429,7 +419,7 @@ export default function DiwaliConsultationPage() {
                 />
 
                 <p className={styles.cardDisclaimer}>
-                  🔒 Limited seasonal slots available for Diwali &amp; upcoming winter celebrations.
+                  🔒 Secure checkout. Choose your preferred date and time while booking.
                 </p>
               </div>
             </div>
@@ -470,14 +460,14 @@ export default function DiwaliConsultationPage() {
           </div>
         </section>
 
-        {/* 8. Final Diwali CTA Section */}
+        {/* 8. Final CTA Section */}
         <section className={styles.finalCtaSection} aria-labelledby="final-cta-heading">
           <div className={styles.container}>
             <div className={styles.finalCtaBox}>
               <div className={styles.finalEyebrow}>
-                <span>✨</span>
+                <PineSprig className={styles.finalSprig} />
                 <span>CELEBRATE SEAMLESSLY</span>
-                <span>✨</span>
+                <PineSprig className={`${styles.finalSprig} ${styles.mirrored}`} />
               </div>
 
               <h2 id="final-cta-heading" className={styles.finalTitle}>
@@ -485,12 +475,12 @@ export default function DiwaliConsultationPage() {
               </h2>
 
               <p className={styles.finalDescription}>
-                Great celebrations begin with a conversation. Take advantage of our Diwali promotional rate
-                and start planning with total confidence.
+                Great celebrations begin with a conversation. Book your consultation and start planning
+                with total confidence.
               </p>
 
               <div className={styles.finalOfferPill}>
-                Diwali Special: <span className={styles.finalOfferHighlight}>₹2,999</span> (Regular ₹5,000)
+                Consultation Fee: <span className={styles.finalOfferHighlight}>₹2,999</span>
               </div>
 
               <div>
@@ -516,41 +506,65 @@ export default function DiwaliConsultationPage() {
   );
 }
 
-function DiyaIcon({ className }: { className?: string }) {
+/* --------------------------------------------------------------------------
+   Christmas-season accents: small, decorative, non-interactive inline SVGs.
+   -------------------------------------------------------------------------- */
+
+// Fir sprig: needle pairs on both sides of a straight stem from (4,28) to (28,4),
+// angled toward the tip and shortening as they go. Alternate pairs use two
+// muted greens for depth. Fixed geometry, so server and client markup match.
+const STEM = { x: Math.SQRT1_2, y: -Math.SQRT1_2 }; // unit vector along the stem
+const sprigNeedles = (parity: number) =>
+  Array.from({ length: 10 }, (_, k) => k)
+    .filter((k) => k % 2 === parity)
+    .map((k) => {
+      const x = 5.5 + k * 2.2;
+      const y = 26.5 - k * 2.2;
+      const len = 6.4 - k * 0.45;
+      return [1, -1]
+        .map((side) => {
+          const a = side * 0.75; // ~43° off the stem
+          const dx = (STEM.x * Math.cos(a) - STEM.y * Math.sin(a)) * len;
+          const dy = (STEM.x * Math.sin(a) + STEM.y * Math.cos(a)) * len;
+          return `M${x.toFixed(1)} ${y.toFixed(1)}l${dx.toFixed(2)} ${dy.toFixed(2)}`;
+        })
+        .join("");
+    })
+    .join("");
+const SPRIG_NEEDLES_DEEP = sprigNeedles(0);
+const SPRIG_NEEDLES_SOFT = sprigNeedles(1);
+
+function PineSprig({ className, withBauble = false }: { className?: string; withBauble?: boolean }) {
   return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      {/* Outer Flame */}
-      <path
-        d="M12 2C12 2 9.5 5.5 9.5 8C9.5 9.38 10.62 10.5 12 10.5C13.38 10.5 14.5 9.38 14.5 8C14.5 5.5 12 2 12 2Z"
-        fill="#E5A93C"
-      />
-      {/* Inner Flame Glow */}
-      <path
-        d="M12 4.5C12 4.5 10.8 6.5 10.8 7.8C10.8 8.46 11.34 9 12 9C12.66 9 13.2 8.46 13.2 7.8C13.2 6.5 12 4.5 12 4.5Z"
-        fill="#FFF3C4"
-      />
-      {/* Diya Brass Bowl */}
-      <path
-        d="M4 11C4 11 5 17 12 17C19 17 20 11 20 11H4Z"
-        fill="#B99A67"
-        stroke="#8C6D3B"
-        strokeWidth="1"
-        strokeLinejoin="round"
-      />
-      {/* Diya Base Stand */}
-      <path
-        d="M9 17L8 20H16L15 17"
-        stroke="#8C6D3B"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+    <svg className={className} viewBox="0 0 32 32" fill="none" aria-hidden="true" focusable="false">
+      <path d={SPRIG_NEEDLES_DEEP} stroke="#3f5a4b" strokeWidth="1.3" strokeLinecap="round" />
+      <path d={SPRIG_NEEDLES_SOFT} stroke="#6a8573" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M4 28L28 4" stroke="#3a5345" strokeWidth="1.1" strokeLinecap="round" />
+      {withBauble && (
+        <>
+          <path d="M12.5 21.5v4" stroke="#b99a67" strokeWidth="0.6" />
+          <circle cx="12.5" cy="27.6" r="2.4" fill="#8e1d2b" />
+          <circle cx="11.8" cy="26.8" r="0.7" fill="#f1c9cc" opacity="0.7" />
+        </>
+      )}
     </svg>
+  );
+}
+
+function StarAccent() {
+  return (
+    <svg className={styles.starAccent} viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+      <path d="M6 0.8 7 5 11.2 6 7 7 6 11.2 5 7 0.8 6 5 5Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function SeasonalDivider() {
+  return (
+    <div className={styles.seasonalDivider} aria-hidden="true">
+      <span className={styles.badgeLine} />
+      <PineSprig className={styles.dividerSprig} />
+      <span className={styles.badgeLine} />
+    </div>
   );
 }

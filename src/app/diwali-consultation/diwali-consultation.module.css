@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Eventsika — Diwali Consultation Offer Landing Page Styles
+   Eventsika — Celebration Consultation Landing Page Styles
    Scoped CSS Module for /diwali-consultation
    ========================================================================== */
 
@@ -106,7 +106,7 @@
   align-items: flex-start;
 }
 
-/* Diwali Special Offer Badge with Symmetrical Framing Lines & Diyas */
+/* Hero eyebrow framed by champagne-gold lines, a pine sprig and a cranberry bauble */
 .heroBadgeWrapper {
   display: flex;
   align-items: center;
@@ -126,11 +126,84 @@
       transparent);
 }
 
-.badgeDiya {
+/* Christmas-season accents: decorative only, never interactive */
+.badgeSprig,
+
+.imageSprig,
+.dividerSprig,
+.finalSprig,
+.badgeBauble,
+.starAccent,
+.seasonalDivider {
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.badgeSprig {
+  width: 26px;
+  height: 26px;
+}
+
+/* Tiny cranberry bauble on a champagne thread */
+.badgeBauble {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #e7a9ae, #9c2633 45%, #5c121c);
+}
+
+.badgeBauble::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  width: 1px;
+  height: 6px;
+  background: var(--gold, #b99a67);
+}
+
+/* One sprig resting on the photo frame's top-left corner, clear of the people */
+.imageSprig {
+  position: absolute;
+  z-index: 2;
+  top: -14px;
+  left: max(-14px, calc(50% - 314px));
+  width: 54px;
+  height: 54px;
+  transform: rotate(-80deg);
+}
+
+.seasonalDivider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  max-width: 220px;
+  margin: 0 auto 1.25rem auto;
+}
+
+.dividerSprig {
   width: 20px;
   height: 20px;
-  flex-shrink: 0;
-  filter: drop-shadow(0 2px 4px rgba(185, 154, 103, 0.35));
+}
+
+.starAccent {
+  width: 11px;
+  height: 11px;
+  color: var(--champagne, #d8c08c);
+}
+
+/* Champagne sprigs read better than green on the deep-red final CTA */
+.finalSprig {
+  width: 18px;
+  height: 18px;
+  filter: brightness(0) saturate(100%) invert(84%) sepia(18%) saturate(640%) hue-rotate(4deg);
+}
+
+.mirrored {
+  transform: scaleX(-1);
 }
 
 .heroEyebrow {
@@ -150,6 +223,22 @@
   border-radius: 9999px;
   box-shadow: 0 2px 8px rgba(185, 154, 103, 0.12);
   white-space: nowrap;
+}
+
+/* Narrow screens: the longer label wraps; side lines and bauble step back */
+@media (max-width: 640px) {
+  .heroEyebrow {
+    white-space: normal;
+    text-align: center;
+    letter-spacing: 0.1em;
+    font-size: 0.6875rem;
+    line-height: 1.4;
+  }
+
+  .heroBadgeWrapper .badgeLine,
+  .badgeBauble {
+    display: none;
+  }
 }
 
 .heroTitle {
@@ -196,10 +285,10 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 3.5px;
+  height: 3px;
   background: linear-gradient(90deg,
       var(--gold, #b99a67),
-      var(--primary, #7f1010),
+      #4f6a5a,
       var(--gold, #b99a67));
 }
 
@@ -213,74 +302,20 @@
 }
 
 .pricingBadge {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: #ffffff;
-  background: var(--primary, #7f1010);
-  padding: 0.25rem 0.65rem;
-  border-radius: 4px;
+  letter-spacing: 0.14em;
+  color: #3a5345;
 }
 
-.urgencyTag {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: #8c6d3b;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.priceDisplayGroup {
-  display: flex;
-  align-items: baseline;
-  gap: 1.25rem;
-  margin-bottom: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.originalPriceWrapper {
-  display: flex;
-  flex-direction: column;
-}
-
-.originalPriceLabel {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #8a7c73;
-  font-weight: 600;
-}
-
-.originalPrice {
-  font-size: 1.5rem;
-  font-weight: 500;
-  color: #94867d;
-  text-decoration: line-through;
-  text-decoration-color: rgba(127, 16, 16, 0.7);
-  text-decoration-thickness: 2px;
-}
-
-.offerPriceWrapper {
-  display: flex;
-  flex-direction: column;
-}
-
-.offerPriceLabel {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--primary, #7f1010);
-  font-weight: 700;
-}
-
-.offerPrice {
+.feeAmount {
   font-size: clamp(2.5rem, 4vw, 3.25rem);
   font-weight: 700;
   color: var(--primary, #7f1010);
   line-height: 1;
   letter-spacing: -0.03em;
+  margin-bottom: 0.75rem;
 }
 
 .pricingTerms {
@@ -782,9 +817,11 @@
 }
 
 .promoBadgeFloating {
-  display: inline-block;
-  background: var(--primary, #7f1010);
-  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #3a5345;
+  color: #fffaf4;
   font-size: 0.8125rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -792,7 +829,7 @@
   padding: 0.4rem 1.25rem;
   border-radius: 9999px;
   margin-bottom: 1.25rem;
-  box-shadow: 0 4px 12px rgba(127, 16, 16, 0.25);
+  box-shadow: 0 4px 12px rgba(58, 83, 69, 0.22);
 }
 
 .cardTitle {
@@ -821,22 +858,12 @@
   margin-bottom: 2.25rem;
 }
 
-.strikethroughOriginal {
-  font-size: 1.35rem;
-  font-weight: 500;
-  color: #8c7d74;
-  text-decoration: line-through;
-  text-decoration-color: rgba(127, 16, 16, 0.7);
-  text-decoration-thickness: 2px;
-  margin-bottom: 0.25rem;
-}
-
 .originalLabelText {
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #8c7d74;
-  margin-bottom: 0.5rem;
+  margin: 0.6rem 0 0;
 }
 
 .dominantOfferPrice {
@@ -853,7 +880,8 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: #735e3b;
+  color: #3a5345;
+  margin-bottom: 0.6rem;
 }
 
 .inclusionsList {
@@ -935,9 +963,11 @@
   list-style: none;
 }
 
+/* Columns follow the number of cards, so a shorter list stays centred */
 @media (min-width: 768px) {
   .testimonialsGrid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(0, 380px));
+    justify-content: center;
   }
 }
 
@@ -990,7 +1020,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   7. Final Diwali CTA Section
+   7. Final CTA Section
    -------------------------------------------------------------------------- */
 .finalCtaSection {
   padding: 6rem 0;

@@ -127,7 +127,7 @@ export function ConsultationBookingModal({
               className={styles.brandLogo}
               priority
             />
-            <span className={styles.brandBadge}>Diwali Special</span>
+            <span className={styles.brandBadge}>Signature Consultation</span>
           </div>
 
           {/* Progress Indicators (Stitch Visual Direction) */}
