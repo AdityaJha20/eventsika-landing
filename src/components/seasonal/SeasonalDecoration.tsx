@@ -1,48 +1,31 @@
 import DiwaliLights from "./DiwaliLights";
+import ChristmasNavbarDecoration from "./christmas/ChristmasNavbarDecoration";
+
+/** Seasonal themes with an implemented decoration, plus "none". */
+export type SeasonalTheme = "none" | "diwali" | "christmas";
 
 /**
- * Supported seasonal occasions for Eventsika.
- * Add new festive themes (e.g., 'holi', 'christmas', 'wedding-season')
- * as isolated subcomponents under `src/components/seasonal/`.
+ * SEASONAL SWITCH — the only line to change between festivals.
+ * "none" restores the plain navbar. To add a festival, build its decoration
+ * in its own folder and register it in DECORATIONS below.
  */
-export type SeasonalOccasion =
-  | "diwali"
-  | "holi"
-  | "christmas"
-  | "wedding-season"
-  | null;
+export const ACTIVE_SEASONAL_THEME: SeasonalTheme = "christmas";
+
+const DECORATIONS: Record<Exclude<SeasonalTheme, "none">, () => React.ReactElement> = {
+  diwali: DiwaliLights,
+  christmas: ChristmasNavbarDecoration,
+};
 
 /**
- * DEVELOPER CONTROL SWITCH:
- * - Set to 'diwali' to display the Diwali light arrangement.
- * - Set to null to disable all seasonal decorations website-wide.
- * - Set to another occasion key when a new festive component is integrated.
- */
-const ACTIVE_SEASONAL_OCCASION: SeasonalOccasion = "diwali";
-
-interface SeasonalDecorationProps {
-  /**
-   * Optional override for page-specific or testing scenarios.
-   * Defaults to ACTIVE_SEASONAL_OCCASION.
-   */
-  occasion?: SeasonalOccasion;
-}
-
-/**
- * SeasonalDecoration is an isolated wrapper that mounts occasion-specific
- * decorations above/within the Eventsika navbar header. It leaves the core
- * navbar untouched and renders null when disabled.
+ * Mounts the active festival's decorative overlay inside the navbar.
+ * Renders nothing when the theme is "none"; the navbar never depends on it.
  */
 export default function SeasonalDecoration({
-  occasion = ACTIVE_SEASONAL_OCCASION,
-}: SeasonalDecorationProps) {
-  if (!occasion) return null;
-
-  switch (occasion) {
-    case "diwali":
-      return <DiwaliLights />;
-    // Future occasions (e.g. case "holi": return <HoliDecorations />)
-    default:
-      return null;
-  }
+  theme = ACTIVE_SEASONAL_THEME,
+}: {
+  theme?: SeasonalTheme;
+}) {
+  if (theme === "none") return null;
+  const Decoration = DECORATIONS[theme];
+  return <Decoration />;
 }

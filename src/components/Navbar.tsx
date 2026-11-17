@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import styles from "./Navbar.module.css";
+import SeasonalDecoration from "./seasonal/SeasonalDecoration";
 
 const NAV_LINKS = [
   { label: "How It Works", href: "/#how-it-works" },
@@ -512,6 +513,8 @@ export default function Navbar() {
   return (
     <header className={styles.header}>
       <div className={styles.container}>
+        {/* Seasonal festive overlay; switch or disable in seasonal/SeasonalDecoration.tsx */}
+        <SeasonalDecoration />
         {/* Brand / Logo Area */}
         <Link href="/" className={styles.brand} onClick={closeMobileMenu}>
           <EventsikaLogo className={styles.brandLogo} />
