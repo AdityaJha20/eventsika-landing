@@ -12,80 +12,102 @@ interface ConsultationIntakeFormProps {
   onBack: () => void;
 }
 
-const EVENT_OCCASIONS = [
-  "Diwali Celebration Gala",
-  "Luxury Wedding / Engagement",
-  "Milestone Birthday Celebration",
-  "Anniversary Gala",
-  "Festive Housewarming / Griha Pravesh",
-  "Corporate Milestone Celebration",
-  "Other Celebration",
+export const OTHER_OCCASION = "Other Celebration";
+
+// `value` is what gets stored. Renamed occasions keep their original stored value
+// so historical bookings, admin views and analytics stay consistent.
+export const EVENT_OCCASIONS = [
+  { value: "Christmas Celebration", label: "Christmas Celebration" },
+  { value: "New Year Celebration", label: "New Year Celebration" },
+  { value: "Milestone Birthday Celebration", label: "Birthday Celebration" },
+  { value: "Anniversary Gala", label: "Anniversary Celebration" },
+  { value: "Luxury Wedding / Engagement", label: "Wedding / Engagement" },
+  { value: "Festive Housewarming / Griha Pravesh", label: "Housewarming / Griha Pravesh" },
+  { value: "Baby Shower", label: "Baby Shower" },
+  { value: "Family Gathering", label: "Family Gathering" },
+  { value: "Festive Celebration", label: "Festive Celebration" },
+  { value: "Corporate Milestone Celebration", label: "Corporate Celebration" },
+  { value: "Diwali Celebration Gala", label: "Diwali Celebration Gala" },
+  { value: OTHER_OCCASION, label: OTHER_OCCASION },
 ];
+
+// No occasion is preselected: the customer must choose their actual celebration.
+export const INITIAL_INTAKE_FORM: CustomerFormData = {
+  customerFirstName: "",
+  customerLastName: "",
+  customerPhone: "",
+  customerEmail: "",
+  customerCity: "",
+  eventType: "",
+  eventTypeOther: "",
+  guestCount: "",
+  eventDateApprox: "",
+  meetingChannel: "video",
+};
+
+export type IntakeFormErrors = Partial<Record<keyof CustomerFormData, string>>;
+
+/** Client-side checks run before reserving a slot; the server re-validates everything. */
+export function validateIntakeForm(formData: CustomerFormData): IntakeFormErrors {
+  const newErrors: IntakeFormErrors = {};
+
+  if (!formData.customerFirstName.trim()) {
+    newErrors.customerFirstName = "First name is required.";
+  } else if (formData.customerFirstName.trim().length > 60) {
+    newErrors.customerFirstName = "First name must not exceed 60 characters.";
+  }
+
+  if (!formData.customerLastName.trim()) {
+    newErrors.customerLastName = "Last name is required.";
+  } else if (formData.customerLastName.trim().length > 60) {
+    newErrors.customerLastName = "Last name must not exceed 60 characters.";
+  }
+
+  // Phone validation (accepts 10 digits or prefixed)
+  const cleanPhone = formData.customerPhone.replace(/\D/g, "");
+  if (!cleanPhone) {
+    newErrors.customerPhone = "Phone number is required.";
+  } else {
+    const tenDigits = cleanPhone.slice(-10);
+    if (!/^[6-9]\d{9}$/.test(tenDigits)) {
+      newErrors.customerPhone = "Please provide a valid 10-digit Indian mobile number.";
+    }
+  }
+
+  // Email validation
+  if (!formData.customerEmail.trim()) {
+    newErrors.customerEmail = "Email address is required.";
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.customerEmail.trim())) {
+    newErrors.customerEmail = "Please provide a valid email address.";
+  }
+
+  // City validation
+  if (!formData.customerCity.trim()) {
+    newErrors.customerCity = "Please enter your city.";
+  }
+
+  if (!formData.eventType) {
+    newErrors.eventType = "Please select your celebration occasion.";
+  } else if (formData.eventType === OTHER_OCCASION && !formData.eventTypeOther.trim()) {
+    newErrors.eventTypeOther = "Please describe your celebration.";
+  }
+
+  return newErrors;
+}
 
 export function ConsultationIntakeForm({
   selectedSlot,
   onReservationSuccess,
   onBack,
 }: ConsultationIntakeFormProps) {
-  const [formData, setFormData] = useState<CustomerFormData>({
-    customerFirstName: "",
-    customerLastName: "",
-    customerPhone: "",
-    customerEmail: "",
-    customerCity: "",
-    eventType: "Diwali Celebration Gala",
-    eventTypeOther: "",
-    guestCount: "",
-    eventDateApprox: "",
-    meetingChannel: "video",
-  });
+  const [formData, setFormData] = useState<CustomerFormData>(INITIAL_INTAKE_FORM);
 
-  const [errors, setErrors] = useState<Partial<Record<keyof CustomerFormData, string>>>({});
+  const [errors, setErrors] = useState<IntakeFormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [generalError, setGeneralError] = useState<string | null>(null);
 
   const validateClient = (): boolean => {
-    const newErrors: Partial<Record<keyof CustomerFormData, string>> = {};
-
-    if (!formData.customerFirstName.trim()) {
-      newErrors.customerFirstName = "First name is required.";
-    } else if (formData.customerFirstName.trim().length > 60) {
-      newErrors.customerFirstName = "First name must not exceed 60 characters.";
-    }
-
-    if (!formData.customerLastName.trim()) {
-      newErrors.customerLastName = "Last name is required.";
-    } else if (formData.customerLastName.trim().length > 60) {
-      newErrors.customerLastName = "Last name must not exceed 60 characters.";
-    }
-
-    // Phone validation (accepts 10 digits or prefixed)
-    const cleanPhone = formData.customerPhone.replace(/\D/g, "");
-    if (!cleanPhone) {
-      newErrors.customerPhone = "Phone number is required.";
-    } else {
-      const tenDigits = cleanPhone.slice(-10);
-      if (!/^[6-9]\d{9}$/.test(tenDigits)) {
-        newErrors.customerPhone = "Please provide a valid 10-digit Indian mobile number.";
-      }
-    }
-
-    // Email validation
-    if (!formData.customerEmail.trim()) {
-      newErrors.customerEmail = "Email address is required.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.customerEmail.trim())) {
-      newErrors.customerEmail = "Please provide a valid email address.";
-    }
-
-    // City validation
-    if (!formData.customerCity.trim()) {
-      newErrors.customerCity = "Please enter your city.";
-    }
-
-    if (formData.eventType === "Other Celebration" && !formData.eventTypeOther.trim()) {
-      newErrors.eventTypeOther = "Please describe your celebration.";
-    }
-
+    const newErrors = validateIntakeForm(formData);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -108,7 +130,7 @@ export function ConsultationIntakeForm({
         customerEmail: formData.customerEmail.trim().toLowerCase(),
         customerCity: formData.customerCity.trim(),
         eventType: formData.eventType,
-        eventTypeOther: formData.eventType === "Other Celebration" ? formData.eventTypeOther.trim() : null,
+        eventTypeOther: formData.eventType === OTHER_OCCASION ? formData.eventTypeOther.trim() : null,
         guestCount: formData.guestCount.trim() || null,
         eventDateApprox: formData.eventDateApprox.trim() || null,
         meetingChannel: formData.meetingChannel,
@@ -145,7 +167,7 @@ export function ConsultationIntakeForm({
         customerEmail: formData.customerEmail.trim().toLowerCase(),
         customerPhone: formData.customerPhone.trim(),
         customerCity: formData.customerCity.trim(),
-        eventType: formData.eventType === "Other Celebration" ? formData.eventTypeOther.trim() : formData.eventType,
+        eventType: formData.eventType === OTHER_OCCASION ? formData.eventTypeOther.trim() : formData.eventType,
         meetingChannel: formData.meetingChannel,
       };
 
@@ -338,20 +360,28 @@ export function ConsultationIntakeForm({
             </label>
             <select
               id="eventType"
-              className={styles.formSelect}
+              required
+              aria-invalid={Boolean(errors.eventType)}
+              className={`${styles.formSelect} ${errors.eventType ? styles.formInputError : ""}`}
               value={formData.eventType}
               onChange={(e) => setFormData({ ...formData, eventType: e.target.value })}
             >
-              {EVENT_OCCASIONS.map((occ) => (
-                <option key={occ} value={occ}>
-                  {occ}
+              <option value="" disabled>
+                Select your celebration occasion
+              </option>
+              {EVENT_OCCASIONS.map(({ value, label }) => (
+                <option key={value} value={value}>
+                  {label}
                 </option>
               ))}
             </select>
+            {errors.eventType && (
+              <span className={styles.fieldErrorText}>{errors.eventType}</span>
+            )}
           </div>
 
           {/* Other Event Type if Selected */}
-          {formData.eventType === "Other Celebration" && (
+          {formData.eventType === OTHER_OCCASION && (
             <div className={styles.formGroupFull}>
               <label htmlFor="eventTypeOther" className={styles.formLabel}>
                 Please Describe Your Celebration *
