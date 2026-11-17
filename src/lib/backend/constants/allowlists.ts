@@ -16,7 +16,8 @@ export const CITY_OPTIONS = [
 export type CityOption = (typeof CITY_OPTIONS)[number];
 
 export const EVENT_TYPE_OPTIONS = [
-  "Diwali Special",
+  "Christmas Celebration",
+  "New Year Celebration",
   "House Party",
   "Birthday",
   "Anniversary",
@@ -44,6 +45,7 @@ export type GuestCountOption = (typeof GUEST_COUNT_OPTIONS)[number];
 export const VENUE_TYPE_OPTIONS = [
   "Indoor",
   "Outdoor",
+  "Other",
 ] as const;
 
 export type VenueTypeOption = (typeof VENUE_TYPE_OPTIONS)[number];

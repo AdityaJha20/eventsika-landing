@@ -24,6 +24,8 @@ describe("POST /api/leads Integration Contract", () => {
     selectedServices: ["Decor & Styling"],
     budgetRange: "₹50,000 – ₹1,00,000",
     whatsappConsent: true,
+    emailConsent: true,
+    userEmail: "guest@example.com",
   });
 
   beforeEach(() => {

@@ -32,6 +32,8 @@ const makeLead = (quote: ValidatedLeadInput["packageQuote"] = packageQuote): Val
   selectedServices: ["Photography & Films", "Music & Entertainment"],
   budgetRange: "₹50,000 – ₹1,00,000",
   whatsappConsent: true,
+  emailConsent: true,
+  userEmail: "guest@example.com",
   isBot: false,
   packageQuote: quote,
 });
@@ -48,6 +50,8 @@ const storedLeadRow = (quoteColumns: Record<string, unknown>) => ({
   selected_services: ["Photography & Films"],
   budget_range: "₹50,000 – ₹1,00,000",
   whatsapp_consent: true,
+  email_consent: true,
+  user_email: "guest@example.com",
   request_id: "req-quote-2",
   created_at: "2026-10-23T10:00:00.000Z",
   updated_at: "2026-10-23T10:00:00.000Z",
@@ -171,5 +175,40 @@ describe("SupabaseLeadRepository package quote persistence", () => {
       }),
     );
     expect(result.packageQuote).toBeNull();
+  });
+});
+
+describe("SupabaseLeadRepository email and consent", () => {
+  it("stores the email and both consent flags in separate columns", async () => {
+    const single = vi.fn().mockResolvedValue({
+      data: { id: "lead-uuid-3", created_at: "2026-11-17T10:00:00.000Z" },
+      error: null,
+    });
+    const insert = vi.fn().mockReturnValue({ select: vi.fn().mockReturnValue({ single }) });
+    const repository = new SupabaseLeadRepository({
+      from: vi.fn().mockReturnValue({ insert }),
+    } as unknown as SupabaseClient);
+
+    await repository.saveLead({ ...makeLead(), emailConsent: false });
+
+    expect(insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        user_email: "guest@example.com",
+        whatsapp_consent: true,
+        email_consent: false,
+      }),
+    );
+  });
+
+  it("reads email fields, and maps leads saved before email existed to empty/false", async () => {
+    const { repository } = repositoryReturning([
+      storedLeadRow({}),
+      storedLeadRow({ id: "legacy", user_email: null, email_consent: false }),
+    ]);
+
+    const [current, legacy] = await repository.getAllLeads();
+
+    expect(current).toMatchObject({ userEmail: "guest@example.com", emailConsent: true });
+    expect(legacy).toMatchObject({ userEmail: "", emailConsent: false, whatsappConsent: true });
   });
 });

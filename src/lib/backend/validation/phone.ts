@@ -8,6 +8,11 @@ export interface PhoneValidationResult {
   error?: string;
 }
 
+/** Drops characters validateIndianPhone can never accept, as the visitor types or pastes. */
+export function sanitizePhoneInput(input: string): string {
+  return input.replace(/[^\d+\s\-()]/g, "");
+}
+
 /**
  * Validates and normalizes an Indian phone number.
  * Accepts:

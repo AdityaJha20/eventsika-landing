@@ -220,6 +220,7 @@ export function LeadsWorkspace({ initialLeads, metrics }: LeadsWorkspaceProps) {
       `Setting: ${activeLead.venueType}`,
       `Budget: ${activeLead.budgetRange}`,
       `Phone: +91 ${activeLead.userPhone} (WhatsApp: Verified)`,
+      `Email: ${activeLead.userEmail || "Not provided"} (Email consent: ${activeLead.emailConsent ? "Yes" : "No"})`,
       `Services: ${activeLead.selectedServices.join(", ")}`,
       ...(activeQuote
         ? [
@@ -721,6 +722,14 @@ export function LeadsWorkspace({ initialLeads, metrics }: LeadsWorkspaceProps) {
                           </svg>
                         </button>
                       </div>
+                    </div>
+
+                    <div className={styles.coordinateCard}>
+                      <span className={styles.fieldLabel}>Email Address</span>
+                      <span className={styles.fieldValueMono}>{activeLead.userEmail || "Not provided"}</span>
+                      <span className={styles.fieldLabel}>
+                        Email Consent: {activeLead.emailConsent ? "Yes" : "No"}
+                      </span>
                     </div>
 
                     <div className={styles.coordinateCard}>

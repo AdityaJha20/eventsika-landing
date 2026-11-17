@@ -22,6 +22,8 @@ const baseLead: ValidatedLeadInput = {
   selectedServices: ["Decor & Styling"],
   budgetRange: "₹50,000 – ₹1,00,000",
   whatsappConsent: true,
+  emailConsent: true,
+  userEmail: "guest@example.com",
   isBot: false,
   packageQuote: null,
 };
@@ -125,5 +127,20 @@ describe("MailerDeliveryNotifier lead estimate", () => {
     const result = await notifier.notifyLead({ ...baseLead, isBot: true });
     expect(result).toEqual({ delivered: false, channel: "noop" });
     expect(sendNotificationEmail).not.toHaveBeenCalled();
+  });
+});
+
+describe("MailerDeliveryNotifier lead contact details", () => {
+  it("includes the email, both consents and a reply-to for the team", async () => {
+    vi.mocked(sendNotificationEmail).mockClear();
+    await new MailerDeliveryNotifier().notifyLead({ ...baseLead, emailConsent: false });
+
+    const call = vi.mocked(sendNotificationEmail).mock.calls.at(-1)?.[0];
+    expect(call?.replyTo).toBe("guest@example.com");
+    expect(call?.data).toMatchObject({
+      "Email Address": "guest@example.com",
+      "WhatsApp Consent": "Yes",
+      "Email Consent": "No",
+    });
   });
 });

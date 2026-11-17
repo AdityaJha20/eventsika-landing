@@ -19,6 +19,10 @@ import {
   parsePackageQuoteSearch,
   serviceOptionsForPackageQuote,
 } from "@/lib/package-quote";
+import { EVENT_TYPE_OPTIONS, VENUE_TYPE_OPTIONS } from "@/lib/backend/constants/allowlists";
+import { sanitizePhoneInput, validateIndianPhone } from "@/lib/backend/validation/phone";
+import { todayInIndia, validateEventDate } from "@/lib/backend/validation/date";
+import { MAX_EMAIL_LENGTH, validateEmail } from "@/lib/backend/validation/email";
 
 const CITY_OPTIONS = [
   "Delhi",
@@ -29,19 +33,6 @@ const CITY_OPTIONS = [
   "Other",
 ];
 
-const EVENT_TYPE_OPTIONS = [
-  "Diwali Special",
-  "House Party",
-  "Birthday",
-  "Anniversary",
-  "Housewarming",
-  "Baby Shower",
-  "Satsang & Puja",
-  "Festive Party",
-  "Family Dinner",
-  "Other Celebration",
-];
-
 const GUEST_COUNT_OPTIONS = [
   "2–10 guests",
   "10–30 guests",
@@ -49,11 +40,6 @@ const GUEST_COUNT_OPTIONS = [
   "50–100 guests",
   "100–200 guests",
   "200+ guests",
-];
-
-const VENUE_TYPE_OPTIONS = [
-  "Indoor",
-  "Outdoor",
 ];
 
 const SERVICE_OPTIONS = [
@@ -136,28 +122,11 @@ export function PackageQuoteSummaryItems({ estimate }: { estimate: PackageEstima
   );
 }
 
-function isValidPhoneNumber(phone: string): boolean {
-  const trimmed = phone.trim();
-  if (!trimmed) return false;
-
-  // Reject any string containing letters or invalid characters (only digits, spaces, dashes, parens, and leading plus allowed)
-  if (!/^\+?[\d\s\-()]+$/.test(trimmed)) return false;
-
-  const cleanDigits = trimmed.replace(/\D/g, "");
-
-  // 10-digit standard Indian mobile format (starts with 6, 7, 8, or 9)
-  if (/^[6-9]\d{9}$/.test(cleanDigits)) return true;
-
-  // 11-12 digit format with country code / zero prefix (e.g. +91 9876543210 or 09876543210)
-  if (/^(91|0)[6-9]\d{9}$/.test(cleanDigits)) return true;
-
-  return false;
-}
-
 export default function Hero() {
   const [formStep, setFormStep] = useState<"form" | "confirm" | "success">("form");
   const [userName, setUserName] = useState("");
   const [userPhone, setUserPhone] = useState("");
+  const [userEmail, setUserEmail] = useState("");
   const [city, setCity] = useState("");
   const [eventType, setEventType] = useState("");
   const [eventDate, setEventDate] = useState("");
@@ -166,7 +135,8 @@ export default function Hero() {
   const [selectedServicesInput, setSelectedServicesInput] = useState<string[]>([]);
   const [excludedQuoteServices, setExcludedQuoteServices] = useState<string[]>([]);
   const [budgetRange, setBudgetRange] = useState("");
-  const [whatsappConsent, setWhatsappConsent] = useState(false);
+  // One checkbox records explicit consent to both WhatsApp and Email contact.
+  const [contactConsent, setContactConsent] = useState(false);
   const [honeypot, setHoneypot] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -224,8 +194,13 @@ export default function Hero() {
       setError("Please enter your phone number.");
       return;
     }
-    if (!isValidPhoneNumber(userPhone)) {
+    if (!validateIndianPhone(userPhone).isValid) {
       setError("Please enter a valid 10-digit phone number.");
+      return;
+    }
+    const emailResult = validateEmail(userEmail);
+    if (!emailResult.isValid) {
+      setError(emailResult.error ?? "Please enter a valid email address.");
       return;
     }
     if (!city) {
@@ -236,8 +211,9 @@ export default function Hero() {
       setError("Please select your event type.");
       return;
     }
-    if (!eventDate) {
-      setError("Please select your event date.");
+    const dateResult = validateEventDate(eventDate);
+    if (!dateResult.isValid) {
+      setError(dateResult.error ?? "Please select your event date.");
       return;
     }
     if (!guestCount) {
@@ -256,12 +232,13 @@ export default function Hero() {
       setError("Please select a budget range.");
       return;
     }
-    if (!whatsappConsent) {
-      setError("Please agree to be contacted on WhatsApp to proceed.");
+    if (!contactConsent) {
+      setError("Please agree to be contacted on WhatsApp and Email to proceed.");
       return;
     }
 
     setError(null);
+    setUserEmail(emailResult.normalizedEmail);
     setFormStep("confirm");
   };
 
@@ -276,6 +253,7 @@ export default function Hero() {
         body: JSON.stringify({
           userName,
           userPhone,
+          userEmail,
           city,
           eventType,
           eventDate,
@@ -283,7 +261,8 @@ export default function Hero() {
           venueType,
           selectedServices,
           budgetRange,
-          whatsappConsent,
+          whatsappConsent: contactConsent,
+          emailConsent: contactConsent,
           honeypot,
           packageTier: packageQuoteSelection?.tierId ?? null,
           packageGuestCount: packageQuoteSelection?.guestCount ?? null,
@@ -313,7 +292,8 @@ export default function Hero() {
     }
   };
 
-  const today = new Date().toISOString().split("T")[0];
+  // Read in the browser: "/" is prerendered, so a render-time date would freeze at build time.
+  const today = useSyncExternalStore(subscribeToLocationSearch, () => todayInIndia(), () => "");
 
   return (
     <section className={styles.hero} aria-labelledby="hero-heading">
@@ -411,12 +391,30 @@ export default function Hero() {
                     <input
                       type="tel"
                       id="user-phone"
+                      inputMode="tel"
+                      autoComplete="tel"
                       placeholder="Phone Number"
                       value={userPhone}
-                      onChange={(e) => setUserPhone(e.target.value)}
+                      onChange={(e) => setUserPhone(sanitizePhoneInput(e.target.value))}
                       className={styles.input}
                     />
                   </div>
+                </div>
+
+                <div className={styles.fieldGroup}>
+                  <label htmlFor="user-email" className={styles.fieldLabel}>
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    id="user-email"
+                    autoComplete="email"
+                    maxLength={MAX_EMAIL_LENGTH}
+                    placeholder="Enter your email address"
+                    value={userEmail}
+                    onChange={(e) => setUserEmail(e.target.value)}
+                    className={styles.input}
+                  />
                 </div>
 
                 {/* Row 2: City + Event Type */}
@@ -458,18 +456,11 @@ export default function Hero() {
                         <option value="" disabled>
                           Event Type
                         </option>
-                        {EVENT_TYPE_OPTIONS.map((type) => {
-                          const isDiwali = type === "Diwali Special";
-                          return (
-                            <option
-                              key={type}
-                              value={type}
-                              className={isDiwali ? styles.highlightedOption : undefined}
-                            >
-                              {isDiwali ? "✨ Diwali Special" : type}
-                            </option>
-                          );
-                        })}
+                        {EVENT_TYPE_OPTIONS.map((type) => (
+                          <option key={type} value={type}>
+                            {type}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -593,19 +584,19 @@ export default function Hero() {
                   </div>
                 </div>
 
-                {/* WhatsApp Consent Checkbox */}
+                {/* WhatsApp + Email Consent Checkbox */}
                 <label className={styles.consentRow}>
                   <input
                     type="checkbox"
-                    checked={whatsappConsent}
+                    checked={contactConsent}
                     onChange={(e) => {
-                      setWhatsappConsent(e.target.checked);
+                      setContactConsent(e.target.checked);
                       if (error) setError(null);
                     }}
                     className={styles.consentCheckbox}
                   />
                   <span className={styles.consentText}>
-                    I agree to be contacted by Eventsika on WhatsApp regarding my event enquiry.
+                    I agree to be contacted by Eventsika on WhatsApp and Email regarding my event enquiry.
                   </span>
                 </label>
 
@@ -661,6 +652,11 @@ export default function Hero() {
                   <div className={styles.summaryItem}>
                     <span className={styles.summaryKey}>Phone</span>
                     <span className={styles.summaryVal}>{userPhone}</span>
+                  </div>
+
+                  <div className={styles.summaryItem}>
+                    <span className={styles.summaryKey}>Email</span>
+                    <span className={styles.summaryVal}>{userEmail}</span>
                   </div>
 
                   <div className={styles.summaryItem}>
@@ -733,13 +729,23 @@ export default function Hero() {
             {formStep === "success" && (
               <div className={styles.resultsContainer}>
                 <h3 className={styles.resultsTitle}>
-                  Congratulations and thank you for sharing your event details with us.
+                  Thank You for Sharing Your Celebration Plans!
                 </h3>
+                <p className={styles.resultsMessage}>
+                  Your enquiry has been successfully received. Our Eventsika team will review
+                  your requirements and contact you shortly to discuss your celebration and
+                  help bring your vision to life.
+                </p>
 
                 <div className={styles.summaryGrid}>
                   <div className={styles.summaryItem}>
                     <span className={styles.summaryKey}>Name</span>
                     <span className={styles.summaryVal}>{userName}</span>
+                  </div>
+
+                  <div className={styles.summaryItem}>
+                    <span className={styles.summaryKey}>Email</span>
+                    <span className={styles.summaryVal}>{userEmail}</span>
                   </div>
 
                   <div className={styles.summaryItem}>
@@ -784,8 +790,11 @@ export default function Hero() {
                 </div>
 
                 <div className={styles.resultsActions}>
-                  <Link href="#contact" className={styles.resultsCta}>
-                    Request a Detailed Quote
+                  <Link href="/packages" className={styles.resultsCta}>
+                    Customize Your Celebration
+                  </Link>
+                  <Link href="/diwali-consultation" className={styles.resultsCtaSecondary}>
+                    Book a Consultation
                   </Link>
                 </div>
               </div>

@@ -23,6 +23,7 @@ export class MailerDeliveryNotifier implements IDeliveryNotifier {
     const payloadData: Record<string, string | string[]> = {
       "Client Name": lead.userName,
       "Phone Number": lead.userPhone,
+      "Email Address": lead.userEmail,
       "City": lead.city,
       "Occasion / Event Type": lead.eventType,
       "Event Date": lead.eventDate,
@@ -31,6 +32,7 @@ export class MailerDeliveryNotifier implements IDeliveryNotifier {
       "Selected Services": lead.selectedServices,
       "Budget Range": lead.budgetRange,
       "WhatsApp Consent": lead.whatsappConsent ? "Yes" : "No",
+      "Email Consent": lead.emailConsent ? "Yes" : "No",
     };
 
     if (lead.packageQuote) {
@@ -67,6 +69,7 @@ export class MailerDeliveryNotifier implements IDeliveryNotifier {
       type: "celebration_lead",
       title: `New Celebration Inquiry — ${lead.userName} (${lead.eventType}, ${lead.city})`,
       data: payloadData,
+      replyTo: lead.userEmail,
     });
 
     return {
