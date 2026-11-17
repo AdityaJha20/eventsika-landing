@@ -282,8 +282,23 @@
   gap: 0.85rem;
 }
 
+/* Tighten spacing so both desktop CTAs fit on laptop widths */
+@media (max-width: 1366px) {
+  .container {
+    gap: 1.25rem;
+  }
+
+  .navList {
+    gap: 1.1rem;
+  }
+
+  .rightSection {
+    gap: 0.75rem;
+  }
+}
+
 /* Responsive Media Query */
-@media (max-width: 1080px) {
+@media (max-width: 1240px) {
   .container {
     padding: 0.65rem 1.5rem;
   }
@@ -304,6 +319,22 @@
 
   .mobileMenuOpen {
     display: block;
+  }
+}
+
+/* Keep logo, consultation CTA and hamburger on-screen on small phones */
+@media (max-width: 420px) {
+  .container {
+    padding: 0.65rem 1rem;
+    gap: 0.5rem;
+  }
+
+  .brandLogo {
+    height: 42px;
+  }
+
+  .mobileControls {
+    gap: 0.5rem;
   }
 }
 
