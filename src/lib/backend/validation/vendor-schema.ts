@@ -4,6 +4,7 @@ import {
   VendorCategoryOption,
   VendorExperienceTier,
 } from "../constants/allowlists";
+import { EMAIL_REGEX } from "./email";
 import { validateIndianPhone } from "./phone";
 import { validatePortfolioUrl } from "./url";
 
@@ -35,7 +36,6 @@ export type VendorValidationResult =
   | { success: true; data: ValidatedVendorInput }
   | { success: false; error: string };
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const VENDOR_CATEGORIES_SET = new Set(VENDOR_CATEGORIES);
 
 /**

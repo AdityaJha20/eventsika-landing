@@ -23,10 +23,12 @@ import {
 import { isLegacyAddonId, type PackageQuoteRecord } from "../../package-quote-summary";
 import { validateIndianPhone } from "./phone";
 import { validateEventDate } from "./date";
+import { validateEmail } from "./email";
 
 export interface RawLeadPayload {
   userName?: unknown;
   userPhone?: unknown;
+  userEmail?: unknown;
   city?: unknown;
   eventType?: unknown;
   eventDate?: unknown;
@@ -35,6 +37,7 @@ export interface RawLeadPayload {
   selectedServices?: unknown;
   budgetRange?: unknown;
   whatsappConsent?: unknown;
+  emailConsent?: unknown;
   honeypot?: unknown;
   packageTier?: unknown;
   packageGuestCount?: unknown;
@@ -53,6 +56,8 @@ export type ValidatedPackageQuote = PackageQuoteRecord;
 export interface ValidatedLeadInput {
   userName: string;
   userPhone: string;
+  /** Lowercased; empty only for honeypot results and leads saved before email was collected. */
+  userEmail: string;
   city: CityOption;
   eventType: EventTypeOption;
   eventDate: string;
@@ -61,6 +66,7 @@ export interface ValidatedLeadInput {
   selectedServices: ServiceOption[];
   budgetRange: BudgetOption;
   whatsappConsent: boolean;
+  emailConsent: boolean;
   isBot: boolean;
   packageQuote: ValidatedPackageQuote | null;
 }
@@ -90,6 +96,7 @@ export function validateLeadInput(raw: unknown): LeadValidationResult {
       data: {
         userName: "",
         userPhone: "",
+        userEmail: "",
         city: "Other",
         eventType: "Other Celebration",
         eventDate: "",
@@ -98,6 +105,7 @@ export function validateLeadInput(raw: unknown): LeadValidationResult {
         selectedServices: [],
         budgetRange: "₹25,000 – ₹50,000",
         whatsappConsent: false,
+        emailConsent: false,
         isBot: true,
         packageQuote: null,
       },
@@ -119,6 +127,12 @@ export function validateLeadInput(raw: unknown): LeadValidationResult {
     return { success: false, error: phoneResult.error || "Please enter a valid 10-digit phone number." };
   }
   const userPhone = phoneResult.normalizedPhone;
+
+  const emailResult = validateEmail(payload.userEmail);
+  if (!emailResult.isValid) {
+    return { success: false, error: emailResult.error || "Please enter a valid email address." };
+  }
+  const userEmail = emailResult.normalizedEmail;
 
   // 4. City Allowlist
   if (typeof payload.city !== "string" || !payload.city.trim()) {
@@ -171,7 +185,7 @@ export function validateLeadInput(raw: unknown): LeadValidationResult {
   if (!VENUE_TYPE_OPTIONS.includes(venueType)) {
     return {
       success: false,
-      error: "Please select a valid venue type (Indoor or Outdoor).",
+      error: `Please select a valid venue type (${VENUE_TYPE_OPTIONS.join(", ")}).`,
     };
   }
 
@@ -294,15 +308,18 @@ export function validateLeadInput(raw: unknown): LeadValidationResult {
   if (!whatsappConsent) {
     return {
       success: false,
-      error: "Please agree to be contacted on WhatsApp to proceed.",
+      error: "Please agree to be contacted on WhatsApp and Email to proceed.",
     };
   }
+  // Recorded only when explicitly sent as true; never inferred from WhatsApp consent or a supplied email.
+  const emailConsent = payload.emailConsent === true;
 
   return {
     success: true,
     data: {
       userName,
       userPhone,
+      userEmail,
       city,
       eventType,
       eventDate,
@@ -311,6 +328,7 @@ export function validateLeadInput(raw: unknown): LeadValidationResult {
       selectedServices,
       budgetRange,
       whatsappConsent,
+      emailConsent,
       isBot: false,
       packageQuote,
     },

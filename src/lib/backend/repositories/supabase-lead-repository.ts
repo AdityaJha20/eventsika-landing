@@ -38,6 +38,7 @@ export class SupabaseLeadRepository implements ILeadRepository {
       .insert({
         user_name: lead.userName,
         user_phone: lead.userPhone,
+        user_email: lead.userEmail,
         city: lead.city,
         event_type: lead.eventType,
         event_date: lead.eventDate,
@@ -46,6 +47,7 @@ export class SupabaseLeadRepository implements ILeadRepository {
         selected_services: lead.selectedServices,
         budget_range: lead.budgetRange,
         whatsapp_consent: lead.whatsappConsent,
+        email_consent: lead.emailConsent,
         request_id: context?.requestId || null,
         // Legacy column names: planning_fee holds the decor package subtotal,
         // vendor_estimate the selected optional services subtotal.
@@ -90,6 +92,7 @@ export class SupabaseLeadRepository implements ILeadRepository {
       id: row.id,
       userName: row.user_name,
       userPhone: row.user_phone,
+      userEmail: row.user_email ?? "",
       city: row.city,
       eventType: row.event_type,
       eventDate: row.event_date,
@@ -98,6 +101,7 @@ export class SupabaseLeadRepository implements ILeadRepository {
       selectedServices: Array.isArray(row.selected_services) ? row.selected_services : [],
       budgetRange: row.budget_range,
       whatsappConsent: Boolean(row.whatsapp_consent),
+      emailConsent: row.email_consent === true,
       isBot: false,
       requestId: row.request_id || null,
       createdAt: row.created_at,

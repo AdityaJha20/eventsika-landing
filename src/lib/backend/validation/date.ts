@@ -8,15 +8,20 @@ export interface DateValidationResult {
   error?: string;
 }
 
+/** Today's calendar date in India as YYYY-MM-DD (the en-CA locale formats dates in ISO order). */
+export function todayInIndia(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(now);
+}
+
 /**
  * Validates celebration event dates.
  * Requirements:
  * 1. Must match strict format `YYYY-MM-DD`
  * 2. Must be a valid calendar date (e.g. Feb 31 rejected)
- * 3. Must not be in the past (must be today or later)
+ * 3. Must not be in the past (today or later on the Asia/Kolkata calendar)
  * 4. Must not be excessively in the future (capped at 24 months / 730 days)
  */
-export function validateEventDate(input: unknown): DateValidationResult {
+export function validateEventDate(input: unknown, now: Date = new Date()): DateValidationResult {
   if (typeof input !== "string") {
     return {
       isValid: false,
@@ -67,12 +72,10 @@ export function validateEventDate(input: unknown): DateValidationResult {
     };
   }
 
-  // Construct UTC midnight date objects for comparison
+  // Compare calendar days as UTC midnights, anchored to today's date in India
   const parsedDate = new Date(Date.UTC(year, month - 1, day));
-  const now = new Date();
-  const todayUtc = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-  );
+  const [todayYear, todayMonth, todayDay] = todayInIndia(now).split("-").map(Number);
+  const todayUtc = new Date(Date.UTC(todayYear, todayMonth - 1, todayDay));
 
   // Check if date is in the past
   if (parsedDate.getTime() < todayUtc.getTime()) {

@@ -29,6 +29,8 @@ describe("validateLeadInput", () => {
     selectedServices: ["Decor & Styling", "Photography & Films"],
     budgetRange: "₹50,000 – ₹1,00,000",
     whatsappConsent: true,
+    emailConsent: true,
+    userEmail: "guest@example.com",
   });
 
   describe("Happy paths", () => {

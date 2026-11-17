@@ -290,12 +290,6 @@
   box-shadow: 0 0 0 2px rgba(185, 154, 103, 0.18);
 }
 
-.highlightedOption {
-  font-weight: 600;
-  color: var(--primary);
-  background-color: rgba(127, 16, 16, 0.06);
-}
-
 /* Services Grid (Compact selectable boxes) */
 .servicesGrid {
   display: grid;
@@ -416,6 +410,14 @@
   margin-bottom: 0.25rem;
 }
 
+.resultsMessage {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--foreground);
+  margin: -0.5rem 0 0;
+}
+
 .summaryGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -472,6 +474,23 @@
 
 .resultsCta:hover {
   background-color: var(--primary-dark);
+}
+
+.resultsCtaSecondary {
+  composes: resultsCta;
+  background-color: transparent;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+}
+
+.resultsCtaSecondary:hover {
+  background-color: var(--cream);
+}
+
+.resultsCta:focus-visible,
+.resultsCtaSecondary:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
 }
 
 .resetBtn {

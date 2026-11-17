@@ -80,6 +80,8 @@ describe.each<[PackageTierId, number, readonly OptionalServiceId[]]>([
       selectedServices: ["Decor & Styling"],
       budgetRange: "₹50,000 – ₹1,00,000",
       whatsappConsent: true,
+      emailConsent: true,
+      userEmail: "guest@example.com",
       packageTier: selection.tierId,
       packageGuestCount: selection.guestCount,
       packageVendorAddonIds: selection.serviceIds,
@@ -192,6 +194,8 @@ describe("historical lead in the admin dossier", () => {
               selectedServices: ["Photography & Films"],
               budgetRange: "₹50,000 – ₹1,00,000",
               whatsappConsent: true,
+              emailConsent: true,
+              userEmail: "guest@example.com",
               isBot: false,
               packageQuote: {
                 tierId: "premium",
