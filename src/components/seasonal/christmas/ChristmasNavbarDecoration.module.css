@@ -1,0 +1,244 @@
+/* Christmas Luxe navbar decoration. Sits behind navbar content, never interactive. */
+.overlay {
+  /* Muted, desaturated forest palette: shadow → bough → foliage → sunlit tips */
+  --pine-shadow: #2e4238;
+  --pine-deep: #3a5345;
+  --pine: #4f6a5a;
+  --pine-soft: #6e8777;
+  --pine-tip: #a3b5a6;
+  --champagne: #d8c08c;
+
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Garland */
+.garland {
+  position: absolute;
+  top: 0;
+  height: 18px;
+  overflow: visible;
+}
+
+.garland path {
+  fill: none;
+}
+
+/* Soft contact shadow under the bough */
+.shadow {
+  stroke: var(--pine-shadow);
+  stroke-width: 7px;
+  stroke-linecap: round;
+  opacity: 0.16;
+}
+
+.defs {
+  position: absolute;
+}
+
+/* Inner bough: a soft dark core the needles grow out of */
+.bough {
+  stroke: var(--pine-deep);
+  stroke-width: 4px;
+  stroke-linecap: round;
+  opacity: 0.9;
+}
+
+/* Pine needles: fine round-tipped strokes in closely related greens */
+.needleDeep,
+.needleMid,
+.needleSoft,
+.needleTip {
+  fill: none;
+  stroke-linecap: round;
+}
+
+.needleDeep {
+  stroke: var(--pine-shadow);
+  stroke-width: 0.75px;
+  opacity: 0.85;
+}
+
+.needleMid {
+  stroke: var(--pine);
+  stroke-width: 0.7px;
+}
+
+.needleSoft {
+  stroke: var(--pine-soft);
+  stroke-width: 0.6px;
+  opacity: 0.85;
+}
+
+/* A few pale, sunlit tips on the upper side — dimension without shine */
+.needleTip {
+  stroke: var(--pine-tip);
+  stroke-width: 0.55px;
+  opacity: 0.7;
+}
+
+/* Fine champagne wire threaded through the foliage */
+.wire {
+  stroke: var(--champagne);
+  stroke-width: 0.6px;
+  opacity: 0.6;
+}
+
+/* Warm champagne lights with a small, controlled halo */
+.light {
+  position: absolute;
+  width: 5.5px;
+  height: 5.5px;
+  margin: -2.75px 0 0 -2.75px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #fffdf6, #fbeac0 40%, #d9b46c);
+  box-shadow: 0 0 3px 1px rgba(255, 226, 160, 0.85), 0 0 10px 2.5px rgba(242, 204, 128, 0.3);
+  animation: twinkle 4s ease-in-out infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.62; }
+}
+
+/* Hanging ornaments: pivot at the garland, gentle swing */
+.ornament {
+  position: absolute;
+  left: var(--left);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform-origin: 50% 0;
+  translate: -50% 0;
+  animation: swing 5s ease-in-out infinite;
+}
+
+@keyframes swing {
+  0%, 100% { rotate: -2.5deg; }
+  50% { rotate: 2.5deg; }
+}
+
+.thread {
+  width: 1px;
+  background: linear-gradient(#b99a67, var(--champagne));
+  opacity: 0.85;
+}
+
+.bauble {
+  position: relative;
+  margin-top: 2.5px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: 0 1.5px 2px rgba(43, 33, 29, 0.18);
+}
+
+/* Brushed-gold cap */
+.bauble::before {
+  content: "";
+  position: absolute;
+  top: -2.5px;
+  left: 50%;
+  width: 4px;
+  height: 3px;
+  translate: -50% 0;
+  border-radius: 1px 1px 0.5px 0.5px;
+  background: linear-gradient(90deg, #a88a52, #ecdcb1 45%, #a88a52);
+}
+
+/* Soft, satin reflection rather than a glossy spot */
+.bauble::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2.5px;
+  width: 4px;
+  height: 2.5px;
+  border-radius: 50%;
+  background: rgba(255, 252, 240, 0.45);
+  filter: blur(0.4px);
+}
+
+.gold {
+  background: radial-gradient(circle at 35% 30%, #f4e6c4, #d4b880 32%, #a88a52 68%, #6f5a33);
+}
+
+.ruby {
+  background: radial-gradient(circle at 35% 30%, #d58a91, #9c2633 34%, #6b1420 70%, #400b13);
+}
+
+.star {
+  width: 13px;
+  height: 13px;
+  margin-top: -1px;
+  filter: drop-shadow(0 0 1.5px rgba(232, 196, 120, 0.5)) drop-shadow(0 1px 1px rgba(43, 33, 29, 0.15));
+}
+
+/* Snow: few soft flakes, visible on cream through a faint cool edge */
+.flake {
+  position: absolute;
+  top: -6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 55%, rgba(255, 255, 255, 0.6));
+  box-shadow: 0 0 2px rgba(120, 130, 150, 0.4);
+  animation: snowfall 13s linear infinite;
+}
+
+@keyframes snowfall {
+  0% { transform: translate(0, 0); }
+  50% { transform: translate(6px, 48px); }
+  100% { transform: translate(-3px, 100px); }
+}
+
+.tabletOnly,
+.phoneOnly {
+  display: none;
+}
+
+/* Compact decoration where the navbar collapses to the hamburger layout */
+@media (max-width: 1240px) {
+  .desktopOnly {
+    display: none;
+  }
+
+  .tabletOnly {
+    display: block;
+  }
+
+  .ornament {
+    left: var(--mobile-left);
+  }
+
+  .flake:nth-child(even) {
+    display: none;
+  }
+}
+
+/* Phones: no space between logo and controls, so lights and snow only;
+   the garland drapes from just above the edge to clear the tighter padding. */
+@media (max-width: 700px) {
+  .ornament,
+  .tabletOnly {
+    display: none;
+  }
+
+  .phoneOnly {
+    display: block;
+    translate: 0 -4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .light,
+  .ornament {
+    animation: none;
+  }
+
+  .snow {
+    display: none;
+  }
+}
