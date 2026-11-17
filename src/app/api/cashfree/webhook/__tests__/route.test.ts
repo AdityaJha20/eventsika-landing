@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
-import { POST, MAX_WEBHOOK_SIZE } from "../route";
+import { POST } from "../route";
+import { MAX_WEBHOOK_SIZE } from "@/lib/backend/domain/webhook-types";
 import { computeCashfreeWebhookSignature } from "@/lib/backend/security/webhook-signature-verifier";
 import { paymentConfirmationService } from "@/lib/backend/services/payment-confirmation-service";
 import { SupabaseWebhookEventRepository } from "@/lib/backend/repositories/supabase-webhook-event-repository";

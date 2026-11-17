@@ -23,6 +23,11 @@ export const CASHFREE_PAYMENT_EVENT_TYPES = [
 export type CashfreePaymentEventType = (typeof CASHFREE_PAYMENT_EVENT_TYPES)[number];
 
 /**
+ * Maximum allowable Cashfree webhook payload size: 64 KB (65,536 bytes).
+ */
+export const MAX_WEBHOOK_SIZE = 65536;
+
+/**
  * Type guard for supported Cashfree payment event discriminators.
  */
 export function isCashfreePaymentEventType(
