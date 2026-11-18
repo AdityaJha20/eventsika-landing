@@ -8,7 +8,7 @@ import EstimateDocument, {
   ESTIMATE_PAGE_DISCLAIMER,
   formatEstimateDate,
 } from "../EstimateDocument";
-import PrintEstimateButton from "../PrintEstimateButton";
+import DownloadEstimatePdfButton from "../DownloadEstimatePdfButton";
 import { PackageQuoteSummaryItems } from "@/components/Hero";
 import {
   buildEstimateHref,
@@ -303,16 +303,17 @@ describe("print support", () => {
     vi.unstubAllGlobals();
   });
 
-  it("offers a named print button that opens the browser print dialog", () => {
-    const print = vi.fn();
-    vi.stubGlobal("window", { print });
-
-    const html = renderToStaticMarkup(createElement(PrintEstimateButton));
-    expect(html).toMatch(/<button type="button"[^>]*>Print \/ Save as PDF<\/button>/);
-
-    const button = PrintEstimateButton() as ReactElement<{ onClick: () => void }>;
-    button.props.onClick();
-    expect(print).toHaveBeenCalledTimes(1);
+  it("offers a direct Download PDF button that never opens the print dialog", () => {
+    const html = renderToStaticMarkup(
+      createElement(DownloadEstimatePdfButton, {
+        selection: { tierId: "premium", guestCount: 25, serviceIds: [] },
+        createdAtIso: "2026-11-18T00:00:00.000Z",
+      }),
+    );
+    expect(html).toMatch(/<button type="button"[^>]*>Download PDF<\/button>/);
+    const source = readFileSync(path.resolve("src/app/estimate/DownloadEstimatePdfButton.tsx"), "utf8");
+    expect(source).not.toContain("window.print");
+    expect(source).toContain("link.download");
   });
 
   it("ships a print stylesheet that hides navigation and controls but keeps the document", () => {
@@ -327,7 +328,8 @@ describe("print support", () => {
     const html = renderDocument({ tierId: "premium", guestCount: 25, serviceIds: [] });
     const actions = html.split('class="_actions_')[1].split("</div>")[0];
     expect(actions).toContain("Contact Eventsika about this estimate");
-    expect(actions).toContain("Print / Save as PDF");
+    expect(actions).toContain("Download PDF");
+    expect(actions).not.toContain("Print / Save as PDF");
 
     const page = decode(
       renderToStaticMarkup(
@@ -394,7 +396,7 @@ describe("confidentiality and stale pricing", () => {
   });
 
   it("does not hardcode prices in the estimate page source", () => {
-    for (const file of ["EstimateDocument.tsx", "page.tsx", "PrintEstimateButton.tsx"]) {
+    for (const file of ["EstimateDocument.tsx", "page.tsx", "DownloadEstimatePdfButton.tsx", "ContactEstimateLink.tsx"]) {
       const source = readFileSync(path.resolve("src/app/estimate", file), "utf8");
       expect(source).not.toMatch(/₹\s?\d/);
       expect(source).not.toMatch(/\b(1500|2000|2500|2600|3380|405|312|202|156|338)\b/);

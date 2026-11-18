@@ -22,6 +22,24 @@ import {
  * submission time. `serviceIds` may contain legacy add-on IDs on historical
  * leads, so it is typed as plain strings.
  */
+/**
+ * Self-contained copy of the estimate as priced at submission time, so the
+ * lead stays readable even if package names or rates change later.
+ */
+export interface PackageEstimateSnapshot {
+  version: 1;
+  packageId: PackageTierId;
+  packageName: string;
+  includes: string;
+  guestCount: number;
+  decorRatePerPersonRupees: number;
+  services: { id: string; name: string; ratePerPersonRupees: number; subtotalRupees: number }[];
+  perPersonTotalRupees: number;
+  packageSubtotalRupees: number;
+  servicesSubtotalRupees: number;
+  totalEstimateRupees: number;
+}
+
 export interface PackageQuoteRecord {
   tierId: PackageTierId;
   guestCount: number;
@@ -29,6 +47,8 @@ export interface PackageQuoteRecord {
   packageSubtotalRupees: number;
   servicesSubtotalRupees: number;
   totalEstimateRupees: number;
+  /** Absent on leads saved before snapshots existed. */
+  snapshot?: PackageEstimateSnapshot;
 }
 
 /**

@@ -46,6 +46,8 @@ export const VENUE_TYPE_OPTIONS = [
   "Indoor",
   "Outdoor",
   "Other",
+  "Both",
+  "Undecided",
 ] as const;
 
 export type VenueTypeOption = (typeof VENUE_TYPE_OPTIONS)[number];

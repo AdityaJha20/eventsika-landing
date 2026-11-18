@@ -121,6 +121,10 @@ describe("validateLeadInput", () => {
           packageSubtotalRupees: 50000,
           servicesSubtotalRupees: 25 * (2600 + 750),
           totalEstimateRupees: 25 * (2000 + 2600 + 750),
+          snapshot: expect.objectContaining({
+            packageName: "Premium",
+            totalEstimateRupees: 25 * (2000 + 2600 + 750),
+          }),
         });
       }
     });

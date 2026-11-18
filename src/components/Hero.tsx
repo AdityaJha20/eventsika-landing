@@ -12,9 +12,11 @@ import {
   estimateLineItems,
   formatCurrency,
   formatPerPersonRate,
+  getPackageTier,
   type PackageEstimate,
 } from "@/lib/packages-config";
 import {
+  buildEstimateHref,
   guestCountRangeFor,
   parsePackageQuoteSearch,
   serviceOptionsForPackageQuote,
@@ -23,6 +25,7 @@ import { EVENT_TYPE_OPTIONS, VENUE_TYPE_OPTIONS } from "@/lib/backend/constants/
 import { sanitizePhoneInput, validateIndianPhone } from "@/lib/backend/validation/phone";
 import { todayInIndia, validateEventDate } from "@/lib/backend/validation/date";
 import { MAX_EMAIL_LENGTH, validateEmail } from "@/lib/backend/validation/email";
+import { markLeadSubmitted } from "@/lib/lead-completion";
 
 const CITY_OPTIONS = [
   "Delhi",
@@ -122,6 +125,39 @@ export function PackageQuoteSummaryItems({ estimate }: { estimate: PackageEstima
   );
 }
 
+/** Compact read-only view of the quote, shown instead of re-asking package, guests and services. */
+export function CelebrationEstimateCard({
+  estimate,
+  editHref,
+}: {
+  estimate: PackageEstimate;
+  editHref: string;
+}) {
+  const serviceLines = estimateLineItems(estimate).slice(1);
+  return (
+    <section className={styles.estimateCard} aria-labelledby="celebration-estimate-heading">
+      <h3 id="celebration-estimate-heading" className={styles.estimateTitle}>
+        Your Celebration Estimate
+      </h3>
+      <p className={styles.estimateHeadline}>
+        {getPackageTier(estimate.tierId).name} · {estimate.guestCount} Guests
+      </p>
+      <ul className={styles.estimateServices} aria-label="Selected optional services">
+        {serviceLines.length > 0 ? (
+          serviceLines.map((line) => <li key={line.id}>{line.label}</li>)
+        ) : (
+          <li>No optional services selected</li>
+        )}
+      </ul>
+      <p className={styles.estimateTotal}>Indicative Estimate: {formatCurrency(estimate.total)}</p>
+      <p className={styles.estimateNote}>
+        Decor package includes decor only; optional services are charged per guest.{" "}
+        <a href={editHref}>Change estimate</a>
+      </p>
+    </section>
+  );
+}
+
 export default function Hero() {
   const [formStep, setFormStep] = useState<"form" | "confirm" | "success">("form");
   const [userName, setUserName] = useState("");
@@ -133,7 +169,6 @@ export default function Hero() {
   const [guestCountInput, setGuestCount] = useState("");
   const [venueType, setVenueType] = useState("");
   const [selectedServicesInput, setSelectedServicesInput] = useState<string[]>([]);
-  const [excludedQuoteServices, setExcludedQuoteServices] = useState<string[]>([]);
   const [budgetRange, setBudgetRange] = useState("");
   // One checkbox records explicit consent to both WhatsApp and Email contact.
   const [contactConsent, setContactConsent] = useState(false);
@@ -153,10 +188,8 @@ export default function Hero() {
   const quoteServiceOptions: string[] = packageQuoteSelection
     ? serviceOptionsForPackageQuote(packageQuoteSelection.serviceIds)
     : [];
-  const selectedServices = [
-    ...quoteServiceOptions.filter((service) => !excludedQuoteServices.includes(service)),
-    ...selectedServicesInput.filter((service) => !quoteServiceOptions.includes(service)),
-  ];
+  // With an estimate, services come from the quote and are not asked again.
+  const selectedServices = packageQuoteSelection ? quoteServiceOptions : selectedServicesInput;
 
   const packageQuoteEstimate = packageQuoteSelection
     ? calculatePackageEstimate(
@@ -167,15 +200,6 @@ export default function Hero() {
     : null;
 
   const toggleService = (service: string) => {
-    if (quoteServiceOptions.includes(service)) {
-      setExcludedQuoteServices((prev) =>
-        prev.includes(service)
-          ? prev.filter((item) => item !== service)
-          : [...prev, service]
-      );
-      return;
-    }
-
     setSelectedServicesInput((prev) =>
       prev.includes(service)
         ? prev.filter((item) => item !== service)
@@ -281,6 +305,8 @@ export default function Hero() {
         return;
       }
 
+      // Only after /api/leads confirms success; stores no personal data.
+      markLeadSubmitted();
       setFormStep("success");
     } catch (err) {
       console.error("Submission error:", err);
@@ -362,11 +388,11 @@ export default function Hero() {
 
             {formStep === "form" && (
               <form onSubmit={handleReview} className={styles.form}>
-                {packageQuoteEstimate && (
-                  <div className={styles.summaryGrid} aria-live="polite">
-                    <PackageQuoteSummaryItems estimate={packageQuoteEstimate} />
-                    <p className={styles.consentText}>{ESTIMATE_DISCLAIMER}</p>
-                  </div>
+                {packageQuoteEstimate && packageQuoteSelection && (
+                  <CelebrationEstimateCard
+                    estimate={packageQuoteEstimate}
+                    editHref={buildEstimateHref(packageQuoteSelection)}
+                  />
                 )}
                 {/* Row 1: Name + Phone */}
                 <div className={styles.formRow}>
@@ -482,16 +508,16 @@ export default function Hero() {
                     />
                   </div>
 
+                  {!packageQuoteSelection && (
                   <div className={styles.fieldGroup}>
                     <label htmlFor="guest-count-select" className={styles.fieldLabel}>
-                      {packageQuoteSelection ? "Guest Count (from package estimate)" : "Guest Count"}
+                      Guest Count
                     </label>
                     <div className={styles.selectWrapper}>
                       <select
                         id="guest-count-select"
                         value={guestCount}
                         onChange={(e) => setGuestCount(e.target.value)}
-                        disabled={Boolean(packageQuoteSelection)}
                         className={styles.select}
                       >
                         <option value="" disabled>
@@ -505,6 +531,7 @@ export default function Hero() {
                       </select>
                     </div>
                   </div>
+                  )}
                 </div>
 
                 {/* Row 4: Venue Type + Budget Range */}
@@ -556,7 +583,8 @@ export default function Hero() {
                   </div>
                 </div>
 
-                {/* Row 5: Services You Need (Compact Selectable Grid) */}
+                {/* Row 5: Services You Need (only without an estimate; the estimate already lists them) */}
+                {!packageQuoteSelection && (
                 <div className={styles.fieldGroup}>
                   <label className={styles.fieldLabel}>
                     Services You Need (Select multiple)
@@ -583,6 +611,7 @@ export default function Hero() {
                     })}
                   </div>
                 </div>
+                )}
 
                 {/* WhatsApp + Email Consent Checkbox */}
                 <label className={styles.consentRow}>
@@ -632,7 +661,7 @@ export default function Hero() {
                   type="submit"
                   className={styles.cardButton}
                 >
-                  Get My Celebration Plan
+                  {packageQuoteSelection ? "Review My Enquiry" : "Get My Celebration Plan"}
                 </button>
               </form>
             )}
@@ -676,7 +705,7 @@ export default function Hero() {
 
                   <div className={styles.summaryItem}>
                     <span className={styles.summaryKey}>Guests</span>
-                    <span className={styles.summaryVal}>{guestCount}</span>
+                    <span className={styles.summaryVal}>{packageQuoteEstimate ? `${packageQuoteEstimate.guestCount} guests` : guestCount}</span>
                   </div>
 
                   <div className={styles.summaryItem}>
@@ -692,7 +721,10 @@ export default function Hero() {
                   </div>
 
                   {packageQuoteEstimate && (
-                    <PackageQuoteSummaryItems estimate={packageQuoteEstimate} />
+                    <>
+                      <PackageQuoteSummaryItems estimate={packageQuoteEstimate} />
+                      <p className={styles.consentText}>{ESTIMATE_DISCLAIMER}</p>
+                    </>
                   )}
                   <div className={styles.summaryItem}>
                     <span className={styles.summaryKey}>Budget</span>
@@ -720,7 +752,11 @@ export default function Hero() {
                     disabled={isSubmitting}
                     className={styles.confirmNoBtn}
                   >
-                    {isSubmitting ? "Submitting Plan..." : "No, Submit Plan"}
+                    {isSubmitting
+                      ? "Submitting..."
+                      : packageQuoteSelection
+                        ? "Submit My Enquiry"
+                        : "No, Submit Plan"}
                   </button>
                 </div>
               </div>
@@ -736,6 +772,12 @@ export default function Hero() {
                   your requirements and contact you shortly to discuss your celebration and
                   help bring your vision to life.
                 </p>
+                {packageQuoteEstimate && (
+                  <p className={styles.resultsMessage}>
+                    Your celebration estimate was saved with your enquiry. This is an enquiry
+                    only, not a booking or payment.
+                  </p>
+                )}
 
                 <div className={styles.summaryGrid}>
                   <div className={styles.summaryItem}>
@@ -765,7 +807,7 @@ export default function Hero() {
 
                   <div className={styles.summaryItem}>
                     <span className={styles.summaryKey}>Guests</span>
-                    <span className={styles.summaryVal}>{guestCount}</span>
+                    <span className={styles.summaryVal}>{packageQuoteEstimate ? `${packageQuoteEstimate.guestCount} guests` : guestCount}</span>
                   </div>
 
                   <div className={styles.summaryItem}>

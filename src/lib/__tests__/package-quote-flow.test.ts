@@ -97,6 +97,10 @@ describe.each<[PackageTierId, number, readonly OptionalServiceId[]]>([
       packageSubtotalRupees: customizer.packageSubtotal,
       servicesSubtotalRupees: customizer.servicesSubtotal,
       totalEstimateRupees: customizer.total,
+      snapshot: expect.objectContaining({
+        totalEstimateRupees: customizer.total,
+        perPersonTotalRupees: customizer.perPersonTotal,
+      }),
     });
 
     // 4. Persisted row round-trips unchanged.

@@ -1,17 +1,55 @@
-.heroSection {
+/* Hero brand film */
+.videoHero {
   width: 100%;
   background-color: var(--cream);
   border-bottom: 1px solid var(--border);
-  padding: 7rem 1.5rem 6rem 1.5rem;
+  padding: 24px 0;
 }
 
-.container {
-  max-width: 860px;
+.videoFrame {
+  position: relative;
+  width: calc(100% - 40px);
+  max-width: 1100px;
+  aspect-ratio: 16 / 9;
   margin: 0 auto;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: var(--cream-light);
+  box-shadow: 0 18px 44px rgba(43, 33, 29, 0.08);
+}
+
+.heroVideo,
+.heroPoster {
+  object-fit: contain;
+}
+
+.heroVideo {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Reduced motion: hide the moving film and leave the static poster underneath. */
+@media (prefers-reduced-motion: reduce) {
+  .heroVideo {
+    display: none;
+  }
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .eyebrow {
@@ -22,16 +60,6 @@
   text-transform: uppercase;
   color: var(--gold);
   margin-bottom: 1.25rem;
-}
-
-.title {
-  font-family: var(--font-playfair), serif;
-  font-size: clamp(2.5rem, 4.5vw, 3.75rem);
-  font-weight: 700;
-  color: var(--foreground);
-  line-height: 1.15;
-  letter-spacing: -0.015em;
-  margin-bottom: 1.5rem;
 }
 
 .description {
@@ -247,10 +275,6 @@
 
 /* Tablet Responsiveness */
 @media (max-width: 1024px) {
-  .heroSection {
-    padding: 5.5rem 1.5rem 4.5rem 1.5rem;
-  }
-
   .tiersSection {
     padding: 4.5rem 1.5rem 5.5rem 1.5rem;
   }
@@ -265,16 +289,8 @@
 
 /* Mobile Responsiveness */
 @media (max-width: 640px) {
-  .heroSection {
-    padding: 4.5rem 1.25rem 3.5rem 1.25rem;
-  }
-
   .eyebrow {
     margin-bottom: 1rem;
-  }
-
-  .title {
-    margin-bottom: 1.25rem;
   }
 
   .tiersSection {

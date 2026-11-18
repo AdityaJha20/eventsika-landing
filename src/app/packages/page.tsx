@@ -4,6 +4,7 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import PackageCustomizer from "@/components/PackageCustomizer";
 import PackageComparison from "@/components/PackageComparison";
+import PackageShowcase from "@/components/PackageShowcase";
 import Footer from "@/components/Footer";
 import {
   CUSTOM_QUOTE_LABEL,
@@ -182,24 +183,43 @@ export default function PackagesPage() {
       />
       <Navbar />
       <main id="main-content">
-        {/* Packages Hero Section */}
+        {/* Hero: silent looping brand film (poster shown instead for reduced motion) */}
         <section
-          className={styles.heroSection}
+          className={styles.videoHero}
           aria-labelledby="packages-hero-heading"
         >
-          <div className={styles.container}>
-            <p className={styles.eyebrow}>OUR PACKAGES</p>
-            <h1 id="packages-hero-heading" className={styles.title}>
-              Decor Packages, Priced Per Guest
-            </h1>
-            <p className={styles.description}>
-              Choose Essential, Premium or Luxury decor from{" "}
-              {formatPerPersonRate(LOWEST_PACKAGE_RATE)}. Each package includes
-              decor only; add the optional services you need, each charged per
-              guest at your package&apos;s rate.
-            </p>
+          {/* Keeps one page-level heading for screen readers and search; not shown visually. */}
+          <h1 id="packages-hero-heading" className={styles.srOnly}>
+            Decor Packages, Priced Per Guest
+          </h1>
+          <div className={styles.videoFrame}>
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              controls={false}
+              preload="metadata"
+              poster="/images/eventsika-packages-film-poster.webp"
+              className={styles.heroVideo}
+              aria-hidden="true"
+              tabIndex={-1}
+            >
+              <source src="/videos/eventsika-packages-film.mp4" type="video/mp4" />
+            </video>
+            <Image
+              src="/images/eventsika-packages-film-poster.webp"
+              alt="Eventsika Essential, Premium and Luxury decor packages, priced per guest"
+              fill
+              priority
+              sizes="(max-width: 1140px) 100vw, 1100px"
+              className={styles.heroPoster}
+            />
           </div>
         </section>
+
+        {/* Editorial package showcase */}
+        <PackageShowcase />
 
         {/* Live Package Customizer — primary pricing experience */}
         <PackageCustomizer />

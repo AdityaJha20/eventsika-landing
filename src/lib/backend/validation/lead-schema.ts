@@ -13,7 +13,9 @@ import {
   BudgetOption,
 } from "../constants/allowlists";
 import {
+  BASE_PACKAGE_INCLUSION,
   calculatePackageEstimate,
+  getPackageTier,
   isOptionalServiceId,
   isPackageTierId,
   MAX_GUEST_COUNT,
@@ -300,6 +302,24 @@ export function validateLeadInput(raw: unknown): LeadValidationResult {
       packageSubtotalRupees: estimate.packageSubtotal,
       servicesSubtotalRupees: estimate.servicesSubtotal,
       totalEstimateRupees: estimate.total,
+      snapshot: {
+        version: 1,
+        packageId: estimate.tierId,
+        packageName: getPackageTier(estimate.tierId).name,
+        includes: BASE_PACKAGE_INCLUSION,
+        guestCount: estimate.guestCount,
+        decorRatePerPersonRupees: estimate.decorRatePerPerson,
+        services: estimate.services.map((service) => ({
+          id: service.id,
+          name: service.name,
+          ratePerPersonRupees: service.ratePerPerson,
+          subtotalRupees: service.subtotal,
+        })),
+        perPersonTotalRupees: estimate.perPersonTotal,
+        packageSubtotalRupees: estimate.packageSubtotal,
+        servicesSubtotalRupees: estimate.servicesSubtotal,
+        totalEstimateRupees: estimate.total,
+      },
     };
   }
 
