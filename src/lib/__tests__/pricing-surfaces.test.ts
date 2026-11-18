@@ -6,9 +6,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import ServicesPage from "@/app/services/page";
 import PackagesPage from "@/app/packages/page";
 import Packages from "@/components/Packages";
-import PackageCustomizer from "@/components/PackageCustomizer";
+import PackageCustomizer, { type PackageCustomizerProps } from "@/components/PackageCustomizer";
 import PackageComparison from "@/components/PackageComparison";
 import Hero from "@/components/Hero";
+import HowItWorks from "@/components/HowItWorks";
 import { BUDGET_OPTIONS } from "@/lib/backend/constants/allowlists";
 import {
   calculatePackageEstimate,
@@ -132,13 +133,66 @@ describe("Shared package customizer", () => {
 describe("Homepage packages section", () => {
   const html = render(Packages);
 
-  it("presents the three canonical tiers as decor-only packages", () => {
+  it("is the Estimate Your Celebration estimator without the old showcase cards", () => {
+    expect(html).toContain('id="estimate-your-celebration"');
+    expect(html.match(/ESTIMATE YOUR CELEBRATION/g)).toHaveLength(1);
+    expect(html).toContain("Each package includes decor only");
+    expect(html).not.toContain('<div role="radio"');
+    expect(html).not.toContain("<img");
+  });
+
+  it("offers compact tier choices between guest count and optional services", () => {
+    const guest = html.indexOf("Expected Guest Count");
+    const tiers = html.indexOf("Select Your Decor Package");
+    const services = html.indexOf("Optional Services (per guest)");
+    expect(guest).toBeLessThan(tiers);
+    expect(tiers).toBeLessThan(services);
+    const radios = html.match(/<input type="radio"[^>]*>/g) ?? [];
+    expect(radios).toHaveLength(3);
+    expect(radios.filter((r) => r.includes("checked"))).toEqual([
+      expect.stringContaining('value="premium"'),
+    ]);
     for (const pkg of PACKAGES_CONFIG) {
-      expect(html).toContain(`>${pkg.name}<`);
+      expect(html).toContain(pkg.tagline);
       expect(html).toContain(formatCurrency(pkg.pricePerPerson) + " / person");
     }
-    expect(html.match(/Includes: Decor only/g)).toHaveLength(3);
-    expect(html).toContain("Each package includes decor only");
+    expect(html.match(/MOST POPULAR/g)).toHaveLength(1);
+  });
+
+  it("keeps the estimator on the default Premium tier", () => {
+    expect(html).toContain("Expected Guest Count");
+    expect(html).toContain("Optional Services (per guest)");
+    expect(html).toContain("Decor Package (Premium)");
+    expect(html).toContain(formatCurrency(calculatePackageEstimate(DEFAULT_GUEST_COUNT, DEFAULT_PACKAGE_ID).total));
+    expect(html).toContain('href="/estimate?package=premium&amp;packageGuests=25&amp;packageAddons="');
+    expect(html).toContain("View My Indicative Estimate");
+  });
+});
+
+describe("Embedded customizer driven by the selected tier", () => {
+  it.each(PACKAGES_CONFIG.map((pkg) => pkg.id))("prices the %s tier", (tierId) => {
+    const html = renderToStaticMarkup(
+      // Cast: the component's optional props parameter defeats createElement's inference.
+      createElement(PackageCustomizer as ComponentType<PackageCustomizerProps>, {
+        embedded: true,
+        selectedPackageId: tierId,
+      }),
+    );
+    const estimate = calculatePackageEstimate(DEFAULT_GUEST_COUNT, tierId);
+    const name = PACKAGES_CONFIG.find((pkg) => pkg.id === tierId)!.name;
+    expect(html).toContain(`Decor Package (${name})`);
+    expect(html).toContain(formatCurrency(estimate.total));
+    expect(html).toContain(`href="/estimate?package=${tierId}&amp;packageGuests=25&amp;packageAddons="`);
+    for (const service of OPTIONAL_SERVICES_CONFIG) {
+      expect(html).toContain(formatCurrency(service.ratesPerPerson[tierId]) + " / person");
+    }
+  });
+});
+
+describe("How It Works", () => {
+  it("Start Planning jumps to the homepage estimator instead of another page", () => {
+    const html = render(HowItWorks);
+    expect(html).toMatch(/<a[^>]*href="#estimate-your-celebration"[^>]*>Start Planning<\/a>/);
   });
 });
 
@@ -197,6 +251,43 @@ describe("/services page", () => {
 describe("/packages page", () => {
   const html = decodeEntities(render(PackagesPage));
 
+  it("shows the large package showcase above the quote calculator", () => {
+    const showcase = html.indexOf('id="packages"');
+    expect(showcase).toBeGreaterThan(-1);
+    expect(showcase).toBeLessThan(html.indexOf('id="customizer"'));
+    expect(html).toContain("Thoughtfully planned, beautifully delivered.");
+    const section = html.slice(showcase, html.indexOf('id="customizer"'));
+    for (const pkg of PACKAGES_CONFIG) {
+      expect(section).toContain(`>${pkg.name}</h3>`);
+      expect(section).toContain(formatCurrency(pkg.pricePerPerson) + " / person");
+      expect(section).toContain(pkg.tagline);
+      for (const feature of pkg.features) expect(section).toContain(feature);
+    }
+    for (const image of ["living-room-dinner", "driveway-lawns", "grand-celebration"]) {
+      expect(section).toContain(image);
+    }
+    expect(section.match(/Includes: Decor only/g)).toHaveLength(3);
+    expect(section.match(/MOST POPULAR/g)).toHaveLength(1);
+  });
+
+  it("opens with one silent looping hero film in place of the old text hero", () => {
+    const videos = html.match(/<video[^>]*>/g) ?? [];
+    expect(videos).toHaveLength(1);
+    for (const attr of ["autoPlay", "muted", "loop", "playsInline", 'preload="metadata"']) {
+      expect(videos[0]).toContain(attr);
+    }
+    expect(videos[0]).not.toContain("controls");
+    expect(videos[0]).toContain('poster="/images/eventsika-packages-film-poster.webp"');
+    expect(html).toContain('src="/videos/eventsika-packages-film.mp4"');
+    // Hero comes first, before the showcase; the old visible hero copy is gone.
+    expect(html.indexOf("<video")).toBeLessThan(html.indexOf('id="packages"'));
+    expect(html).not.toContain("OUR PACKAGES");
+    expect(html).not.toMatch(/Choose Essential, Premium or Luxury decor from/);
+    for (const asset of ["public/videos/eventsika-packages-film.mp4", "public/images/eventsika-packages-film-poster.webp"]) {
+      expect(existsSync(path.resolve(asset))).toBe(true);
+    }
+  });
+
   it("shows custom-quote labels instead of starting prices for venue formats", () => {
     for (const id of [
       "balcony-terrace",
@@ -239,6 +330,12 @@ describe("Hero enquiry form without a package quote", () => {
     expect(html).not.toContain("Decor Package Subtotal");
     for (const budget of BUDGET_OPTIONS) {
       expect(html).toContain(budget);
+    }
+  });
+
+  it("offers every venue type, including Both and Undecided", () => {
+    for (const venue of ["Indoor", "Outdoor", "Other", "Both", "Undecided"]) {
+      expect(html).toContain(`<option value="${venue}">${venue}</option>`);
     }
   });
 });

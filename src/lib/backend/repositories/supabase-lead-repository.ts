@@ -57,6 +57,8 @@ export class SupabaseLeadRepository implements ILeadRepository {
         package_planning_fee_rupees: lead.packageQuote?.packageSubtotalRupees ?? null,
         package_vendor_estimate_rupees: lead.packageQuote?.servicesSubtotalRupees ?? null,
         package_combined_estimate_rupees: lead.packageQuote?.totalEstimateRupees ?? null,
+        // Only sent with a quote, so plain enquiries never depend on the newer column.
+        ...(lead.packageQuote?.snapshot ? { package_estimate_snapshot: lead.packageQuote.snapshot } : {}),
       })
       .select("id, created_at")
       .single();
@@ -121,6 +123,9 @@ export class SupabaseLeadRepository implements ILeadRepository {
               packageSubtotalRupees: row.package_planning_fee_rupees,
               servicesSubtotalRupees: row.package_vendor_estimate_rupees,
               totalEstimateRupees: row.package_combined_estimate_rupees,
+              ...(row.package_estimate_snapshot && typeof row.package_estimate_snapshot === "object"
+                ? { snapshot: row.package_estimate_snapshot }
+                : {}),
             }
           : null,
     }));

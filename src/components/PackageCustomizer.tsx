@@ -94,13 +94,8 @@ export default function PackageCustomizer({
   const customizerContent = (
     <div className={embedded ? styles.embeddedContainer : styles.container}>
       {/* Section Header */}
-      {embedded ? (
-        <div className={styles.embeddedHeader}>
-          <div className={styles.embeddedDivider} />
-          <p className={styles.embeddedEyebrow}>ESTIMATE YOUR CELEBRATION</p>
-          <h3 className={styles.embeddedTitle}>Decor Package &amp; Optional Services</h3>
-        </div>
-      ) : (
+      {/* Embedded: the host section already carries the "Estimate Your Celebration" heading. */}
+      {!embedded && (
         <div className={styles.header}>
           <p className={styles.eyebrow}>LIVE CUSTOMIZER</p>
           <h2 id="customizer-heading" className={styles.title}>
@@ -201,8 +196,7 @@ export default function PackageCustomizer({
             </div>
           </fieldset>
 
-          {/* Step 2: Package Selection (Only shown when not embedded) */}
-          {!embedded && (
+          {/* Step 2: Package Selection */}
             <fieldset className={styles.stepGroup}>
               <legend className={styles.stepLegend}>
                 <span className={styles.stepNum}>2</span>
@@ -252,12 +246,11 @@ export default function PackageCustomizer({
                 })}
               </div>
             </fieldset>
-          )}
 
           {/* Optional Per-Person Services */}
           <fieldset className={styles.stepGroup}>
             <legend className={styles.stepLegend}>
-              <span className={styles.stepNum}>{embedded ? 2 : 3}</span>
+              <span className={styles.stepNum}>3</span>
               <span>Optional Services (per guest)</span>
             </legend>
 

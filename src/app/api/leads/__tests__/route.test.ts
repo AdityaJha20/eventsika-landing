@@ -292,6 +292,7 @@ describe("POST /api/leads Integration Contract", () => {
         packageSubtotalRupees: 37500,
         servicesSubtotalRupees: 107500,
         totalEstimateRupees: 145000,
+        snapshot: expect.objectContaining({ packageName: "Essential", totalEstimateRupees: 145000 }),
       });
     });
 

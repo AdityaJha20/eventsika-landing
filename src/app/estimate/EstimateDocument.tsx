@@ -12,21 +12,17 @@ import {
   buildPackageQuoteHref,
   type PackageQuoteSelection,
 } from "@/lib/package-quote";
-import PrintEstimateButton from "./PrintEstimateButton";
+import {
+  ESTIMATE_CONTACT_LINE,
+  ESTIMATE_PAGE_DISCLAIMER,
+  formatEstimateDate,
+} from "@/lib/estimate-pdf";
+import ContactEstimateLink from "./ContactEstimateLink";
+import DownloadEstimatePdfButton from "./DownloadEstimatePdfButton";
 import styles from "./estimate.module.css";
 
-export const ESTIMATE_PAGE_DISCLAIMER =
-  "This is an indicative estimate, not an invoice or a request for payment. Each package includes decor only; optional services are charged per guest only when selected. Supplier availability, the final proposal and tax treatment require confirmation with Eventsika.";
-
-/** Long-form date in Indian English, in India Standard Time. */
-export function formatEstimateDate(date: Date): string {
-  return new Intl.DateTimeFormat("en-IN", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "Asia/Kolkata",
-  }).format(date);
-}
+// Shared with the PDF so the screen and the download always say the same thing.
+export { ESTIMATE_PAGE_DISCLAIMER, formatEstimateDate };
 
 interface EstimateDocumentProps {
   selection: PackageQuoteSelection | null;
@@ -170,17 +166,15 @@ export default function EstimateDocument({ selection, createdAt }: EstimateDocum
       <p className={styles.disclaimer}>{ESTIMATE_PAGE_DISCLAIMER}</p>
 
       <div className={styles.actions}>
-        <Link href={buildPackageQuoteHref(selection)} className={styles.primaryAction}>
-          Contact Eventsika about this estimate
-        </Link>
-        <PrintEstimateButton />
+        <ContactEstimateLink quoteHref={buildPackageQuoteHref(selection)} />
+        <DownloadEstimatePdfButton selection={selection} createdAtIso={createdAt.toISOString()} />
         <Link href="/packages#customizer" className={styles.textAction}>
           Back to the estimate calculator
         </Link>
       </div>
 
       <footer className={styles.documentFooter}>
-        <span>Eventsika · care@eventsika.in · eventsika.in</span>
+        <span>{ESTIMATE_CONTACT_LINE}</span>
       </footer>
     </article>
   );

@@ -159,6 +159,19 @@ describe("validateLeadInput hero enquiry fields", () => {
     expect(validateLeadInput(payload({ venueType: "Other" })).success).toBe(true);
   });
 
+  it.each(["Both", "Undecided"])("accepts and keeps venue type %s", (venueType) => {
+    const result = validateLeadInput(payload({ venueType }));
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.venueType).toBe(venueType);
+  });
+
+  it("keeps existing venue types valid and still rejects unknown ones", () => {
+    for (const venueType of ["Indoor", "Outdoor", "Other"]) {
+      expect(validateLeadInput(payload({ venueType })).success).toBe(true);
+    }
+    expect(validateLeadInput(payload({ venueType: "Rooftop" })).success).toBe(false);
+  });
+
   it("rejects a past event date submitted directly to the API", () => {
     expect(validateLeadInput(payload({ eventDate: futureDate(-1) }))).toEqual({
       success: false,
