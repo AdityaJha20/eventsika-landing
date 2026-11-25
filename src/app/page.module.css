@@ -148,3 +148,45 @@ a.secondary {
   padding: 0.1em 0.4em;
   border-radius: 6px;
 }
+
+/* Hero brand film */
+.videoHero {
+  width: 100%;
+  background-color: var(--cream);
+  border-bottom: 1px solid var(--border);
+  padding: 24px 0;
+}
+
+.videoFrame {
+  position: relative;
+  width: calc(100% - 40px);
+  max-width: 1100px;
+  aspect-ratio: 16 / 9;
+  margin: 0 auto;
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: var(--cream-light);
+  box-shadow: 0 18px 44px rgba(43, 33, 29, 0.08);
+}
+
+.heroVideo,
+.heroPoster {
+  object-fit: contain;
+}
+
+.heroVideo {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Reduced motion: hide the moving film and leave the static poster underneath. */
+@media (prefers-reduced-motion: reduce) {
+  .heroVideo {
+    display: none;
+  }
+}

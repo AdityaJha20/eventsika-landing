@@ -3,7 +3,7 @@ import styles from "./Footer.module.css";
 
 const EXPLORE_LINKS = [
   { label: "Home", href: "/" },
-  { label: "How It Works", href: "/#how-it-works" },
+  { label: "How It Works", href: "/packages#how-it-works" },
   { label: "Services", href: "/services" },
   { label: "Events", href: "/#events" },
   { label: "Packages", href: "/packages" },

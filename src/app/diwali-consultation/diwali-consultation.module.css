@@ -1146,4 +1146,12 @@
     transition: none !important;
     transform: none !important;
   }
+
+  .whyVideo {
+    display: none;
+  }
+
+  .whyImageFrame {
+    background: #1a1412 url("/images/eventsika-consultation-poster.webp") center / cover;
+  }
 }

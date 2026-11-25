@@ -190,9 +190,9 @@ describe("Embedded customizer driven by the selected tier", () => {
 });
 
 describe("How It Works", () => {
-  it("Start Planning jumps to the homepage estimator instead of another page", () => {
+  it("Start Planning jumps to the packages page estimator", () => {
     const html = render(HowItWorks);
-    expect(html).toMatch(/<a[^>]*href="#estimate-your-celebration"[^>]*>Start Planning<\/a>/);
+    expect(html).toMatch(/<a[^>]*href="#customizer"[^>]*>Start Planning<\/a>/);
   });
 });
 
@@ -270,22 +270,12 @@ describe("/packages page", () => {
     expect(section.match(/MOST POPULAR/g)).toHaveLength(1);
   });
 
-  it("opens with one silent looping hero film in place of the old text hero", () => {
-    const videos = html.match(/<video[^>]*>/g) ?? [];
-    expect(videos).toHaveLength(1);
-    for (const attr of ["autoPlay", "muted", "loop", "playsInline", 'preload="metadata"']) {
-      expect(videos[0]).toContain(attr);
-    }
-    expect(videos[0]).not.toContain("controls");
-    expect(videos[0]).toContain('poster="/images/eventsika-packages-film-poster.webp"');
-    expect(html).toContain('src="/videos/eventsika-packages-film.mp4"');
-    // Hero comes first, before the showcase; the old visible hero copy is gone.
-    expect(html.indexOf("<video")).toBeLessThan(html.indexOf('id="packages"'));
+  it("opens with How It Works instead of a video, before the showcase", () => {
+    expect(html).not.toMatch(/<video|<iframe/);
+    expect(html.indexOf('id="how-it-works"')).toBeLessThan(html.indexOf('id="packages"'));
+    expect(html).toMatch(/<a[^>]*href="#customizer"[^>]*>Start Planning<\/a>/);
     expect(html).not.toContain("OUR PACKAGES");
     expect(html).not.toMatch(/Choose Essential, Premium or Luxury decor from/);
-    for (const asset of ["public/videos/eventsika-packages-film.mp4", "public/images/eventsika-packages-film-poster.webp"]) {
-      expect(existsSync(path.resolve(asset))).toBe(true);
-    }
   });
 
   it("shows custom-quote labels instead of starting prices for venue formats", () => {

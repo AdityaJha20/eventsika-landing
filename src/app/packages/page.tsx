@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
+import HowItWorks from "@/components/HowItWorks";
 import PackageCustomizer from "@/components/PackageCustomizer";
 import PackageComparison from "@/components/PackageComparison";
 import PackageShowcase from "@/components/PackageShowcase";
@@ -183,40 +184,9 @@ export default function PackagesPage() {
       />
       <Navbar />
       <main id="main-content">
-        {/* Hero: silent looping brand film (poster shown instead for reduced motion) */}
-        <section
-          className={styles.videoHero}
-          aria-labelledby="packages-hero-heading"
-        >
-          {/* Keeps one page-level heading for screen readers and search; not shown visually. */}
-          <h1 id="packages-hero-heading" className={styles.srOnly}>
-            Decor Packages, Priced Per Guest
-          </h1>
-          <div className={styles.videoFrame}>
-            <video
-              autoPlay
-              muted
-              loop
-              playsInline
-              controls={false}
-              preload="metadata"
-              poster="/images/eventsika-packages-film-poster.webp"
-              className={styles.heroVideo}
-              aria-hidden="true"
-              tabIndex={-1}
-            >
-              <source src="/videos/eventsika-packages-film.mp4" type="video/mp4" />
-            </video>
-            <Image
-              src="/images/eventsika-packages-film-poster.webp"
-              alt="Eventsika Essential, Premium and Luxury decor packages, priced per guest"
-              fill
-              priority
-              sizes="(max-width: 1140px) 100vw, 1100px"
-              className={styles.heroPoster}
-            />
-          </div>
-        </section>
+        {/* Keeps one page-level heading for screen readers and search; not shown visually. */}
+        <h1 className={styles.srOnly}>Decor Packages, Priced Per Guest</h1>
+        <HowItWorks />
 
         {/* Editorial package showcase */}
         <PackageShowcase />
