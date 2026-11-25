@@ -1,25 +1,30 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import { validateEventDate } from "../date";
 
 describe("validateEventDate", () => {
-  // Helper to generate dynamic dates relative to today
-  const getFutureDateString = (daysAhead: number): string => {
-    const d = new Date();
-    d.setDate(d.getDate() + daysAhead);
-    const yyyy = d.getUTCFullYear();
-    const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
-    const dd = String(d.getUTCDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
+  // Offsets from today's calendar date in India, which is what the validator compares against.
+  const indiaDateOffset = (days: number): string => {
+    const [y, m, d] = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" })
+      .format(new Date())
+      .split("-")
+      .map(Number);
+    return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
   };
+  const getFutureDateString = (daysAhead: number): string => indiaDateOffset(daysAhead);
+  const getPastDateString = (daysAgo: number): string => indiaDateOffset(-daysAgo);
 
-  const getPastDateString = (daysAgo: number): string => {
-    const d = new Date();
-    d.setDate(d.getDate() - daysAgo);
-    const yyyy = d.getUTCFullYear();
-    const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
-    const dd = String(d.getUTCDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
-  };
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("uses India's date when UTC is still on the previous day (19:00 UTC = 00:30 IST)", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-25T19:00:00Z"));
+
+    expect(getFutureDateString(0)).toBe("2026-11-26");
+    expect(validateEventDate("2026-11-26")).toEqual({ isValid: true, normalizedDate: "2026-11-26" });
+    expect(validateEventDate("2026-11-25").error).toContain("Event date cannot be in the past");
+  });
 
   describe("Valid celebration dates", () => {
     it("accepts a date today", () => {

@@ -7,7 +7,7 @@ import styles from "./Navbar.module.css";
 import SeasonalDecoration from "./seasonal/SeasonalDecoration";
 
 const NAV_LINKS = [
-  { label: "How It Works", href: "/#how-it-works" },
+  { label: "How It Works", href: "/packages#how-it-works" },
   { label: "Events", href: "/#events" },
   { label: "Services", href: "/services" },
   { label: "Packages", href: "/packages" },
@@ -546,8 +546,8 @@ export default function Navbar() {
           <Link href="/diwali-consultation" className={styles.primaryButton}>
             Book a Consultation
           </Link>
-          <Link href="/packages" className={styles.primaryButton}>
-            Customize Your Celebration
+          <Link href="/packages#customizer" className={styles.primaryButton}>
+            Get an Instant Quote
           </Link>
         </div>
 
@@ -633,11 +633,11 @@ export default function Navbar() {
         <div className={styles.mobileDivider} />
         <div className={styles.mobileActions}>
           <Link
-            href="/packages"
+            href="/packages#customizer"
             className={styles.primaryButton}
             onClick={closeMobileMenu}
           >
-            Customize Your Celebration
+            Get an Instant Quote
           </Link>
         </div>
       </div>

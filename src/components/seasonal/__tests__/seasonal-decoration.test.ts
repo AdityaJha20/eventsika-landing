@@ -62,14 +62,14 @@ describe("navbar with the seasonal decoration", () => {
   it("keeps every navigation link and CTA destination", () => {
     expect(hrefs).toEqual([
       "/",
-      "/#how-it-works", "/#events", "/services", "/packages", "/for-vendors", "/#contact",
-      "/diwali-consultation", "/packages",
+      "/packages#how-it-works", "/#events", "/services", "/packages", "/for-vendors", "/#contact",
+      "/diwali-consultation", "/packages#customizer",
       "/diwali-consultation",
-      "/#how-it-works", "/#events", "/services", "/packages", "/for-vendors", "/#contact",
-      "/packages",
+      "/packages#how-it-works", "/#events", "/services", "/packages", "/for-vendors", "/#contact",
+      "/packages#customizer",
     ]);
     expect(html).toContain(">Book a Consultation<");
-    expect(html).toContain(">Customize Your Celebration<");
+    expect(html).toContain(">Get an Instant Quote<");
   });
 
   it("mounts the decoration before the navigation content it sits behind", () => {
