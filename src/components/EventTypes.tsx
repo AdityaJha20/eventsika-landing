@@ -7,11 +7,11 @@ import styles from "./EventTypes.module.css";
 const EVENT_TYPES = [
   {
     number: "01",
-    title: "Diwali",
+    title: "New Year",
     description:
-      "Illuminate your celebration with traditional brass diyas, fragrant floral rangoli, and warm festive joy.",
-    image: "/images/event-diwali.webp",
-    alt: "Traditional Indian family celebrating Diwali with brass oil diyas and vibrant floral rangoli",
+      "Ring in the new year with sparkling lights, golden details, and the people who matter most.",
+    image: "/images/Joyful%20Indian%20Family%20Sparkler%20Celebration.png",
+    alt: "Indian family and friends laughing together with sparklers and golden fairy lights at a New Year celebration",
   },
   {
     number: "02",
@@ -68,6 +68,14 @@ const EVENT_TYPES = [
       "Create an intimate dining experience where good food and great company come together.",
     image: "/images/event-family-dinner.webp",
     alt: "Intimate family dining setup with elegant food presentation",
+  },
+  {
+    number: "09",
+    title: "Christmas",
+    description:
+      "Gather around a beautifully dressed tree with twinkling lights, festive styling, and holiday cheer.",
+    image: "/images/Indian%20Christmas.jpg",
+    alt: "Indian family decorating a Christmas tree with ornaments and gifts against warm twinkling lights",
   },
 ];
 
