@@ -184,6 +184,29 @@ export function clampGuestCount(guestCount: number): number {
   );
 }
 
+export type GuestCountInputResult =
+  | { ok: true; guestCount: number }
+  | { ok: false; error: string };
+
+/** Validates the raw guest-count text typed into the customizer. */
+export function parseGuestCountInput(raw: string): GuestCountInputResult {
+  const trimmed = raw.trim();
+  if (trimmed === "") return { ok: false, error: "Enter the number of guests." };
+  if (!/^\d+$/.test(trimmed)) return { ok: false, error: "Enter a whole number of guests." };
+  const guestCount = Number(trimmed);
+  if (guestCount < MIN_GUEST_COUNT) {
+    return { ok: false, error: `Online estimates start at ${MIN_GUEST_COUNT} guests.` };
+  }
+  if (guestCount > MAX_GUEST_COUNT) {
+    // Deliberately no number: MAX_GUEST_COUNT is a technical limit, not a capacity promise.
+    return {
+      ok: false,
+      error: "For a guest list this large, please contact us for a custom quote.",
+    };
+  }
+  return { ok: true, guestCount };
+}
+
 export interface PackageEstimateServiceLine {
   id: OptionalServiceId;
   name: string;

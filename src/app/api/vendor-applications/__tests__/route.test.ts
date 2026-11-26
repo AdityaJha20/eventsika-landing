@@ -141,6 +141,27 @@ describe("POST /api/vendor-applications Integration Contract", () => {
 
       expect(response.status).toBe(400);
       expect(data.success).toBe(false);
+      expect(data.fieldErrors).toEqual({ phone: expect.any(String) });
+      expect(processVendorSpy).not.toHaveBeenCalled();
+    });
+
+    it("rejects an unknown service category with a field error", async () => {
+      const processVendorSpy = vi.spyOn(vendorService, "processVendorApplication");
+
+      const request = new NextRequest("http://localhost:3000/api/vendor-applications", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-real-ip": "198.51.100.29",
+        },
+        body: JSON.stringify({ ...getValidVendorPayload(), categories: ["Decor & Styling", "Fireworks"] }),
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.fieldErrors).toEqual({ categories: expect.stringContaining("Fireworks") });
       expect(processVendorSpy).not.toHaveBeenCalled();
     });
   });

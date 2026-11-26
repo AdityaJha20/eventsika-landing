@@ -198,6 +198,27 @@
   font-weight: 600;
 }
 
+.guestError {
+  color: #b42318;
+  font-weight: 600;
+}
+
+.estimateUnavailable {
+  margin: 0.5rem 0 0;
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.95rem;
+  color: #6b5b52;
+}
+
+.ctaButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ctaButton:disabled:hover {
+  background-color: var(--primary);
+}
+
 .presetChipsGroup {
   display: flex;
   flex-direction: column;

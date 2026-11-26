@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import Link from "next/link";
 import {
   PACKAGES_CONFIG,
@@ -13,6 +13,8 @@ import {
   BASE_PACKAGE_INCLUSION,
   ESTIMATE_DISCLAIMER,
   calculatePackageEstimate,
+  clampGuestCount,
+  parseGuestCountInput,
   formatCurrency,
   formatPerPersonRate,
   type OptionalServiceId,
@@ -25,15 +27,23 @@ export interface PackageCustomizerProps {
   selectedPackageId?: PackageTierId;
   onPackageSelect?: (id: PackageTierId) => void;
   embedded?: boolean;
+  /** Initial guest-count text; defaults to DEFAULT_GUEST_COUNT. */
+  initialGuestInput?: string;
 }
 
 export default function PackageCustomizer({
   selectedPackageId,
   onPackageSelect,
   embedded = false,
+  initialGuestInput = String(DEFAULT_GUEST_COUNT),
 }: PackageCustomizerProps = {}) {
-  const [guestCount, setGuestCount] = useState<number>(DEFAULT_GUEST_COUNT);
-  const [inputValue, setInputValue] = useState<string>(String(DEFAULT_GUEST_COUNT));
+  // The typed text is the single source of truth, so an invalid entry can never
+  // leave an older valid count (and its estimate) on screen.
+  const [inputValue, setInputValue] = useState<string>(initialGuestInput);
+  const guestErrorId = useId();
+  const guestInput = parseGuestCountInput(inputValue);
+  const guestCount = guestInput.ok ? guestInput.guestCount : null;
+  const guestError = guestInput.ok ? null : guestInput.error;
   const [internalPkgId, setInternalPkgId] = useState<PackageTierId>(DEFAULT_PACKAGE_ID);
   const [selectedServiceIds, setSelectedServiceIds] = useState<OptionalServiceId[]>([]);
 
@@ -52,31 +62,11 @@ export default function PackageCustomizer({
   };
 
   const handleGuestChange = (newCount: number) => {
-    const clamped = Math.min(MAX_GUEST_COUNT, Math.max(MIN_GUEST_COUNT, Math.round(newCount)));
-    setGuestCount(clamped);
-    setInputValue(String(clamped));
+    setInputValue(String(clampGuestCount(newCount)));
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    setInputValue(raw);
-    const parsed = parseInt(raw, 10);
-    if (!isNaN(parsed) && parsed >= MIN_GUEST_COUNT) {
-      setGuestCount(Math.min(MAX_GUEST_COUNT, parsed));
-    }
-  };
-
-  const handleInputBlur = () => {
-    const parsed = parseInt(inputValue, 10);
-    if (isNaN(parsed) || parsed < MIN_GUEST_COUNT) {
-      setGuestCount(MIN_GUEST_COUNT);
-      setInputValue(String(MIN_GUEST_COUNT));
-    } else {
-      const clamped = Math.min(MAX_GUEST_COUNT, parsed);
-      setGuestCount(clamped);
-      setInputValue(String(clamped));
-    }
-  };
+  // Steppers work from whatever number is typed, so they also recover an invalid entry.
+  const stepBase = guestCount ?? (parseInt(inputValue, 10) || MIN_GUEST_COUNT);
 
   const toggleService = (id: OptionalServiceId) => {
     setSelectedServiceIds((prev) =>
@@ -84,12 +74,17 @@ export default function PackageCustomizer({
     );
   };
 
-  const estimate = calculatePackageEstimate(guestCount, selectedPkg.id, selectedServiceIds);
-  const estimateHref = buildEstimateHref({
-    tierId: selectedPkg.id,
-    guestCount: estimate.guestCount,
-    serviceIds: estimate.services.map((service) => service.id),
-  });
+  const estimate =
+    guestCount === null
+      ? null
+      : calculatePackageEstimate(guestCount, selectedPkg.id, selectedServiceIds);
+  const estimateHref = estimate
+    ? buildEstimateHref({
+        tierId: selectedPkg.id,
+        guestCount: estimate.guestCount,
+        serviceIds: estimate.services.map((service) => service.id),
+      })
+    : null;
 
   const customizerContent = (
     <div className={embedded ? styles.embeddedContainer : styles.container}>
@@ -127,8 +122,8 @@ export default function PackageCustomizer({
                 >
                   <button
                     type="button"
-                    onClick={() => handleGuestChange(guestCount - 5)}
-                    disabled={guestCount <= MIN_GUEST_COUNT}
+                    onClick={() => handleGuestChange(stepBase - 5)}
+                    disabled={guestCount !== null && guestCount <= MIN_GUEST_COUNT}
                     aria-label="Decrease guest count by 5"
                     className={styles.stepperBtn}
                   >
@@ -139,15 +134,16 @@ export default function PackageCustomizer({
                     min={MIN_GUEST_COUNT}
                     max={MAX_GUEST_COUNT}
                     value={inputValue}
-                    onChange={handleInputChange}
-                    onBlur={handleInputBlur}
+                    onChange={(e) => setInputValue(e.target.value)}
                     aria-label="Enter number of guests"
+                    aria-invalid={guestError ? true : undefined}
+                    aria-describedby={guestError ? guestErrorId : undefined}
                     className={styles.stepperInput}
                   />
                   <button
                     type="button"
-                    onClick={() => handleGuestChange(guestCount + 5)}
-                    disabled={guestCount >= MAX_GUEST_COUNT}
+                    onClick={() => handleGuestChange(stepBase + 5)}
+                    disabled={guestCount !== null && guestCount >= MAX_GUEST_COUNT}
                     aria-label="Increase guest count by 5"
                     className={styles.stepperBtn}
                   >
@@ -156,7 +152,11 @@ export default function PackageCustomizer({
                 </div>
 
                 <span className={styles.guestCountHelper}>
-                  {guestCount <= MIN_GUEST_COUNT ? (
+                  {guestError ? (
+                    <span id={guestErrorId} className={styles.guestError} role="alert">
+                      {guestError}
+                    </span>
+                  ) : guestCount === MIN_GUEST_COUNT ? (
                     <span className={styles.guestMinNotice}>
                       Minimum {MIN_GUEST_COUNT} guests for standard packages
                     </span>
@@ -322,68 +322,91 @@ export default function PackageCustomizer({
               <span className={styles.tierBadge}>{selectedPkg.name}</span>
             </div>
 
-            <div className={styles.totalBlock}>
-              <span className={styles.totalLabel}>Indicative Event Estimate*</span>
-              <div className={styles.totalFigure}>{formatCurrency(estimate.total)}</div>
-              <span className={styles.totalMeta}>
-                {formatCurrency(estimate.perPersonTotal)} per person × {estimate.guestCount} guests
-              </span>
-            </div>
+            {estimate ? (
+              <>
+                <div className={styles.totalBlock}>
+                  <span className={styles.totalLabel}>Indicative Event Estimate*</span>
+                  <div className={styles.totalFigure}>{formatCurrency(estimate.total)}</div>
+                  <span className={styles.totalMeta}>
+                    {formatCurrency(estimate.perPersonTotal)} per person × {estimate.guestCount} guests
+                  </span>
+                </div>
 
-            <div className={styles.breakdownList}>
-              <div className={styles.breakdownRow}>
-                <span>Decor Package ({selectedPkg.name})</span>
-                <span>{formatCurrency(estimate.packageSubtotal)}</span>
-              </div>
-              <div className={styles.calculationDetail}>
-                <span>
-                  {estimate.guestCount} guests × {formatPerPersonRate(estimate.decorRatePerPerson)}
-                </span>
-              </div>
+                <div className={styles.breakdownList}>
+                  <div className={styles.breakdownRow}>
+                    <span>Decor Package ({selectedPkg.name})</span>
+                    <span>{formatCurrency(estimate.packageSubtotal)}</span>
+                  </div>
+                  <div className={styles.calculationDetail}>
+                    <span>
+                      {estimate.guestCount} guests × {formatPerPersonRate(estimate.decorRatePerPerson)}
+                    </span>
+                  </div>
 
-              <div className={styles.breakdownRow}>
-                <span>
-                  Selected Services
-                  {estimate.services.length > 0 ? ` (${estimate.services.length})` : ""}
-                </span>
-                <span>
-                  {estimate.services.length > 0
-                    ? `+${formatCurrency(estimate.servicesSubtotal)}`
-                    : "None selected"}
-                </span>
-              </div>
-              {estimate.services.length > 0 && (
-                <ul className={styles.serviceLines}>
-                  {estimate.services.map((service) => (
-                    <li key={service.id} className={styles.serviceLine}>
-                      <span>
-                        {service.name} · {formatPerPersonRate(service.ratePerPerson)}
-                      </span>
-                      <span>{formatCurrency(service.subtotal)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
+                  <div className={styles.breakdownRow}>
+                    <span>
+                      Selected Services
+                      {estimate.services.length > 0 ? ` (${estimate.services.length})` : ""}
+                    </span>
+                    <span>
+                      {estimate.services.length > 0
+                        ? `+${formatCurrency(estimate.servicesSubtotal)}`
+                        : "None selected"}
+                    </span>
+                  </div>
+                  {estimate.services.length > 0 && (
+                    <ul className={styles.serviceLines}>
+                      {estimate.services.map((service) => (
+                        <li key={service.id} className={styles.serviceLine}>
+                          <span>
+                            {service.name} · {formatPerPersonRate(service.ratePerPerson)}
+                          </span>
+                          <span>{formatCurrency(service.subtotal)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
 
-              <div className={`${styles.breakdownRow} ${styles.breakdownTotalRow}`}>
-                <span>Total Estimated Per Person</span>
-                <span>{formatCurrency(estimate.perPersonTotal)}</span>
+                  <div className={`${styles.breakdownRow} ${styles.breakdownTotalRow}`}>
+                    <span>Total Estimated Per Person</span>
+                    <span>{formatCurrency(estimate.perPersonTotal)}</span>
+                  </div>
+                  <div className={styles.calculationDetail}>
+                    <span>
+                      {formatPerPersonRate(estimate.decorRatePerPerson)} decor
+                      {estimate.services.length > 0
+                        ? ` + ${formatPerPersonRate(estimate.servicesRatePerPerson)} services`
+                        : ""}
+                    </span>
+                  </div>
+                </div>
+
+              </>
+            ) : (
+              <div className={styles.totalBlock}>
+                <span className={styles.totalLabel}>Indicative Event Estimate*</span>
+                <p className={styles.estimateUnavailable}>
+                  Enter a valid guest count to see your estimate.
+                </p>
               </div>
-              <div className={styles.calculationDetail}>
-                <span>
-                  {formatPerPersonRate(estimate.decorRatePerPerson)} decor
-                  {estimate.services.length > 0
-                    ? ` + ${formatPerPersonRate(estimate.servicesRatePerPerson)} services`
-                    : ""}
-                </span>
-              </div>
-            </div>
+            )}
 
             <div className={styles.divider} />
 
-            <Link href={estimateHref} className={styles.ctaButton}>
-              View My Indicative Estimate
-            </Link>
+            {estimateHref ? (
+              <Link href={estimateHref} className={styles.ctaButton}>
+                View My Indicative Estimate
+              </Link>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className={styles.ctaButton}
+                aria-describedby={guestErrorId}
+              >
+                View My Indicative Estimate
+              </button>
+            )}
 
             <p className={styles.disclaimer}>*{ESTIMATE_DISCLAIMER}</p>
           </div>

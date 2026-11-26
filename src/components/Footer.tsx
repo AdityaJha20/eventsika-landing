@@ -10,6 +10,13 @@ const EXPLORE_LINKS = [
   { label: "For Vendors", href: "/for-vendors" },
 ];
 
+/**
+ * Footer legal links. Empty until the owner approves real legal pages; restore with
+ * absolute paths, e.g. { label: "Privacy Policy", href: "/privacy-policy" } and
+ * { label: "Terms & Conditions", href: "/terms" }.
+ */
+export const LEGAL_LINKS: readonly { label: string; href: string }[] = [];
+
 const SERVICE_LINKS = [
   { label: "Venue & Decor", href: "/services#decor-styling" },
   { label: "Catering", href: "/services#catering-cuisine" },
@@ -681,14 +688,15 @@ export default function Footer() {
           <p className={styles.copyright}>
             © 2026 Eventsika. All rights reserved.
           </p>
-          <div className={styles.legalLinks}>
-            <Link href="#" className={styles.legalLink}>
-              Privacy Policy
-            </Link>
-            <Link href="#" className={styles.legalLink}>
-              Terms &amp; Conditions
-            </Link>
-          </div>
+          {LEGAL_LINKS.length > 0 && (
+            <div className={styles.legalLinks}>
+              {LEGAL_LINKS.map((link) => (
+                <Link key={link.href} href={link.href} className={styles.legalLink}>
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </footer>
