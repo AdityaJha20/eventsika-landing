@@ -832,7 +832,7 @@ export default function Hero() {
                 </div>
 
                 <div className={styles.resultsActions}>
-                  <Link href="/packages" className={styles.resultsCta}>
+                  <Link href="/packages#customizer" className={styles.resultsCta}>
                     Customize Your Celebration
                   </Link>
                   <Link href="/diwali-consultation" className={styles.resultsCtaSecondary}>
