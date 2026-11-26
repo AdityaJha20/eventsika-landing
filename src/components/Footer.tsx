@@ -11,10 +11,10 @@ const EXPLORE_LINKS = [
 ];
 
 const SERVICE_LINKS = [
-  { label: "Venue & Decor", href: "/services" },
-  { label: "Catering", href: "/services" },
-  { label: "Photography & Films", href: "/services" },
-  { label: "Entertainment", href: "/services" },
+  { label: "Venue & Decor", href: "/services#decor-styling" },
+  { label: "Catering", href: "/services#catering-cuisine" },
+  { label: "Photography & Films", href: "/services#photography-films" },
+  { label: "Entertainment", href: "/services#entertainment-performers" },
   { label: "Event Management", href: "/services" },
 ];
 

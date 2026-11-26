@@ -11,6 +11,13 @@ import {
   formatPerPersonRate,
   getLowestServiceRate,
 } from "@/lib/packages-config";
+import {
+  ORGANIZATION_ID,
+  SITE_URL,
+  breadcrumbJsonLd,
+  pageMetadata,
+  serializeJsonLd,
+} from "@/lib/seo";
 import styles from "./services.module.css";
 
 const LOWEST_PACKAGE_RATE = Math.min(
@@ -21,39 +28,30 @@ function fromRate(label: string, ratePerPerson: number): string {
   return `${label} from ${formatPerPersonRate(ratePerPerson)}`;
 }
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Services | Bespoke Celebration Services",
-  description:
-    "From intimate home gatherings to grand festive galas, explore our full spectrum of curated services crafted to make your special moments effortless and memorable.",
-  alternates: {
-    canonical: "/services",
-  },
-};
+  description: `Decor & styling, catering, rituals, entertainment, photography & films, and invitations for Indian home celebrations. Decor packages from ${formatPerPersonRate(LOWEST_PACKAGE_RATE)}; other services priced per guest or quoted individually.`,
+  path: "/services",
+});
 
-const breadcrumbJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  itemListElement: [
-    {
-      "@type": "ListItem",
-      position: 1,
-      name: "Home",
-      item: "https://eventsika.in/",
-    },
-    {
-      "@type": "ListItem",
-      position: 2,
-      name: "Services",
-      item: "https://eventsika.in/services",
-    },
-  ],
-};
-
-const SERVICES_DATA = [
+const SERVICES_DATA: Array<{
+  id: string;
+  number: string;
+  title: string;
+  /** Published "from" rates per guest; empty means the service is quoted individually. */
+  fromRates: Array<[label: string, ratePerPerson: number]>;
+  description: string;
+  features: string[];
+  image: string;
+  alt: string;
+  ctaText: string;
+  ctaHref: string;
+}> = [
   {
+    id: "decor-styling",
     number: "01 // SERVICE",
     title: "Decor & Styling",
-    price: fromRate("Decor packages", LOWEST_PACKAGE_RATE),
+    fromRates: [["Decor packages", LOWEST_PACKAGE_RATE]],
     description:
       "From home living rooms and terrace settings to lawns and banquet halls, our team shapes the visual atmosphere of your celebration with ambient accents, tailored backdrops, and coordinated seating. Fresh floral styling can be added as an optional per-guest service.",
     features: [
@@ -70,9 +68,10 @@ const SERVICES_DATA = [
     ctaHref: "/#plan-event",
   },
   {
+    id: "catering-cuisine",
     number: "02 // SERVICE",
     title: "Catering & Cuisine",
-    price: fromRate("Food & catering", getLowestServiceRate("food")),
+    fromRates: [["Food & catering", getLowestServiceRate("food")]],
     description:
       "Thoughtfully planned celebration dining for family gatherings and festive occasions. We coordinate authentic regional dishes, live cooking counters, and traditional dessert spreads served with attentive hospitality and high hygiene standards.",
     features: [
@@ -89,9 +88,10 @@ const SERVICES_DATA = [
     ctaHref: "/#plan-event",
   },
   {
+    id: "rituals-blessings",
     number: "03 // SERVICE",
     title: "Rituals & Blessings",
-    price: CUSTOM_QUOTE_LABEL,
+    fromRates: [],
     description:
       "Structured coordination for traditional Indian ceremonies, family pujas, and sacred milestones. We assist with experienced pandits, ritual planning, authentic samagri, and ceremonial arrangements so rituals flow smoothly alongside your wider celebration.",
     features: [
@@ -103,14 +103,15 @@ const SERVICES_DATA = [
       "Guest Flow Management Around Sacred Rites",
     ],
     image: "/images/service-rituals-blessings.png",
-    alt: "Cinematic event photography and candid celebration films",
+    alt: "Traditional Indian puja ceremony arranged for a family celebration",
     ctaText: "Book This Service",
     ctaHref: "/#plan-event",
   },
   {
+    id: "entertainment-performers",
     number: "04 // SERVICE",
     title: "Entertainment & Performers",
-    price: CUSTOM_QUOTE_LABEL,
+    fromRates: [],
     description:
       "Curated music and entertainment designed to match the mood of each celebration segment. From classical morning recitals and folk troupes to energetic Sangeet DJs, live singers, and interactive hosts, we bring the right artists to your event.",
     features: [
@@ -127,9 +128,13 @@ const SERVICES_DATA = [
     ctaHref: "/#plan-event",
   },
   {
+    id: "photography-films",
     number: "05 // SERVICE",
     title: "Photography & Films",
-    price: `${fromRate("Photography", getLowestServiceRate("photography"))} · ${fromRate("Videography", getLowestServiceRate("videography"))}`,
+    fromRates: [
+      ["Photography", getLowestServiceRate("photography")],
+      ["Videography", getLowestServiceRate("videography")],
+    ],
     description:
       "Thoughtful visual documentation capturing spontaneous family moments, important rituals, and genuine emotion. Our team provides candid photography, family portraits, and highlight films that preserve the spirit of your day without feeling intrusive.",
     features: [
@@ -141,14 +146,15 @@ const SERVICES_DATA = [
       "Handcrafted Photo Album Options for Family Keepsakes",
     ],
     image: "/images/service-photography-films.png",
-    alt: "Dedicated on-site event coordinator managing seamless celebration execution",
+    alt: "Candid photography and highlight films of an Indian family celebration",
     ctaText: "Book This Service",
     ctaHref: "/#plan-event",
   },
   {
+    id: "invitations-favours",
     number: "06 // SERVICE",
     title: "Invitations & Favours",
-    price: CUSTOM_QUOTE_LABEL,
+    fromRates: [],
     description:
       "Set the tone before your celebration begins with cohesive stationery, guest communications, and gifting. We coordinate digital invitations, RSVP microsites, physical cards, and curated gift hampers tailored to your family's occasion.",
     features: [
@@ -166,14 +172,43 @@ const SERVICES_DATA = [
   },
 ];
 
+/** Service entities for the six services shown on this page, using only published rates. */
+const servicesJsonLd = {
+  "@context": "https://schema.org",
+  "@graph": SERVICES_DATA.map((service) => ({
+    "@type": "Service",
+    "@id": `${SITE_URL}/services#${service.id}`,
+    name: service.title,
+    description: service.description,
+    url: `${SITE_URL}/services#${service.id}`,
+    provider: { "@id": ORGANIZATION_ID },
+    ...(service.fromRates.length > 0 && {
+      offers: service.fromRates.map(([name, minPrice]) => ({
+        "@type": "Offer",
+        name,
+        priceSpecification: {
+          "@type": "UnitPriceSpecification",
+          minPrice,
+          priceCurrency: "INR",
+          referenceQuantity: { "@type": "QuantitativeValue", value: 1, unitText: "guest" },
+        },
+      })),
+    }),
+  })),
+};
+
 export default function ServicesPage() {
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(breadcrumbJsonLd),
+          __html: serializeJsonLd(breadcrumbJsonLd("Services", "/services")),
         }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(servicesJsonLd) }}
       />
       <Navbar />
       <main id="main-content">
@@ -192,6 +227,15 @@ export default function ServicesPage() {
               full spectrum of curated services crafted to make your special
               moments effortless and memorable.
             </p>
+            <p className={styles.description}>
+              Decor is priced per guest through our{" "}
+              <Link href="/packages">Essential, Premium and Luxury decor packages</Link>
+              . Catering, photography and videography have published per-guest
+              rates; rituals, entertainment and invitations are quoted
+              individually. To request any service, share your celebration
+              details through the enquiry form, or{" "}
+              <Link href="#customizer">estimate a decor package below</Link>.
+            </p>
           </div>
         </section>
 
@@ -205,7 +249,8 @@ export default function ServicesPage() {
               const isReverse = index % 2 === 1;
               return (
                 <article
-                  key={service.title}
+                  key={service.id}
+                  id={service.id}
                   className={`${styles.serviceItem} ${isReverse ? styles.serviceItemReverse : ""
                     }`}
                   aria-labelledby={`service-heading-${index + 1}`}
@@ -229,7 +274,11 @@ export default function ServicesPage() {
                         {service.number}
                       </span>
                       <span className={styles.servicePrice}>
-                        {service.price}
+                        {service.fromRates.length > 0
+                          ? service.fromRates
+                              .map(([label, rate]) => fromRate(label, rate))
+                              .join(" · ")
+                          : CUSTOM_QUOTE_LABEL}
                       </span>
                     </div>
 

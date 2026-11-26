@@ -263,3 +263,49 @@
     font-size: 1.6rem;
   }
 }
+
+/* Pricing, answered */
+.answersSection {
+  width: 100%;
+  background-color: var(--background);
+  border-bottom: 1px solid var(--border);
+  padding: 5rem 1.5rem;
+}
+
+.answersContainer {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.answersList {
+  display: grid;
+  gap: 1.75rem;
+  margin: 0;
+}
+
+.answerItem {
+  border-top: 1px solid var(--border);
+  padding-top: 1.5rem;
+}
+
+.answerQuestion {
+  font-family: var(--font-playfair), serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin-bottom: 0.5rem;
+}
+
+.answerText {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #4a3b32;
+  margin: 0;
+}
+
+.answerText a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

@@ -13,6 +13,7 @@ import {
   formatCurrency,
   formatPerPersonRate,
   getPackageTier,
+  PACKAGES_CONFIG,
   type PackageEstimate,
 } from "@/lib/packages-config";
 import {
@@ -349,7 +350,9 @@ export default function Hero() {
           </h1>
           <p className={styles.description}>
             From intimate gatherings to unforgettable celebrations, Eventsika brings
-            every detail together.
+            every detail together: decor packages from{" "}
+            {formatPerPersonRate(Math.min(...PACKAGES_CONFIG.map((pkg) => pkg.pricePerPerson)))},
+            with optional catering, photography and more.
           </p>
           <div className={styles.ctaGroup}>
             <Link href="#plan-event" className={styles.primaryCta}>

@@ -43,6 +43,16 @@
   margin: 0 auto;
 }
 
+.description + .description {
+  margin-top: 1rem;
+}
+
+.description a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 /* Services List Showcase Section */
 .servicesListSection {
   width: 100%;
