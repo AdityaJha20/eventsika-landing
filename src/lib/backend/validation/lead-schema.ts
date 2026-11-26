@@ -13,16 +13,18 @@ import {
   BudgetOption,
 } from "../constants/allowlists";
 import {
-  BASE_PACKAGE_INCLUSION,
   calculatePackageEstimate,
-  getPackageTier,
   isOptionalServiceId,
   isPackageTierId,
   MAX_GUEST_COUNT,
   MIN_GUEST_COUNT,
   OPTIONAL_SERVICES_CONFIG,
 } from "../../packages-config";
-import { isLegacyAddonId, type PackageQuoteRecord } from "../../package-quote-summary";
+import {
+  buildPackageEstimateSnapshot,
+  isLegacyAddonId,
+  type PackageQuoteRecord,
+} from "../../package-quote-summary";
 import { validateIndianPhone } from "./phone";
 import { validateEventDate } from "./date";
 import { validateEmail } from "./email";
@@ -302,24 +304,7 @@ export function validateLeadInput(raw: unknown): LeadValidationResult {
       packageSubtotalRupees: estimate.packageSubtotal,
       servicesSubtotalRupees: estimate.servicesSubtotal,
       totalEstimateRupees: estimate.total,
-      snapshot: {
-        version: 1,
-        packageId: estimate.tierId,
-        packageName: getPackageTier(estimate.tierId).name,
-        includes: BASE_PACKAGE_INCLUSION,
-        guestCount: estimate.guestCount,
-        decorRatePerPersonRupees: estimate.decorRatePerPerson,
-        services: estimate.services.map((service) => ({
-          id: service.id,
-          name: service.name,
-          ratePerPersonRupees: service.ratePerPerson,
-          subtotalRupees: service.subtotal,
-        })),
-        perPersonTotalRupees: estimate.perPersonTotal,
-        packageSubtotalRupees: estimate.packageSubtotal,
-        servicesSubtotalRupees: estimate.servicesSubtotal,
-        totalEstimateRupees: estimate.total,
-      },
+      snapshot: buildPackageEstimateSnapshot(estimate),
     };
   }
 

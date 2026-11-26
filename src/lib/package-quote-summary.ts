@@ -8,12 +8,15 @@
  */
 
 import {
+  BASE_PACKAGE_INCLUSION,
   calculatePackageEstimate,
   ESTIMATE_DISCLAIMER,
+  getPackageTier,
   isOptionalServiceId,
   isPackageTierId,
   OPTIONAL_SERVICES_CONFIG,
   PACKAGES_CONFIG,
+  type PackageEstimate,
   type PackageTierId,
 } from "./packages-config";
 
@@ -38,6 +41,28 @@ export interface PackageEstimateSnapshot {
   packageSubtotalRupees: number;
   servicesSubtotalRupees: number;
   totalEstimateRupees: number;
+}
+
+/** Snapshot of a server-calculated estimate, shared by every endpoint that stores one. */
+export function buildPackageEstimateSnapshot(estimate: PackageEstimate): PackageEstimateSnapshot {
+  return {
+    version: 1,
+    packageId: estimate.tierId,
+    packageName: getPackageTier(estimate.tierId).name,
+    includes: BASE_PACKAGE_INCLUSION,
+    guestCount: estimate.guestCount,
+    decorRatePerPersonRupees: estimate.decorRatePerPerson,
+    services: estimate.services.map((service) => ({
+      id: service.id,
+      name: service.name,
+      ratePerPersonRupees: service.ratePerPerson,
+      subtotalRupees: service.subtotal,
+    })),
+    perPersonTotalRupees: estimate.perPersonTotal,
+    packageSubtotalRupees: estimate.packageSubtotal,
+    servicesSubtotalRupees: estimate.servicesSubtotal,
+    totalEstimateRupees: estimate.total,
+  };
 }
 
 export interface PackageQuoteRecord {

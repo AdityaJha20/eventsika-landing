@@ -3,6 +3,12 @@
 import { useEffect, useId, useReducer, useRef } from "react";
 import type { PackageQuoteSelection } from "@/lib/package-quote";
 import {
+  ESTIMATE_DOWNLOAD_CONSENT_LABEL,
+  ESTIMATE_DOWNLOAD_CONSENT_VERSION,
+  ESTIMATE_DOWNLOAD_DISCLOSURE,
+} from "@/lib/estimate-download-contact";
+import {
+  canContinue,
   INITIAL_PDF_GATE,
   parseContactInput,
   pdfGateReducer,
@@ -17,10 +23,45 @@ interface Props {
   initialGate?: PdfGateState;
 }
 
+const SAVE_FAILED_FALLBACK =
+  "We couldn't save your details just now, so the PDF wasn't downloaded. Please try again.";
+
 async function fetchBytes(url: string): Promise<ArrayBuffer> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Could not load ${url}`);
   return res.arrayBuffer();
+}
+
+type SaveResult = { ok: true; captureId: string } | { ok: false; message: string };
+
+/** Stores the contact and selection; the server prices the estimate itself. */
+export async function saveEstimateDownload(
+  selection: PackageQuoteSelection,
+  contact: string,
+  idempotencyKey: string,
+): Promise<SaveResult> {
+  try {
+    const res = await fetch("/api/estimate-downloads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contact,
+        packageTier: selection.tierId,
+        guestCount: selection.guestCount,
+        serviceIds: selection.serviceIds,
+        consentToContact: true,
+        consentTextVersion: ESTIMATE_DOWNLOAD_CONSENT_VERSION,
+        idempotencyKey,
+      }),
+    });
+    const data = await res.json().catch(() => null);
+    if (res.ok && data?.success && typeof data.captureId === "string") {
+      return { ok: true, captureId: data.captureId };
+    }
+    return { ok: false, message: typeof data?.message === "string" ? data.message : SAVE_FAILED_FALLBACK };
+  } catch {
+    return { ok: false, message: SAVE_FAILED_FALLBACK };
+  }
 }
 
 /**
@@ -55,14 +96,14 @@ async function downloadEstimatePdf(
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-/** Asks for a mobile number or email (validated on the device only), then downloads the PDF. */
+/** Asks for a mobile number or email plus consent, stores it, then downloads the PDF. */
 export default function DownloadEstimatePdfButton({
   selection,
   createdAtIso,
   initialGate = INITIAL_PDF_GATE,
 }: Props) {
   const [gate, dispatch] = useReducer(pdfGateReducer, initialGate);
-  // Set synchronously by closeGate so a build that is still running never saves the file.
+  // Set synchronously by closeGate so a save or build still running is discarded.
   const cancelRef = useRef<{ cancelled: boolean } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -72,17 +113,38 @@ export default function DownloadEstimatePdfButton({
   const descId = `${baseId}-desc`;
   const inputId = `${baseId}-contact`;
   const errorId = `${baseId}-error`;
+  const consentId = `${baseId}-consent`;
+  const consentErrorId = `${baseId}-consent-error`;
 
   const contact = parseContactInput(gate.value);
-  const showError = gate.touched && !contact.ok;
-  const downloading = gate.status === "downloading";
+  const showContactError = gate.touched && !contact.ok;
+  const showConsentError = gate.touched && contact.ok && !gate.consent;
+  const busy = gate.status === "saving" || gate.status === "downloading";
 
   const closeGate = () => {
     if (cancelRef.current) cancelRef.current.cancelled = true;
     dispatch({ type: "close" });
   };
 
-  // Start the build once per submitted run.
+  // 1. Persist the contact; the PDF starts only after the server confirms.
+  useEffect(() => {
+    if (gate.status !== "saving" || !gate.idempotencyKey) return;
+    const run = gate.run;
+    const token = { cancelled: false };
+    cancelRef.current = token;
+    saveEstimateDownload(selection, gate.value, gate.idempotencyKey).then((result) => {
+      if (token.cancelled) return;
+      dispatch(
+        result.ok
+          ? { type: "saved", run, captureId: result.captureId }
+          : { type: "saveFailed", run, message: result.message },
+      );
+    });
+    // gate.value and the key cannot change while saving (the reducer blocks edits).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gate.status, gate.run]);
+
+  // 2. Build and download the PDF for a stored capture.
   useEffect(() => {
     if (gate.status !== "downloading") return;
     const run = gate.run;
@@ -93,7 +155,7 @@ export default function DownloadEstimatePdfButton({
       .catch((error) => {
         // Only the build failure is logged, never the contact value.
         console.error("Estimate PDF download failed:", error);
-        dispatch({ type: "failed", run });
+        dispatch({ type: "pdfFailed", run });
       });
   }, [gate.status, gate.run, selection, createdAtIso]);
 
@@ -133,17 +195,19 @@ export default function DownloadEstimatePdfButton({
     };
   }, [gate.open]);
 
+  const submit = () => dispatch({ type: "submit", newKey: crypto.randomUUID() });
+
   return (
     <>
       <button
         ref={triggerRef}
         type="button"
         onClick={() => dispatch({ type: "open" })}
-        disabled={downloading}
+        disabled={busy}
         aria-haspopup="dialog"
         className={styles.secondaryAction}
       >
-        {downloading ? "Preparing PDF…" : "Download PDF"}
+        {busy ? "Preparing PDF…" : "Download PDF"}
       </button>
 
       {gate.open && (
@@ -179,7 +243,7 @@ export default function DownloadEstimatePdfButton({
               noValidate
               onSubmit={(e) => {
                 e.preventDefault();
-                dispatch({ type: "submit" });
+                submit();
               }}
             >
               <label htmlFor={inputId} className={styles.gateLabel}>
@@ -194,43 +258,73 @@ export default function DownloadEstimatePdfButton({
                 onChange={(e) => dispatch({ type: "change", value: e.target.value })}
                 onBlur={() => dispatch({ type: "blur" })}
                 onKeyDown={(e) => {
-                  // Continue is disabled while invalid, so Enter would do nothing; show why instead.
-                  if (e.key === "Enter" && !contact.ok) dispatch({ type: "blur" });
+                  // Continue is disabled while incomplete, so Enter would do nothing; show why instead.
+                  if (e.key === "Enter" && !canContinue(gate)) dispatch({ type: "blur" });
                 }}
-                disabled={downloading}
-                aria-invalid={showError ? true : undefined}
-                aria-describedby={showError ? errorId : undefined}
+                disabled={busy}
+                aria-invalid={showContactError ? true : undefined}
+                aria-describedby={showContactError ? errorId : undefined}
                 placeholder="98765 43210 or name@example.com"
-                className={`${styles.gateInput} ${showError ? styles.gateInputError : ""}`}
+                className={`${styles.gateInput} ${showContactError ? styles.gateInputError : ""}`}
               />
-              {showError && !contact.ok && (
+              {showContactError && !contact.ok && (
                 <p id={errorId} role="alert" className={styles.gateError}>
                   {contact.error}
                 </p>
               )}
-              <p className={styles.gateNote}>
-                This is only checked on your device to unlock the download. It is not sent to
-                Eventsika or saved.
+
+              <p id={`${consentId}-disclosure`} className={styles.gateNote}>
+                {ESTIMATE_DOWNLOAD_DISCLOSURE}
               </p>
-              {gate.status === "failed" && (
+              <div className={styles.gateConsent}>
+                <input
+                  id={consentId}
+                  type="checkbox"
+                  required
+                  checked={gate.consent}
+                  onChange={(e) => dispatch({ type: "consent", checked: e.target.checked })}
+                  disabled={busy}
+                  aria-invalid={showConsentError ? true : undefined}
+                  aria-describedby={
+                    showConsentError
+                      ? `${consentId}-disclosure ${consentErrorId}`
+                      : `${consentId}-disclosure`
+                  }
+                />
+                <label htmlFor={consentId}>{ESTIMATE_DOWNLOAD_CONSENT_LABEL}</label>
+              </div>
+              {showConsentError && (
+                <p id={consentErrorId} role="alert" className={styles.gateError}>
+                  Please tick the box to continue.
+                </p>
+              )}
+
+              {gate.status === "saveFailed" && gate.message && (
                 <p role="alert" className={styles.gateError}>
-                  The PDF couldn&apos;t be created. Please try again.
+                  {gate.message}
+                </p>
+              )}
+              {gate.status === "pdfFailed" && (
+                <p role="alert" className={styles.gateError}>
+                  Your details are saved, but the PDF couldn&apos;t be created. Please try again.
                 </p>
               )}
               <div className={styles.gateActions}>
                 <button
                   type="submit"
-                  disabled={!contact.ok || downloading}
-                  aria-busy={downloading}
+                  disabled={!canContinue(gate)}
+                  aria-busy={busy}
                   className={styles.primaryAction}
                 >
-                  {downloading ? "Preparing PDF…" : "Continue & download PDF"}
+                  {gate.status === "saving"
+                    ? "Saving your details…"
+                    : gate.status === "downloading"
+                      ? "Preparing PDF…"
+                      : gate.status === "saveFailed" || gate.status === "pdfFailed"
+                        ? "Try again"
+                        : "Continue & download PDF"}
                 </button>
-                <button
-                  type="button"
-                  onClick={closeGate}
-                  className={styles.secondaryAction}
-                >
+                <button type="button" onClick={closeGate} className={styles.secondaryAction}>
                   Cancel
                 </button>
               </div>
