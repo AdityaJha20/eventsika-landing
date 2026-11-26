@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
     const validation = validateVendorInput(body);
     if (!validation.success) {
       return NextResponse.json(
-        { success: false, message: validation.error },
+        { success: false, message: validation.error, fieldErrors: validation.fieldErrors },
         { status: 400, headers: responseHeaders }
       );
     }

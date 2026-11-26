@@ -1,6 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { VENDOR_CATEGORIES } from "@/lib/backend/constants/allowlists";
+import {
+  validateVendorInput,
+  type VendorField,
+  type VendorFieldErrors,
+} from "@/lib/backend/validation/vendor-schema";
 import styles from "./VendorApplicationForm.module.css";
 
 interface FormData {
@@ -14,24 +20,18 @@ interface FormData {
   categories: string[];
 }
 
-interface FormErrors {
-  businessName?: string;
-  contactName?: string;
-  phone?: string;
-  email?: string;
-  city?: string;
-  portfolioUrl?: string;
-  categories?: string;
-}
+type FormErrors = VendorFieldErrors;
 
-const SERVICE_CATEGORIES = [
-  "Decor & Styling",
-  "Catering & Live Food",
-  "Photography & Films",
-  "Music & DJ",
-  "Pandit / Vedic Services",
-  "Gifting & Favors",
-];
+/** Moves keyboard focus to the first field that has an error. */
+function focusFirstInvalid(fieldErrors: FormErrors) {
+  const field = Object.keys(fieldErrors)[0] as VendorField | undefined;
+  if (!field) return;
+  const target =
+    field === "categories"
+      ? document.querySelector<HTMLInputElement>('input[name="categories"]')
+      : document.getElementById(field);
+  target?.focus();
+}
 
 const INITIAL_FORM_DATA: FormData = {
   businessName: "",
@@ -77,41 +77,13 @@ export default function VendorApplicationForm() {
     }
   };
 
+  // Same shared rules the API enforces (honeypot is checked server-side only).
   const validate = (): boolean => {
-    const newErrors: FormErrors = {};
-
-    if (!formData.businessName.trim()) {
-      newErrors.businessName = "Business / Brand Name is required";
-    }
-
-    if (!formData.contactName.trim()) {
-      newErrors.contactName = "Contact Person Name is required";
-    }
-
-    const cleanPhone = formData.phone.replace(/[^0-9]/g, "");
-    if (!cleanPhone || cleanPhone.length < 10) {
-      newErrors.phone = "Please enter a valid 10-digit WhatsApp phone number";
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!formData.email.trim() || !emailRegex.test(formData.email.trim())) {
-      newErrors.email = "Please enter a valid email address";
-    }
-
-    if (!formData.city.trim()) {
-      newErrors.city = "Primary operating city is required";
-    }
-
-    if (!formData.portfolioUrl.trim()) {
-      newErrors.portfolioUrl = "Portfolio or Instagram link is required";
-    }
-
-    if (formData.categories.length === 0) {
-      newErrors.categories = "Please select at least one service category";
-    }
-
+    const result = validateVendorInput(formData);
+    const newErrors = result.success ? {} : result.fieldErrors;
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    focusFirstInvalid(newErrors);
+    return result.success;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -136,6 +108,10 @@ export default function VendorApplicationForm() {
       const data = await res.json().catch(() => null);
 
       if (!res.ok || !data?.success) {
+        if (data?.fieldErrors && Object.keys(data.fieldErrors).length > 0) {
+          setErrors(data.fieldErrors);
+          focusFirstInvalid(data.fieldErrors);
+        }
         setServerError(
           data?.message ||
             "Unable to submit partner application. Please verify your details or contact care@eventsika.in."
@@ -244,6 +220,7 @@ export default function VendorApplicationForm() {
                     type="text"
                     id="businessName"
                     name="businessName"
+                    required
                     value={formData.businessName}
                     onChange={handleInputChange}
                     placeholder="e.g. Royal Blooms Decor"
@@ -272,6 +249,7 @@ export default function VendorApplicationForm() {
                     type="text"
                     id="contactName"
                     name="contactName"
+                    required
                     value={formData.contactName}
                     onChange={handleInputChange}
                     placeholder="e.g. Vikram Sharma"
@@ -300,6 +278,7 @@ export default function VendorApplicationForm() {
                     type="tel"
                     id="phone"
                     name="phone"
+                    required
                     value={formData.phone}
                     onChange={handleInputChange}
                     placeholder="e.g. 9876543210"
@@ -325,6 +304,7 @@ export default function VendorApplicationForm() {
                     type="email"
                     id="email"
                     name="email"
+                    required
                     value={formData.email}
                     onChange={handleInputChange}
                     placeholder="e.g. contact@royalblooms.in"
@@ -351,6 +331,7 @@ export default function VendorApplicationForm() {
                     type="text"
                     id="city"
                     name="city"
+                    required
                     value={formData.city}
                     onChange={handleInputChange}
                     placeholder="e.g. Delhi NCR, Mumbai, Jaipur"
@@ -398,6 +379,7 @@ export default function VendorApplicationForm() {
                   type="text"
                   id="portfolioUrl"
                   name="portfolioUrl"
+                  required
                   value={formData.portfolioUrl}
                   onChange={handleInputChange}
                   placeholder="e.g. instagram.com/yourhandle or yourwebsite.com"
@@ -417,7 +399,10 @@ export default function VendorApplicationForm() {
               </div>
 
               {/* Service Categories Multi-select */}
-              <fieldset className={styles.categoriesFieldset}>
+              <fieldset
+                className={styles.categoriesFieldset}
+                aria-describedby={errors.categories ? "err-categories" : undefined}
+              >
                 <legend className={styles.label}>
                   Select Service Categories Offered{" "}
                   <span className={styles.required}>*</span>
@@ -427,7 +412,7 @@ export default function VendorApplicationForm() {
                   role="group"
                   aria-label="Select Service Categories"
                 >
-                  {SERVICE_CATEGORIES.map((cat) => {
+                  {VENDOR_CATEGORIES.map((cat) => {
                     const isChecked = formData.categories.includes(cat);
                     return (
                       <label
@@ -438,6 +423,8 @@ export default function VendorApplicationForm() {
                       >
                         <input
                           type="checkbox"
+                          name="categories"
+                          value={cat}
                           checked={isChecked}
                           onChange={() => toggleCategory(cat)}
                           className={styles.checkboxHidden}
@@ -468,7 +455,9 @@ export default function VendorApplicationForm() {
                   })}
                 </div>
                 {errors.categories && (
-                  <span className={styles.errorText}>{errors.categories}</span>
+                  <span id="err-categories" className={styles.errorText}>
+                    {errors.categories}
+                  </span>
                 )}
               </fieldset>
 
