@@ -1155,3 +1155,8 @@
     background: #1a1412 url("/images/eventsika-consultation-poster.webp") center / cover;
   }
 }
+.whyParagraph a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

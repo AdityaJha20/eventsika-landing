@@ -4,35 +4,15 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import VendorApplicationForm from "@/components/VendorApplicationForm";
 import Footer from "@/components/Footer";
+import { breadcrumbJsonLd, pageMetadata, serializeJsonLd } from "@/lib/seo";
 import styles from "./for-vendors.module.css";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "For Vendors | Partner Network",
   description:
     "Grow your event business with Eventsika. Join our curated network of event professionals and access confirmed bookings, guaranteed payouts, and on-site support.",
-  alternates: {
-    canonical: "/for-vendors",
-  },
-};
-
-const breadcrumbJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  itemListElement: [
-    {
-      "@type": "ListItem",
-      position: 1,
-      name: "Home",
-      item: "https://eventsika.in/",
-    },
-    {
-      "@type": "ListItem",
-      position: 2,
-      name: "For Vendors",
-      item: "https://eventsika.in/for-vendors",
-    },
-  ],
-};
+  path: "/for-vendors",
+});
 
 const VENDOR_BENEFITS = [
   {
@@ -112,7 +92,7 @@ export default function ForVendorsPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(breadcrumbJsonLd),
+          __html: serializeJsonLd(breadcrumbJsonLd("For Vendors", "/for-vendors")),
         }}
       />
       <Navbar />

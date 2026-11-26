@@ -8,14 +8,12 @@ import {
   PACKAGES_CONFIG,
   BASE_PACKAGE_INCLUSION,
 } from "./packages-config";
+import { ORGANIZATION_ID, SITE_URL } from "./seo";
 
-const SITE_URL = "https://eventsika.in";
+export { serializeJsonLd } from "./seo";
 
-const provider = {
-  "@type": "Organization",
-  name: "Eventsika",
-  url: SITE_URL,
-};
+// References the single Organization node published site-wide in the root layout.
+const provider = { "@id": ORGANIZATION_ID };
 
 function perGuestPriceSpecification(price: number) {
   return {
@@ -74,8 +72,4 @@ export function buildPackagesOfferCatalogJsonLd() {
       },
     ],
   };
-}
-
-export function serializeJsonLd(data: unknown): string {
-  return JSON.stringify(data).replace(/</g, "\\u003c");
 }

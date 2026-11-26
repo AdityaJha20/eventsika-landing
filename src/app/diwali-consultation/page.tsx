@@ -1,33 +1,48 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import {
   BookingModalProvider,
   BookingTriggerButton,
 } from "@/components/consultation/BookingExperience";
+import {
+  ORGANIZATION_ID,
+  SITE_URL,
+  breadcrumbJsonLd,
+  pageMetadata,
+  serializeJsonLd,
+} from "@/lib/seo";
+import { DEFAULT_CONSULTATION_PRICE_PAISE } from "@/lib/backend/types/payment-and-consultation";
 import styles from "./diwali-consultation.module.css";
 
 const SEO_TITLE = "Personalized Celebration Planning Consultation";
 const SEO_DESCRIPTION =
   "Book a 1-on-1 celebration planning consultation with Eventsika's planners. Get expert guidance on design, budgets, vendors and execution. Consultation fee ₹2,999.";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: SEO_TITLE,
   description: SEO_DESCRIPTION,
-  alternates: {
-    canonical: "/diwali-consultation",
-  },
-  openGraph: {
-    title: `${SEO_TITLE} | Eventsika`,
-    description: SEO_DESCRIPTION,
-    url: "https://eventsika.in/diwali-consultation",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: `${SEO_TITLE} | Eventsika`,
-    description: SEO_DESCRIPTION,
+  path: "/diwali-consultation",
+});
+
+// Price comes from the same constant the checkout charges, so the schema cannot drift from it.
+const consultationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Service",
+  "@id": `${SITE_URL}/diwali-consultation#service`,
+  name: "1-on-1 Celebration Planning Consultation",
+  serviceType: "Celebration planning consultation",
+  description:
+    "A dedicated 60-minute, 1-on-1 celebration planning session covering design, budget, vendors and execution, followed by a written summary and milestone checklist.",
+  url: `${SITE_URL}/diwali-consultation`,
+  provider: { "@id": ORGANIZATION_ID },
+  offers: {
+    "@type": "Offer",
+    price: DEFAULT_CONSULTATION_PRICE_PAISE / 100,
+    priceCurrency: "INR",
+    url: `${SITE_URL}/diwali-consultation`,
   },
 };
 
@@ -131,6 +146,15 @@ const INCLUSIONS_DATA = [
 export default function ConsultationPage() {
   return (
     <BookingModalProvider>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: serializeJsonLd([
+            consultationJsonLd,
+            breadcrumbJsonLd("Consultation", "/diwali-consultation"),
+          ]),
+        }}
+      />
       <div className={styles.pageWrapper}>
       {/* 1. Global Navigation */}
       <Navbar />
@@ -303,6 +327,11 @@ export default function ConsultationPage() {
                   An Eventsika consultation gives you a dedicated creative partner to structure your event,
                   anticipate logistical hurdles, and translate your personal celebration vision into an elegant,
                   actionable roadmap.
+                </p>
+                <p className={styles.whyParagraph}>
+                  Already know what you need? Browse our{" "}
+                  <Link href="/services">celebration services</Link> or compare{" "}
+                  <Link href="/packages">decor packages priced per guest</Link>.
                 </p>
 
                 <ul className={styles.whyChecklist}>

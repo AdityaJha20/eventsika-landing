@@ -13,7 +13,7 @@ const SERVICES = [
       "Bespoke venue aesthetics, floral design, ambient lighting, and artful tablescapes tailored to your celebration.",
     image: "/images/services/decor-styling.webp",
     alt: "Bespoke event venue aesthetics, floral styling, and ambient lighting",
-    href: "/services",
+    href: "/services#decor-styling",
   },
   {
     number: "02",
@@ -22,7 +22,7 @@ const SERVICES = [
       "Curated multi-course menus, gourmet catering, and refined dining experiences crafted for your guests.",
     image: "/images/services/catering-cuisine.webp",
     alt: "Gourmet celebration dining and elegant food presentation",
-    href: "/services",
+    href: "/services#catering-cuisine",
   },
   {
     number: "03",
@@ -31,7 +31,7 @@ const SERVICES = [
       "Traditional ceremonies, sacred rituals, and cultural blessings orchestrated with reverence and grace.",
     image: "/images/services/rituals-blessings.webp",
     alt: "Traditional ceremonies, sacred rituals, and cultural blessings",
-    href: "/services",
+    href: "/services#rituals-blessings",
   },
   {
     number: "04",
@@ -40,7 +40,7 @@ const SERVICES = [
       "Live musicians, captivating artists, DJs, and cultural performers that bring energy and memorable flair.",
     image: "/images/services/entertainment-performers.webp",
     alt: "Live musicians, cultural performers, and celebration entertainment",
-    href: "/services",
+    href: "/services#entertainment-performers",
   },
   {
     number: "05",
@@ -49,7 +49,7 @@ const SERVICES = [
       "Cinematic films, editorial photography, and candid visual storytelling to preserve every cherished memory.",
     image: "/images/services/photography-films.webp",
     alt: "Cinematic films, editorial photography, and celebration storytelling",
-    href: "/services",
+    href: "/services#photography-films",
   },
   {
     number: "06",
@@ -58,7 +58,7 @@ const SERVICES = [
       "Custom stationery, bespoke invitations, thoughtful guest gifts, and keepsake favours crafted with care.",
     image: "/images/services/invitations-favours.webp",
     alt: "Custom stationery, bespoke invitations, and keepsake gifts",
-    href: "/services",
+    href: "/services#invitations-favours",
   },
 ];
 
@@ -149,7 +149,11 @@ export default function Services() {
                         {service.description}
                       </p>
                     </div>
-                    <Link href={service.href} className={styles.exploreLink}>
+                    <Link
+                      href={service.href}
+                      className={styles.exploreLink}
+                      aria-label={`Explore service: ${service.title}`}
+                    >
                       <span>Explore service</span>
                       <svg
                         className={styles.arrowIcon}
