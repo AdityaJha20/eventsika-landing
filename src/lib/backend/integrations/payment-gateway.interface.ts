@@ -45,6 +45,7 @@ export type GatewayErrorCode =
   | "GATEWAY_TIMEOUT"
   | "NETWORK_ERROR"
   | "ORDER_ALREADY_EXISTS"
+  | "IDEMPOTENCY_CONFLICT"
   | "MALFORMED_RESPONSE"
   | "GATEWAY_ERROR";
 
@@ -96,4 +97,77 @@ export interface IPaymentGatewayAdapter {
    * Optional getter returning current gateway environment.
    */
   getEnvironment?(): "sandbox" | "production";
+}
+
+// ==============================================================================
+// Provider-neutral contract for order-based gateways (Razorpay today).
+//
+// The legacy IPaymentGatewayAdapter above stays only for historical Cashfree
+// records. New payment attempts use IOrderPaymentGateway. All amounts are integer
+// paise; provider status strings are normalized here and never leak upward.
+// ==============================================================================
+
+export type ProviderOrderStatus = "created" | "attempted" | "paid";
+
+export interface ProviderOrder {
+  id: string;
+  amountInPaise: number;
+  currency: string;
+  receipt: string | null;
+  status: ProviderOrderStatus;
+}
+
+export type ProviderPaymentStatus = "created" | "authorized" | "captured" | "refunded" | "failed";
+
+export interface ProviderPayment {
+  id: string;
+  orderId: string | null;
+  amountInPaise: number;
+  currency: string;
+  status: ProviderPaymentStatus;
+  method: string | null;
+  bankReference: string | null;
+  errorCode: string | null;
+  errorDescription: string | null;
+  createdAt: string | null;
+}
+
+export type ProviderRefundStatus = "pending" | "processed" | "failed";
+
+export interface ProviderRefund {
+  id: string;
+  paymentId: string;
+  amountInPaise: number;
+  status: ProviderRefundStatus;
+  /** Eventsika payment_refunds.id echoed back from the provider's notes (notes.refund_id), when present. */
+  localRefundId?: string | null;
+}
+
+export interface CreateProviderOrderParams {
+  receipt: string;
+  amountInPaise: number;
+  currency: "INR";
+  notes?: Record<string, string>;
+}
+
+export interface CreateProviderRefundParams {
+  paymentId: string;
+  amountInPaise: number;
+  /** Stable per logical refund; retries must reuse it with an identical body. */
+  idempotencyKey: string;
+  notes?: Record<string, string>;
+}
+
+export interface IOrderPaymentGateway {
+  readonly provider: "razorpay";
+  createOrder(params: CreateProviderOrderParams): Promise<ProviderOrder>;
+  fetchOrder(orderId: string): Promise<ProviderOrder | null>;
+  /** Recovers an order whose creation response was lost. */
+  findOrderByReceipt(receipt: string): Promise<ProviderOrder | null>;
+  fetchOrderPayments(orderId: string): Promise<ProviderPayment[]>;
+  fetchPayment(paymentId: string): Promise<ProviderPayment | null>;
+  createRefund(params: CreateProviderRefundParams): Promise<ProviderRefund>;
+  fetchRefund(refundId: string): Promise<ProviderRefund | null>;
+  /** All refunds the provider holds for a payment: the authoritative lookup for refunds whose outcome is uncertain. */
+  fetchPaymentRefunds(paymentId: string): Promise<ProviderRefund[]>;
 }

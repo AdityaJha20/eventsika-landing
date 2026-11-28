@@ -80,6 +80,8 @@ describe("POST /api/cashfree/webhook Route Handler Suite (Step 6C)", () => {
     status: "received",
     processingError: null,
     processedAt: null,
+    attempts: 0,
+    lockedUntil: null,
     createdAt: "2026-10-07T12:00:00.000Z",
     ...overrides,
   });
@@ -107,6 +109,10 @@ describe("POST /api/cashfree/webhook Route Handler Suite (Step 6C)", () => {
     vi.spyOn(SupabaseWebhookEventRepository.prototype, "updateWebhookEventStatus").mockResolvedValue(
       createMockWebhookRecord({ status: "processed" })
     );
+    // Lease granted by default (the claim RPC echoes the leased row).
+    vi.spyOn(SupabaseWebhookEventRepository.prototype, "claimWebhookEvent").mockImplementation(async (id: string) =>
+      createMockWebhookRecord({ id, attempts: 1, lockedUntil: "2026-10-07T12:01:00.000Z" })
+    );
 
     vi.spyOn(paymentConfirmationService, "processPaymentWebhook").mockResolvedValue({
       success: true,
@@ -114,7 +120,6 @@ describe("POST /api/cashfree/webhook Route Handler Suite (Step 6C)", () => {
       orderId: "order-uuid-1",
       consultationId: "consultation-uuid-1",
       transactionId: "trans-uuid-1",
-      slotId: "slot-uuid-1",
     });
   });
 
@@ -513,7 +518,7 @@ describe("POST /api/cashfree/webhook Route Handler Suite (Step 6C)", () => {
   // 5. Business Failure & Transient Retry Semantics (Tests 17 - 18)
   // ============================================================================
 
-  it("17. updates webhook event to 'failed' and returns 200 for permanent business failures (ORDER_NOT_FOUND, AMOUNT_MISMATCH)", async () => {
+  it("17. marks webhook event 'rejected' (terminal) and returns 200 for permanent business failures (ORDER_NOT_FOUND, AMOUNT_MISMATCH)", async () => {
     vi.spyOn(paymentConfirmationService, "processPaymentWebhook").mockResolvedValueOnce({
       success: false,
       error: "ORDER_NOT_FOUND",
@@ -529,13 +534,13 @@ describe("POST /api/cashfree/webhook Route Handler Suite (Step 6C)", () => {
 
     expect(response.status).toBe(200);
     expect(data.received).toBe(true);
-    expect(data.status).toBe("failed");
+    expect(data.status).toBe("rejected");
     expect(data.error).toBe("ORDER_NOT_FOUND");
     expect(data.orderId).toBe("ord_12345");
 
     expect(SupabaseWebhookEventRepository.prototype.updateWebhookEventStatus).toHaveBeenCalledWith(
       "evt-uuid-0001",
-      "failed",
+      "rejected",
       expect.objectContaining({ processingError: 'Payment order "ord_12345" not found.' })
     );
   });
@@ -603,20 +608,33 @@ describe("POST /api/cashfree/webhook Route Handler Suite (Step 6C)", () => {
     expect(data.error).toBe("Server configuration error.");
   });
 
-  it("21. treats in-flight event (status: 'received') as duplicate in flight and returns 200 without calling service", async () => {
+  it("21. reprocesses an event stuck in 'received' (crashed worker) once its lease can be claimed", async () => {
+    // Regression for the legacy bug: a 'received' event used to be acknowledged
+    // forever without ever being processed.
     vi.spyOn(SupabaseWebhookEventRepository.prototype, "getWebhookEvent").mockResolvedValueOnce(
-      createMockWebhookRecord({ status: "received" })
+      createMockWebhookRecord({ id: "evt-stuck", status: "received", attempts: 1 })
     );
 
     const rawBody = JSON.stringify(getValidSuccessPayload("ord_12345", "987654"));
-    const request = createWebhookRequest(rawBody);
-
-    const response = await POST(request);
+    const response = await POST(createWebhookRequest(rawBody));
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.received).toBe(true);
-    expect(data.status).toBe("duplicate_in_flight");
+    expect(data.status).toBe("processed");
+    expect(SupabaseWebhookEventRepository.prototype.claimWebhookEvent).toHaveBeenCalledWith("evt-stuck", 60, 10);
+    expect(paymentConfirmationService.processPaymentWebhook).toHaveBeenCalledTimes(1);
+  });
+
+  it("21b. asks the provider to retry (503) without processing while another worker holds a live lease", async () => {
+    vi.spyOn(SupabaseWebhookEventRepository.prototype, "getWebhookEvent")
+      .mockResolvedValueOnce(createMockWebhookRecord({ status: "received", attempts: 1 }))
+      .mockResolvedValueOnce(createMockWebhookRecord({ status: "received", attempts: 1, lockedUntil: "2999-01-01T00:00:00.000Z" }));
+    vi.spyOn(SupabaseWebhookEventRepository.prototype, "claimWebhookEvent").mockResolvedValueOnce(null);
+
+    const rawBody = JSON.stringify(getValidSuccessPayload("ord_12345", "987654"));
+    const response = await POST(createWebhookRequest(rawBody));
+
+    expect(response.status).toBe(503);
     expect(paymentConfirmationService.processPaymentWebhook).not.toHaveBeenCalled();
   });
 

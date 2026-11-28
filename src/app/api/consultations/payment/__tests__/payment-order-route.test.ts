@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 import { POST } from "../order/route";
 import { consultationPaymentService } from "@/lib/backend/services/consultation-payment-service";
@@ -22,17 +22,58 @@ describe("POST /api/consultations/payment/order Route Handler Suite", () => {
       resetTime: Date.now() + 60000,
       retryAfterSeconds: 0,
     });
+    // Fake, test-only Razorpay configuration so the readiness gate passes.
+    vi.stubEnv("RAZORPAY_KEY_ID", "rzp_test_UnitTestKey000");
+    vi.stubEnv("RAZORPAY_KEY_SECRET", "unit-test-key-secret");
+    vi.stubEnv("RAZORPAY_WEBHOOK_SECRET", "unit-test-webhook-secret");
+    vi.stubEnv("RAZORPAY_MODE", "test");
+    vi.stubEnv("PAYMENTS_KILL_SWITCH", "");
   });
 
-  it("returns HTTP 200 with paymentSessionId and security headers on success", async () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("returns 503 without creating an order when the payments kill switch is active", async () => {
+    vi.stubEnv("PAYMENTS_KILL_SWITCH", "on");
+    const spy = vi.spyOn(consultationPaymentService, "createPaymentOrder");
+    const request = new NextRequest("http://localhost:3000/api/consultations/payment/order", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-real-ip": "198.51.100.71" },
+      body: JSON.stringify(getValidPayload()),
+    });
+    const response = await POST(request);
+    expect(response.status).toBe(503);
+    expect((await response.json()).code).toBe("PAYMENTS_UNAVAILABLE");
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("fails closed with 503 when Razorpay configuration is incomplete", async () => {
+    vi.stubEnv("RAZORPAY_WEBHOOK_SECRET", "");
+    const spy = vi.spyOn(consultationPaymentService, "createPaymentOrder");
+    const request = new NextRequest("http://localhost:3000/api/consultations/payment/order", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-real-ip": "198.51.100.72" },
+      body: JSON.stringify(getValidPayload()),
+    });
+    const response = await POST(request);
+    const data = await response.json();
+    expect(response.status).toBe(503);
+    expect(JSON.stringify(data)).not.toContain("RAZORPAY");
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("returns HTTP 200 with Razorpay checkout parameters (no secrets) on success", async () => {
     vi.spyOn(consultationPaymentService, "createPaymentOrder").mockResolvedValueOnce({
       success: true,
       data: {
-        paymentSessionId: "session_mock_token_abc123",
-        orderId: "ord_c7c88b90d4614fa3a75df152d113ba4c",
+        keyId: "rzp_test_UnitTestKey000",
+        gatewayOrderId: "order_TestOrder0001",
         amountInPaise: 299900,
         currency: "INR",
-        environment: "sandbox",
+        reservationExpiresInSeconds: 600,
+        reference: "rcpt_c7c88b90d4614fa3a75df152d113ba4c",
+        prefill: { name: "Asha Rao", email: "asha@example.com", contact: "9876543210" },
       },
     });
 
@@ -51,13 +92,20 @@ describe("POST /api/consultations/payment/order Route Handler Suite", () => {
     expect(response.status).toBe(200);
     expect(data.success).toBe(true);
     expect(data.data).toEqual({
-      paymentSessionId: "session_mock_token_abc123",
-      environment: "sandbox",
+      keyId: "rzp_test_UnitTestKey000",
+      orderId: "order_TestOrder0001",
+      amount: 299900,
+      currency: "INR",
+      reference: "rcpt_c7c88b90d4614fa3a75df152d113ba4c",
+      prefill: { name: "Asha Rao", email: "asha@example.com", contact: "9876543210" },
+      reservationExpiresInSeconds: 600,
     });
 
     // Zero secret or internal leak
-    expect(data.data.secretKey).toBeUndefined();
-    expect(data.data.reservationToken).toBeUndefined();
+    const serialized = JSON.stringify(data);
+    expect(serialized).not.toContain("unit-test-key-secret");
+    expect(serialized).not.toContain("unit-test-webhook-secret");
+    expect(serialized).not.toContain(validReservationToken);
 
     // Security and correlation headers
     expect(response.headers.get("Cache-Control")).toBe("no-store, private");
@@ -211,7 +259,8 @@ describe("POST /api/consultations/payment/order Route Handler Suite", () => {
       { error: "INVALID_RESERVATION_TOKEN", expectedStatus: 403 },
       { error: "RESERVATION_EXPIRING_SOON", expectedStatus: 410 },
       { error: "RESERVATION_EXPIRED", expectedStatus: 410 },
-      { error: "PAYMENT_ORDER_EXPIRED", expectedStatus: 410 },
+      { error: "PAYMENT_VERIFICATION_PENDING", expectedStatus: 409 },
+      { error: "PAYMENTS_UNAVAILABLE", expectedStatus: 503 },
       { error: "GATEWAY_TIMEOUT", expectedStatus: 504 },
       { error: "GATEWAY_ERROR", expectedStatus: 502 },
       { error: "DATABASE_ERROR", expectedStatus: 500 },

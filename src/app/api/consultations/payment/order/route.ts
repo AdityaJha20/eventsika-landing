@@ -8,6 +8,7 @@ import {
 import { logger } from "@/lib/backend/logger/logger";
 import { getOrCreateRequestId } from "@/lib/backend/utils/request-id";
 import { isAllowedOrigin } from "@/lib/backend/http/origin";
+import { getPaymentReadiness, getServerConfig } from "@/lib/backend/config/env";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,8 @@ const ERROR_STATUS_MAP: Record<PaymentServiceErrorCode, number> = {
   RESERVATION_EXPIRED: 410,
   RESERVATION_EXPIRING_SOON: 410,
   PAYMENT_ALREADY_COMPLETED: 409,
-  PAYMENT_ORDER_EXPIRED: 410,
+  PAYMENT_VERIFICATION_PENDING: 409,
+  PAYMENTS_UNAVAILABLE: 503,
   GATEWAY_TIMEOUT: 504,
   GATEWAY_ERROR: 502,
   DATABASE_ERROR: 500,
@@ -169,7 +171,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Business Domain Service Execution
+    // 5. Operational gates: kill switch blocks NEW payments; misconfiguration fails closed.
+    if (getServerConfig().payments.killSwitchActive) {
+      logger.warn("Payment order rejected: payments kill switch active", { requestId });
+      return NextResponse.json(
+        { success: false, message: "Bookings are temporarily paused. Please try again later.", code: "PAYMENTS_UNAVAILABLE" },
+        { status: 503, headers: responseHeaders }
+      );
+    }
+    const readiness = getPaymentReadiness();
+    if (!readiness.ready) {
+      logger.error("Payment order rejected: Razorpay configuration invalid", undefined, {
+        requestId,
+        problems: readiness.problems,
+      });
+      return NextResponse.json(
+        { success: false, message: "Payment service temporarily unavailable. Please try again later.", code: "PAYMENTS_UNAVAILABLE" },
+        { status: 503, headers: responseHeaders }
+      );
+    }
+
+    // 6. Business Domain Service Execution
     const result = await consultationPaymentService.createPaymentOrder(validation.data, {
       requestId,
       clientIp,
@@ -190,13 +212,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 6. Sanitized Response (Payment Session and Client Mode only, zero secrets or tokens)
+    // 7. Checkout parameters only: public Key ID, provider order ID, server amount.
+    // Never the key secret, webhook secret or reservation token.
     return NextResponse.json(
       {
         success: true,
         data: {
-          paymentSessionId: result.data.paymentSessionId,
-          environment: result.data.environment,
+          keyId: result.data.keyId,
+          orderId: result.data.gatewayOrderId,
+          amount: result.data.amountInPaise,
+          currency: result.data.currency,
+          reference: result.data.reference,
+          prefill: result.data.prefill,
+          // Server-authoritative remaining hold; the browser bounds checkout with it.
+          reservationExpiresInSeconds: result.data.reservationExpiresInSeconds,
         },
       },
       {

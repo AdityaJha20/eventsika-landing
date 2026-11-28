@@ -33,8 +33,48 @@ export class SupabaseWebhookEventRepository implements IWebhookEventRepository {
       status: row.status as WebhookEventStatus,
       processingError: typeof row.processing_error === "string" ? row.processing_error : null,
       processedAt: typeof row.processed_at === "string" ? row.processed_at : null,
+      attempts: typeof row.attempts === "number" ? row.attempts : 0,
+      lockedUntil: typeof row.locked_until === "string" ? row.locked_until : null,
       createdAt: String(row.created_at),
     };
+  }
+
+  /**
+   * Leases the event for processing (claim_webhook_event RPC). Returns null when the
+   * event is terminal, leased by another worker, or out of attempts.
+   */
+  async claimWebhookEvent(id: string, leaseSeconds = 60, maxAttempts = 10): Promise<WebhookEventRecord | null> {
+    const client = this.getClient();
+    const { data, error } = await client.rpc("claim_webhook_event", {
+      p_id: id,
+      p_lease_seconds: leaseSeconds,
+      p_max_attempts: maxAttempts,
+    });
+    if (error) {
+      throw new Error(`Database error claiming webhook event: ${error.message}`);
+    }
+    const row = Array.isArray(data) ? data[0] : data;
+    return row && row.id ? this.mapRowToRecord(row) : null;
+  }
+
+  /**
+   * Events that are not terminal and whose lease (if any) has expired.
+   */
+  async listRetryableEvents(provider: string, createdBefore: string, limit: number): Promise<WebhookEventRecord[]> {
+    const client = this.getClient();
+    const { data, error } = await client
+      .from("webhook_events")
+      .select("*")
+      .eq("provider", provider)
+      .in("status", ["received", "failed"])
+      .lt("created_at", createdBefore)
+      .or(`locked_until.is.null,locked_until.lt.${new Date().toISOString()}`)
+      .order("created_at", { ascending: true })
+      .limit(limit);
+    if (error) {
+      throw new Error(`Database error listing retryable webhook events: ${error.message}`);
+    }
+    return (data || []).map((row) => this.mapRowToRecord(row));
   }
 
   async recordWebhookEvent(event: CreateWebhookEventInput): Promise<WebhookEventRecord> {
@@ -84,7 +124,8 @@ export class SupabaseWebhookEventRepository implements IWebhookEventRepository {
     }
   ): Promise<WebhookEventRecord> {
     const client = this.getClient();
-    const updates: Record<string, unknown> = { status };
+    // Releasing the lease lets a provider retry (or reconciliation) reclaim a failed event.
+    const updates: Record<string, unknown> = { status, locked_until: null };
     if (details?.processingError !== undefined) {
       updates.processing_error = details.processingError;
     }

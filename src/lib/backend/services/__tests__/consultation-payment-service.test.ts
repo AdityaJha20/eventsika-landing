@@ -2,27 +2,27 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   ConsultationPaymentService,
   buildDeterministicGatewayOrderId,
+  buildRazorpayReceipt,
   MIN_RESERVATION_SAFETY_LIFETIME_SECONDS,
 } from "../consultation-payment-service";
 import { IConsultationSlotRepository } from "../../repositories/consultation-slot-repository.interface";
 import { IConsultationRepository } from "../../repositories/consultation-repository.interface";
 import { IPaymentOrderRepository } from "../../repositories/payment-order-repository.interface";
-import {
-  GatewayError,
-  GatewayOrderResult,
-  IPaymentGatewayAdapter,
-} from "../../integrations/payment-gateway.interface";
+import { IPaymentTransactionRepository } from "../../repositories/payment-transaction-repository.interface";
+import { IPaymentLedgerRepository } from "../../repositories/payment-ledger-repository";
+import { GatewayError, IOrderPaymentGateway, ProviderOrder } from "../../integrations/payment-gateway.interface";
 import {
   ConsultationRecord,
   ConsultationSlotRecord,
   PaymentOrderRecord,
+  PaymentTransactionRecord,
 } from "../../types/payment-and-consultation";
 
-describe("ConsultationPaymentService Suite (Step 4)", () => {
+describe("ConsultationPaymentService (Razorpay order creation)", () => {
   const mockConsultationId = "c7c88b90-d461-4fa3-a75d-f152d113ba4c";
   const mockSlotId = "slot-uuid-999";
   const mockToken = "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90"; // 64 hex
-  const deterministicOrderId = buildDeterministicGatewayOrderId(mockConsultationId);
+  const receipt = buildRazorpayReceipt(mockConsultationId);
 
   // Baseline server timestamp: 2026-10-01T10:00:00.000Z
   const baselineNow = new Date("2026-10-01T10:00:00.000Z");
@@ -47,7 +47,7 @@ describe("ConsultationPaymentService Suite (Step 4)", () => {
     customerPhone: "9876543210",
     customerEmail: "ananya.roy@example.com",
     customerCity: "Kolkata",
-    eventType: "Diwali Special",
+    eventType: "Birthday",
     eventTypeOther: null,
     guestCount: "20",
     eventDateApprox: "November 2026",
@@ -61,20 +61,20 @@ describe("ConsultationPaymentService Suite (Step 4)", () => {
     updatedAt: "2026-10-01T10:00:00.000Z",
   };
 
-  const mockGatewayOrderResult: GatewayOrderResult = {
-    gatewayOrderId: "cf_10293847",
-    merchantOrderId: deterministicOrderId,
-    paymentSessionId: "session_mock_valid_12345",
-    orderStatus: "ACTIVE",
-    orderAmount: 2999.0,
-    orderCurrency: "INR",
-    orderExpiryTime: "2026-10-01T10:15:00.000Z",
+  const remoteOrder: ProviderOrder = {
+    id: "order_TestOrder0001",
+    amountInPaise: 299900,
+    currency: "INR",
+    receipt,
+    status: "created",
   };
 
-  const mockSavedPaymentOrder: PaymentOrderRecord = {
+  const localOrder: PaymentOrderRecord = {
     id: "order-local-uuid-1",
     consultationId: mockConsultationId,
-    gatewayOrderId: deterministicOrderId,
+    provider: "razorpay",
+    gatewayOrderId: null,
+    receipt,
     amountInPaise: 299900,
     currency: "INR",
     status: "created",
@@ -86,10 +86,28 @@ describe("ConsultationPaymentService Suite (Step 4)", () => {
     updatedAt: "2026-10-01T10:00:01.000Z",
   };
 
+  const txn = (status: PaymentTransactionRecord["status"]): PaymentTransactionRecord => ({
+    id: `txn-${status}`,
+    paymentOrderId: localOrder.id,
+    provider: "razorpay",
+    gatewayPaymentId: `pay_${status}0001`,
+    amountInPaise: 299900,
+    feeInPaise: null,
+    taxInPaise: null,
+    status,
+    paymentMethod: "upi",
+    bankReference: null,
+    errorCode: null,
+    errorDescription: null,
+    createdAt: "2026-10-01T10:01:00.000Z",
+  });
+
   let mockSlotRepo: IConsultationSlotRepository;
   let mockConsultationRepo: IConsultationRepository;
   let mockPaymentOrderRepo: IPaymentOrderRepository;
-  let mockGatewayAdapter: IPaymentGatewayAdapter;
+  let mockTransactionRepo: IPaymentTransactionRepository;
+  let mockLedger: IPaymentLedgerRepository;
+  let mockGatewayAdapter: IOrderPaymentGateway;
   let service: ConsultationPaymentService;
 
   beforeEach(() => {
@@ -110,51 +128,87 @@ describe("ConsultationPaymentService Suite (Step 4)", () => {
     mockConsultationRepo = {
       getConsultationById: vi.fn().mockResolvedValue(mockConsultation),
       createConsultation: vi.fn(),
-      updateConsultationStatus: vi.fn().mockResolvedValue({
-        ...mockConsultation,
-        status: "awaiting_payment",
-      }),
+      updateConsultationStatus: vi.fn().mockResolvedValue({ ...mockConsultation, status: "awaiting_payment" }),
       detachStaleSlotHold: vi.fn(),
     };
 
     mockPaymentOrderRepo = {
       getLatestOrderByConsultationId: vi.fn().mockResolvedValue(null),
-      createOrder: vi.fn().mockResolvedValue(mockSavedPaymentOrder),
-      getOrderById: vi.fn().mockResolvedValue(mockSavedPaymentOrder),
-      getOrderByGatewayId: vi.fn().mockResolvedValue(mockSavedPaymentOrder),
+      createOrder: vi.fn().mockResolvedValue(localOrder),
+      getOrderById: vi.fn().mockResolvedValue(localOrder),
+      getOrderByGatewayId: vi.fn(),
+      getOrderByProviderGatewayId: vi.fn(),
+      getOrderByReceipt: vi.fn().mockResolvedValue(localOrder),
+      attachGatewayOrderId: vi.fn().mockImplementation(async (id: string, gatewayOrderId: string) => ({
+        ...localOrder,
+        id,
+        gatewayOrderId,
+      })),
       updateOrderStatus: vi.fn(),
+      listOpenOrders: vi.fn(),
+    };
+
+    mockTransactionRepo = {
+      recordTransaction: vi.fn(),
+      getTransactionById: vi.fn(),
+      getTransactionByGatewayId: vi.fn(),
+      getTransactionsByOrderId: vi.fn().mockResolvedValue([]),
+    };
+
+    mockLedger = {
+      applyPaymentEvent: vi.fn(),
+      createRefundIntent: vi.fn(),
+      rebookConflictedConsultation: vi.fn(),
+      claimNotification: vi.fn(),
+      completeNotification: vi.fn(),
+      listRetryableNotifications: vi.fn(),
+      recordIssue: vi.fn().mockResolvedValue(undefined),
+      resolveIssue: vi.fn(),
+      listOpenIssues: vi.fn(),
+      appendAudit: vi.fn(),
     };
 
     mockGatewayAdapter = {
-      createOrder: vi.fn().mockResolvedValue(mockGatewayOrderResult),
-      getOrder: vi.fn().mockResolvedValue(mockGatewayOrderResult),
-      getEnvironment: vi.fn().mockReturnValue("sandbox"),
+      provider: "razorpay",
+      createOrder: vi.fn().mockResolvedValue(remoteOrder),
+      fetchOrder: vi.fn(),
+      findOrderByReceipt: vi.fn().mockResolvedValue(null),
+      fetchOrderPayments: vi.fn(),
+      fetchPayment: vi.fn(),
+      createRefund: vi.fn(),
+      fetchRefund: vi.fn(),
+      fetchPaymentRefunds: vi.fn(),
     };
 
-    service = new ConsultationPaymentService(
-      mockSlotRepo,
-      mockConsultationRepo,
-      mockPaymentOrderRepo,
-      mockGatewayAdapter
-    );
+    service = new ConsultationPaymentService({
+      slotRepo: mockSlotRepo,
+      consultationRepo: mockConsultationRepo,
+      paymentOrderRepo: mockPaymentOrderRepo,
+      transactionRepo: mockTransactionRepo,
+      ledger: mockLedger,
+      gateway: mockGatewayAdapter,
+      keyIdResolver: () => "rzp_test_UnitTestKey000",
+    });
   });
 
-  describe("Deterministic Order ID Construction", () => {
+  describe("Constants and identifiers", () => {
     it("locks the reservation safety threshold to exactly 120 seconds", () => {
       expect(MIN_RESERVATION_SAFETY_LIFETIME_SECONDS).toBe(120);
     });
 
-    it("constructs correct 36-character order ID without hyphens", () => {
-      const orderId = buildDeterministicGatewayOrderId(mockConsultationId);
-      expect(orderId).toBe("ord_c7c88b90d4614fa3a75df152d113ba4c");
-      expect(orderId.length).toBe(36);
-      expect(orderId.startsWith("ord_")).toBe(true);
-      expect(/^[a-zA-Z0-9_-]{3,45}$/.test(orderId)).toBe(true);
+    it("builds a stable Razorpay receipt within the documented 40-character limit", () => {
+      expect(receipt).toBe("rcpt_c7c88b90d4614fa3a75df152d113ba4c");
+      expect(receipt.length).toBeLessThanOrEqual(40);
+      expect(buildRazorpayReceipt(mockConsultationId)).toBe(receipt);
+    });
+
+    it("keeps the legacy Cashfree order id builder for historical records", () => {
+      expect(buildDeterministicGatewayOrderId(mockConsultationId)).toBe("ord_c7c88b90d4614fa3a75df152d113ba4c");
     });
   });
 
-  describe("Happy Path Order Creation Pipeline", () => {
-    it("successfully validates, calls Cashfree, persists payment order, updates consultation, and returns paymentSessionId", async () => {
+  describe("Happy path", () => {
+    it("persists the local order BEFORE calling Razorpay and returns only public checkout data", async () => {
       const result = await service.createPaymentOrder(
         { consultationId: mockConsultationId, reservationToken: mockToken },
         { requestId: "req_test_123", serverNow: baselineNow }
@@ -162,48 +216,47 @@ describe("ConsultationPaymentService Suite (Step 4)", () => {
 
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.paymentSessionId).toBe("session_mock_valid_12345");
-        expect(result.data.orderId).toBe(deterministicOrderId);
-        expect(result.data.amountInPaise).toBe(299900);
-        expect(result.data.currency).toBe("INR");
-        expect(result.data.environment).toBe("sandbox");
+        expect(result.data).toEqual({
+          keyId: "rzp_test_UnitTestKey000",
+          gatewayOrderId: "order_TestOrder0001",
+          amountInPaise: 299900,
+          currency: "INR",
+          // Server-authoritative: reservedUntil 10:15 - serverNow 10:00.
+          reservationExpiresInSeconds: 900,
+          reference: receipt,
+          prefill: { name: "Ananya Roy", email: "ananya.roy@example.com", contact: "9876543210" },
+        });
       }
 
-      // 1. Loaded consultation & slot
-      expect(mockConsultationRepo.getConsultationById).toHaveBeenCalledWith(mockConsultationId);
-      expect(mockSlotRepo.getSlotById).toHaveBeenCalledWith(mockSlotId);
-
-      // 2. Gateway-First: called Cashfree with deterministic ID and authoritative price
-      expect(mockGatewayAdapter.createOrder).toHaveBeenCalledWith({
-        orderId: deterministicOrderId,
-        amountInPaise: 299900,
-        currency: "INR",
-        customer: {
-          id: "cust_c7c88b90d4614fa3",
-          name: "Ananya Roy",
-          email: "ananya.roy@example.com",
-          phone: "9876543210",
-        },
-        orderExpiryTime: "2026-10-01T10:15:00.000Z",
-        orderNote: "Eventsika Consultation Booking",
-      });
-
-      // 3. Persisted local payment_orders row
       expect(mockPaymentOrderRepo.createOrder).toHaveBeenCalledWith({
         consultationId: mockConsultationId,
-        gatewayOrderId: deterministicOrderId,
+        provider: "razorpay",
+        receipt,
         amountInPaise: 299900,
         currency: "INR",
         expiresAt: "2026-10-01T10:15:00.000Z",
         reservationToken: mockToken,
         requestId: "req_test_123",
       });
+      expect(mockGatewayAdapter.createOrder).toHaveBeenCalledWith({
+        receipt,
+        amountInPaise: 299900,
+        currency: "INR",
+        notes: { payment_order_id: localOrder.id, consultation_id: mockConsultationId },
+      });
+      const localInsertOrder = vi.mocked(mockPaymentOrderRepo.createOrder).mock.invocationCallOrder[0];
+      const gatewayCallOrder = vi.mocked(mockGatewayAdapter.createOrder).mock.invocationCallOrder[0];
+      expect(localInsertOrder).toBeLessThan(gatewayCallOrder);
+      expect(mockPaymentOrderRepo.attachGatewayOrderId).toHaveBeenCalledWith(localOrder.id, "order_TestOrder0001");
+      expect(mockConsultationRepo.updateConsultationStatus).toHaveBeenCalledWith(mockConsultationId, "awaiting_payment");
+    });
 
-      // 4. Transitioned consultation to 'awaiting_payment'
-      expect(mockConsultationRepo.updateConsultationStatus).toHaveBeenCalledWith(
-        mockConsultationId,
-        "awaiting_payment"
+    it("never takes the amount from anywhere but the server constant", async () => {
+      await service.createPaymentOrder(
+        { consultationId: mockConsultationId, reservationToken: mockToken },
+        { serverNow: baselineNow }
       );
+      expect(vi.mocked(mockGatewayAdapter.createOrder).mock.calls[0][0].amountInPaise).toBe(299900);
     });
   });
 
@@ -418,63 +471,46 @@ describe("ConsultationPaymentService Suite (Step 4)", () => {
     });
   });
 
-  describe("Post-Gateway Expiry Race Protection", () => {
-    it("aborts persistence and returns RESERVATION_EXPIRED if hold expires during gateway request roundtrip", async () => {
+  describe("Post-gateway expiry race", () => {
+    it("does not return checkout data or advance the consultation if the hold expires during the Razorpay call", async () => {
       vi.useFakeTimers();
-      // Setup: Pre-check passes with 130 seconds left (10:12:50.000Z)
-      const preCheckTime = new Date("2026-10-01T10:12:50.000Z");
-      vi.setSystemTime(preCheckTime);
-
-      // When createOrder is called, time advances such that post-check is past expiry (10:15:05.000Z)
+      vi.setSystemTime(new Date("2026-10-01T10:12:50.000Z"));
       vi.mocked(mockGatewayAdapter.createOrder).mockImplementationOnce(async () => {
         vi.setSystemTime(new Date("2026-10-01T10:15:05.000Z"));
-        return mockGatewayOrderResult;
+        return remoteOrder;
       });
 
-      const result = await service.createPaymentOrder(
-        { consultationId: mockConsultationId, reservationToken: mockToken }
-      );
+      const result = await service.createPaymentOrder({ consultationId: mockConsultationId, reservationToken: mockToken });
 
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error).toBe("RESERVATION_EXPIRED");
         expect(result.message).toContain("expired during payment order preparation");
       }
-
-      // Gateway was called, BUT local DB insert and consultation transition were blocked!
-      expect(mockGatewayAdapter.createOrder).toHaveBeenCalled();
-      expect(mockPaymentOrderRepo.createOrder).not.toHaveBeenCalled();
       expect(mockConsultationRepo.updateConsultationStatus).not.toHaveBeenCalled();
-
       vi.useRealTimers();
     });
   });
 
-  describe("Existing Payment Order Idempotency & Recovery", () => {
-    it("rejects with PAYMENT_ALREADY_COMPLETED when local payment order is already paid", async () => {
-      vi.mocked(mockPaymentOrderRepo.getLatestOrderByConsultationId).mockResolvedValueOnce({
-        ...mockSavedPaymentOrder,
-        status: "paid",
-        paidAt: "2026-10-01T10:05:00.000Z",
-      });
-
+  describe("Idempotency, retries and recovery", () => {
+    it("rejects with PAYMENT_ALREADY_COMPLETED when the order is already paid", async () => {
+      vi.mocked(mockPaymentOrderRepo.getLatestOrderByConsultationId).mockResolvedValueOnce({ ...localOrder, status: "paid" });
       const result = await service.createPaymentOrder(
         { consultationId: mockConsultationId, reservationToken: mockToken },
         { serverNow: baselineNow }
       );
-
       expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toBe("PAYMENT_ALREADY_COMPLETED");
-      }
+      if (!result.success) expect(result.error).toBe("PAYMENT_ALREADY_COMPLETED");
       expect(mockGatewayAdapter.createOrder).not.toHaveBeenCalled();
     });
 
-    it("recovers active Cashfree order and session when local order is created or attempted", async () => {
+    it("retries a failed attempt on the SAME Razorpay order (no new order, no new consultation)", async () => {
       vi.mocked(mockPaymentOrderRepo.getLatestOrderByConsultationId).mockResolvedValueOnce({
-        ...mockSavedPaymentOrder,
-        status: "created",
+        ...localOrder,
+        status: "attempted",
+        gatewayOrderId: "order_TestOrder0001",
       });
+      vi.mocked(mockTransactionRepo.getTransactionsByOrderId).mockResolvedValueOnce([txn("failed")]);
 
       const result = await service.createPaymentOrder(
         { consultationId: mockConsultationId, reservationToken: mockToken },
@@ -482,157 +518,136 @@ describe("ConsultationPaymentService Suite (Step 4)", () => {
       );
 
       expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.paymentSessionId).toBe("session_mock_valid_12345");
-      }
+      if (result.success) expect(result.data.gatewayOrderId).toBe("order_TestOrder0001");
+      expect(mockPaymentOrderRepo.createOrder).not.toHaveBeenCalled();
+      expect(mockGatewayAdapter.createOrder).not.toHaveBeenCalled();
+      expect(mockConsultationRepo.createConsultation).not.toHaveBeenCalled();
+    });
 
-      // Recovered via getOrder, NOT a new createOrder call
-      expect(mockGatewayAdapter.getOrder).toHaveBeenCalledWith(deterministicOrderId);
+    it.each(["pending", "success"] as const)(
+      "refuses a new checkout while a %s payment exists (no blind second payment)",
+      async (status) => {
+        vi.mocked(mockPaymentOrderRepo.getLatestOrderByConsultationId).mockResolvedValueOnce({
+          ...localOrder,
+          status: "attempted",
+          gatewayOrderId: "order_TestOrder0001",
+        });
+        vi.mocked(mockTransactionRepo.getTransactionsByOrderId).mockResolvedValueOnce([txn(status)]);
+        const result = await service.createPaymentOrder(
+          { consultationId: mockConsultationId, reservationToken: mockToken },
+          { serverNow: baselineNow }
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) expect(result.error).toBe("PAYMENT_VERIFICATION_PENDING");
+      }
+    );
+
+    it("never opens a Razorpay payment while a legacy Cashfree attempt is live", async () => {
+      vi.mocked(mockPaymentOrderRepo.getLatestOrderByConsultationId).mockResolvedValueOnce({
+        ...localOrder,
+        provider: "cashfree",
+        receipt: null,
+        gatewayOrderId: "ord_c7c88b90d4614fa3a75df152d113ba4c",
+      });
+      const result = await service.createPaymentOrder(
+        { consultationId: mockConsultationId, reservationToken: mockToken },
+        { serverNow: baselineNow }
+      );
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error).toBe("PAYMENT_VERIFICATION_PENDING");
+      expect(mockGatewayAdapter.createOrder).not.toHaveBeenCalled();
+      expect(mockGatewayAdapter.findOrderByReceipt).not.toHaveBeenCalled();
+    });
+
+    it("keeps the local order (no link) when Razorpay times out, so the outcome stays recoverable", async () => {
+      vi.mocked(mockGatewayAdapter.createOrder).mockRejectedValueOnce(
+        new GatewayError("timeout", { code: "GATEWAY_TIMEOUT" })
+      );
+      const result = await service.createPaymentOrder(
+        { consultationId: mockConsultationId, reservationToken: mockToken },
+        { serverNow: baselineNow }
+      );
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error).toBe("GATEWAY_TIMEOUT");
+      expect(mockPaymentOrderRepo.createOrder).toHaveBeenCalledTimes(1);
+      expect(mockPaymentOrderRepo.attachGatewayOrderId).not.toHaveBeenCalled();
+      expect(mockConsultationRepo.updateConsultationStatus).not.toHaveBeenCalled();
+    });
+
+    it("recovers a lost Razorpay order by receipt on retry instead of creating a duplicate", async () => {
+      vi.mocked(mockPaymentOrderRepo.getLatestOrderByConsultationId).mockResolvedValueOnce({ ...localOrder });
+      vi.mocked(mockGatewayAdapter.findOrderByReceipt).mockResolvedValueOnce(remoteOrder);
+
+      const result = await service.createPaymentOrder(
+        { consultationId: mockConsultationId, reservationToken: mockToken },
+        { serverNow: baselineNow }
+      );
+
+      expect(result.success).toBe(true);
+      expect(mockGatewayAdapter.findOrderByReceipt).toHaveBeenCalledWith(receipt);
       expect(mockGatewayAdapter.createOrder).not.toHaveBeenCalled();
       expect(mockPaymentOrderRepo.createOrder).not.toHaveBeenCalled();
+      expect(mockPaymentOrderRepo.attachGatewayOrderId).toHaveBeenCalledWith(localOrder.id, remoteOrder.id);
     });
 
-    it("synchronizes local status and returns PAYMENT_ALREADY_COMPLETED if recovered order was paid at provider", async () => {
-      vi.mocked(mockPaymentOrderRepo.getLatestOrderByConsultationId).mockResolvedValueOnce({
-        ...mockSavedPaymentOrder,
-        status: "created",
-      });
-
-      vi.mocked(mockGatewayAdapter.getOrder).mockResolvedValueOnce({
-        ...mockGatewayOrderResult,
-        orderStatus: "PAID",
-      });
-
+    it("refuses and records an issue when Razorpay returns an order with a different amount", async () => {
+      vi.mocked(mockGatewayAdapter.createOrder).mockResolvedValueOnce({ ...remoteOrder, amountInPaise: 100 });
       const result = await service.createPaymentOrder(
         { consultationId: mockConsultationId, reservationToken: mockToken },
         { serverNow: baselineNow }
       );
-
       expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toBe("PAYMENT_ALREADY_COMPLETED");
-      }
-      expect(mockPaymentOrderRepo.updateOrderStatus).toHaveBeenCalledWith(
-        mockSavedPaymentOrder.id,
-        "paid",
-        expect.objectContaining({ paidAt: expect.any(String) })
-      );
+      if (!result.success) expect(result.error).toBe("GATEWAY_ERROR");
+      expect(mockLedger.recordIssue).toHaveBeenCalledWith(expect.objectContaining({ kind: "amount_mismatch" }));
+      expect(mockPaymentOrderRepo.attachGatewayOrderId).not.toHaveBeenCalled();
     });
 
-    it("rejects with PAYMENT_ORDER_EXPIRED if recovered provider order is EXPIRED or TERMINATED", async () => {
-      vi.mocked(mockPaymentOrderRepo.getLatestOrderByConsultationId).mockResolvedValueOnce({
-        ...mockSavedPaymentOrder,
-        status: "created",
-      });
-
-      vi.mocked(mockGatewayAdapter.getOrder).mockResolvedValueOnce({
-        ...mockGatewayOrderResult,
-        orderStatus: "EXPIRED",
-      });
-
+    it("maps generic gateway rejections to GATEWAY_ERROR", async () => {
+      vi.mocked(mockGatewayAdapter.createOrder).mockRejectedValueOnce(
+        new GatewayError("rejected", { code: "GATEWAY_REJECTED", statusCode: 400 })
+      );
       const result = await service.createPaymentOrder(
         { consultationId: mockConsultationId, reservationToken: mockToken },
         { serverNow: baselineNow }
       );
-
       expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toBe("PAYMENT_ORDER_EXPIRED");
-      }
-    });
-
-    it("self-heals consultation status to awaiting_payment during recovery if it remained slot_held", async () => {
-      vi.mocked(mockPaymentOrderRepo.getLatestOrderByConsultationId).mockResolvedValueOnce({
-        ...mockSavedPaymentOrder,
-        status: "created",
-      });
-
-      const result = await service.createPaymentOrder(
-        { consultationId: mockConsultationId, reservationToken: mockToken },
-        { serverNow: baselineNow }
-      );
-
-      expect(result.success).toBe(true);
-      expect(mockConsultationRepo.updateConsultationStatus).toHaveBeenCalledWith(
-        mockConsultationId,
-        "awaiting_payment"
-      );
+      if (!result.success) expect(result.error).toBe("GATEWAY_ERROR");
     });
   });
 
-  describe("Cashfree Gateway Failure Handling", () => {
-    it("maps GATEWAY_TIMEOUT to 504 status", async () => {
-      vi.mocked(mockGatewayAdapter.createOrder).mockRejectedValueOnce(
-        new GatewayError("Timeout", { code: "GATEWAY_TIMEOUT" })
+  describe("Database concurrency", () => {
+    it("reuses the concurrent winner when the local insert hits the unique receipt (23505)", async () => {
+      vi.mocked(mockPaymentOrderRepo.createOrder).mockRejectedValueOnce(
+        Object.assign(new Error("duplicate key value violates unique constraint"), { code: "23505" })
       );
-
       const result = await service.createPaymentOrder(
         { consultationId: mockConsultationId, reservationToken: mockToken },
         { serverNow: baselineNow }
       );
-
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toBe("GATEWAY_TIMEOUT");
-        expect(result.message).toContain("timed out");
-      }
-      expect(mockPaymentOrderRepo.createOrder).not.toHaveBeenCalled();
-    });
-
-    it("maps generic GatewayError to GATEWAY_ERROR", async () => {
-      vi.mocked(mockGatewayAdapter.createOrder).mockRejectedValueOnce(
-        new GatewayError("Network failure", { code: "NETWORK_ERROR" })
-      );
-
-      const result = await service.createPaymentOrder(
-        { consultationId: mockConsultationId, reservationToken: mockToken },
-        { serverNow: baselineNow }
-      );
-
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toBe("GATEWAY_ERROR");
-      }
-      expect(mockPaymentOrderRepo.createOrder).not.toHaveBeenCalled();
-    });
-  });
-
-  describe("Database Concurrency & Unique Conflict (PostgreSQL 23505)", () => {
-    it("recovers winning record when duplicate insert error occurs (23505 unique conflict)", async () => {
-      const conflictError = new Error(
-        'duplicate key value violates unique constraint "idx_orders_gateway_order_id"'
-      );
-      (conflictError as unknown as { code: string }).code = "23505";
-
-      vi.mocked(mockPaymentOrderRepo.createOrder).mockRejectedValueOnce(conflictError);
-      vi.mocked(mockPaymentOrderRepo.getOrderByGatewayId).mockResolvedValueOnce(mockSavedPaymentOrder);
-
-      const result = await service.createPaymentOrder(
-        { consultationId: mockConsultationId, reservationToken: mockToken },
-        { serverNow: baselineNow }
-      );
-
       expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.paymentSessionId).toBe("session_mock_valid_12345");
-      }
-      expect(mockPaymentOrderRepo.getOrderByGatewayId).toHaveBeenCalledWith(deterministicOrderId);
+      expect(mockPaymentOrderRepo.getOrderByReceipt).toHaveBeenCalledWith(receipt);
+      expect(mockGatewayAdapter.createOrder).toHaveBeenCalledTimes(1);
     });
 
-    it("returns DATABASE_ERROR if consultation status update fails after order insert", async () => {
-      vi.mocked(mockConsultationRepo.updateConsultationStatus).mockRejectedValueOnce(
-        new Error("Connection reset")
-      );
-
+    it("returns DATABASE_ERROR for a non-conflict insert failure without calling Razorpay", async () => {
+      vi.mocked(mockPaymentOrderRepo.createOrder).mockRejectedValueOnce(new Error("connection reset"));
       const result = await service.createPaymentOrder(
         { consultationId: mockConsultationId, reservationToken: mockToken },
         { serverNow: baselineNow }
       );
-
       expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toBe("DATABASE_ERROR");
-      }
+      if (!result.success) expect(result.error).toBe("DATABASE_ERROR");
+      expect(mockGatewayAdapter.createOrder).not.toHaveBeenCalled();
+    });
+
+    it("returns DATABASE_ERROR if the consultation status update fails", async () => {
+      vi.mocked(mockConsultationRepo.updateConsultationStatus).mockRejectedValueOnce(new Error("db down"));
+      const result = await service.createPaymentOrder(
+        { consultationId: mockConsultationId, reservationToken: mockToken },
+        { serverNow: baselineNow }
+      );
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error).toBe("DATABASE_ERROR");
     });
   });
 });

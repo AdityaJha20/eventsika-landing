@@ -57,9 +57,50 @@ export interface ActiveReservationSession {
   meetingChannel: "phone" | "video";
 }
 
+/** Server-created Razorpay checkout parameters (amount is server-authoritative). */
 export interface PaymentOrderResponseData {
-  paymentSessionId: string;
-  environment: "sandbox" | "production";
+  keyId: string;
+  orderId: string;
+  amount: number; // paise
+  currency: "INR";
+  reference: string;
+  prefill: { name: string; email: string; contact: string };
+  /** Seconds left on the server-held reservation when the order response was built. */
+  reservationExpiresInSeconds: number;
+}
+
+export type CustomerPaymentState =
+  | "awaiting_payment"
+  | "verifying"
+  | "paid"
+  | "failed"
+  | "expired"
+  | "refund_processing"
+  | "partially_refunded"
+  | "refunded";
+
+export type CustomerBookingState =
+  | "pending"
+  | "confirmed"
+  | "action_required"
+  | "cancelled"
+  | "completed"
+  | "no_show"
+  | "rescheduled";
+
+export interface CustomerPaymentStatusDto {
+  payment: CustomerPaymentState;
+  booking: CustomerBookingState;
+  slotStartTime: string | null;
+  amountInPaise: number;
+  reference: string | null;
+  canRetryPayment: boolean;
+}
+
+/** Minimal credentials needed to look a booking up again (kept in sessionStorage). */
+export interface BookingRecoveryHandle {
+  consultationId: string;
+  reservationToken: string;
 }
 
 export type CountdownStatus = "normal" | "warning" | "critical" | "expired";

@@ -1,18 +1,14 @@
 /**
- * Consultation Payment Domain Service (Step 4)
+ * Consultation Payment Domain Service
  *
- * Orchestrates secure payment order creation connecting:
- * Existing Consultation Reservation (status: 'slot_held')
- *   ↓
- * Server-Authoritative Validation (Slot, Token, 120s Safety Lifetime, Price)
- *   ↓
- * Cashfree Create / Recover (Deterministic Order ID, 10s Timeout, 409 Auto-Recovery)
- *   ↓
- * Local payment_orders Persistence (status: 'created', gateway_order_id populated)
- *   ↓
- * Consultation State Transition ('slot_held' → 'awaiting_payment')
- *   ↓
- * Return paymentSessionId for Client Checkout (Step 5)
+ * Existing reservation ('slot_held')
+ *   -> server-authoritative validation (slot, token, >=120s hold left, server price)
+ *   -> local payment_orders row persisted FIRST (provider 'razorpay', stable receipt)
+ *   -> Razorpay order created or recovered by receipt (never created twice)
+ *   -> consultation 'slot_held' -> 'awaiting_payment'
+ *   -> Checkout parameters (public Key ID, provider order ID, server amount)
+ *
+ * The browser never supplies amount, currency, status or order identity.
  */
 
 import crypto from "node:crypto";
@@ -23,12 +19,15 @@ import { IConsultationRepository } from "../repositories/consultation-repository
 import { SupabaseConsultationRepository } from "../repositories/supabase-consultation-repository";
 import { IPaymentOrderRepository } from "../repositories/payment-order-repository.interface";
 import { SupabasePaymentOrderRepository } from "../repositories/supabase-payment-order-repository";
+import { IPaymentTransactionRepository } from "../repositories/payment-transaction-repository.interface";
+import { SupabasePaymentTransactionRepository } from "../repositories/supabase-payment-transaction-repository";
 import {
-  GatewayError,
-  GatewayOrderResult,
-  IPaymentGatewayAdapter,
-} from "../integrations/payment-gateway.interface";
-import { CashfreePaymentGatewayAdapter } from "../integrations/cashfree-payment-gateway-adapter";
+  IPaymentLedgerRepository,
+  SupabasePaymentLedgerRepository,
+} from "../repositories/payment-ledger-repository";
+import { GatewayError, IOrderPaymentGateway } from "../integrations/payment-gateway.interface";
+import { RazorpayPaymentGateway } from "../integrations/razorpay-payment-gateway";
+import { getServerConfig } from "../config/env";
 import {
   DEFAULT_CONSULTATION_PRICE_PAISE,
   PaymentOrderRecord,
@@ -50,7 +49,8 @@ export type PaymentServiceErrorCode =
   | "RESERVATION_EXPIRED"
   | "RESERVATION_EXPIRING_SOON"
   | "PAYMENT_ALREADY_COMPLETED"
-  | "PAYMENT_ORDER_EXPIRED"
+  | "PAYMENT_VERIFICATION_PENDING"
+  | "PAYMENTS_UNAVAILABLE"
   | "GATEWAY_TIMEOUT"
   | "GATEWAY_ERROR"
   | "DATABASE_ERROR";
@@ -58,11 +58,14 @@ export type PaymentServiceErrorCode =
 export interface CreatePaymentOrderSuccess {
   success: true;
   data: {
-    paymentSessionId: string;
-    orderId: string;
+    keyId: string;
+    gatewayOrderId: string;
     amountInPaise: number;
     currency: "INR";
-    environment: "sandbox" | "production";
+    /** Seconds left on the server-held slot reservation when this response was built. */
+    reservationExpiresInSeconds: number;
+    reference: string;
+    prefill: { name: string; email: string; contact: string };
   };
 }
 
@@ -77,7 +80,15 @@ export type CreatePaymentOrderResult =
   | CreatePaymentOrderFailure;
 
 /**
- * Constructs a deterministic Cashfree merchant order ID from consultation UUID.
+ * Stable Razorpay receipt for a consultation (<= 40 chars, ASCII).
+ * 'rcpt_' + 32 hex chars = 37 characters.
+ */
+export function buildRazorpayReceipt(consultationId: string): string {
+  return `rcpt_${consultationId.replace(/-/g, "")}`;
+}
+
+/**
+ * Legacy: deterministic Cashfree merchant order ID (historical records only).
  * Example: 'c7c88b90-d461-4fa3-a75d-f152d113ba4c' -> 'ord_c7c88b90d4614fa3a75df152d113ba4c' (36 chars)
  */
 export function buildDeterministicGatewayOrderId(consultationId: string): string {
@@ -103,29 +114,32 @@ export class ConsultationPaymentService {
   private slotRepo: IConsultationSlotRepository;
   private consultationRepo: IConsultationRepository;
   private paymentOrderRepo: IPaymentOrderRepository;
-  private gatewayAdapter: IPaymentGatewayAdapter;
+  private transactionRepo: IPaymentTransactionRepository;
+  private ledger: IPaymentLedgerRepository;
+  private gateway: IOrderPaymentGateway;
+  private keyIdResolver: () => string;
 
-  constructor(
-    slotRepo?: IConsultationSlotRepository,
-    consultationRepo?: IConsultationRepository,
-    paymentOrderRepo?: IPaymentOrderRepository,
-    gatewayAdapter?: IPaymentGatewayAdapter
-  ) {
-    this.slotRepo = slotRepo || new SupabaseConsultationSlotRepository();
-    this.consultationRepo = consultationRepo || new SupabaseConsultationRepository();
-    this.paymentOrderRepo = paymentOrderRepo || new SupabasePaymentOrderRepository();
-    this.gatewayAdapter = gatewayAdapter || new CashfreePaymentGatewayAdapter();
+  constructor(deps?: {
+    slotRepo?: IConsultationSlotRepository;
+    consultationRepo?: IConsultationRepository;
+    paymentOrderRepo?: IPaymentOrderRepository;
+    transactionRepo?: IPaymentTransactionRepository;
+    ledger?: IPaymentLedgerRepository;
+    gateway?: IOrderPaymentGateway;
+    keyIdResolver?: () => string;
+  }) {
+    this.slotRepo = deps?.slotRepo || new SupabaseConsultationSlotRepository();
+    this.consultationRepo = deps?.consultationRepo || new SupabaseConsultationRepository();
+    this.paymentOrderRepo = deps?.paymentOrderRepo || new SupabasePaymentOrderRepository();
+    this.transactionRepo = deps?.transactionRepo || new SupabasePaymentTransactionRepository();
+    this.ledger = deps?.ledger || new SupabasePaymentLedgerRepository();
+    this.gateway = deps?.gateway || new RazorpayPaymentGateway();
+    this.keyIdResolver = deps?.keyIdResolver || (() => getServerConfig().razorpay.keyId || "");
   }
 
   /**
-   * Secure Order Creation Pipeline:
-   * 1. Pre-gateway authoritative validation (Consultation, Slot, Token, Expiry >= 120s).
-   * 2. Inspect existing local payment orders (paid check, recovery of active orders).
-   * 3. Gateway-First: Create/Recover Cashfree order with deterministic ID.
-   * 4. Post-gateway expiry check (prevent issuing session if slot expired during call).
-   * 5. Persist local payment_orders row (handling PostgreSQL 23505 unique collision).
-   * 6. Transition consultation: 'slot_held' -> 'awaiting_payment'.
-   * 7. Return paymentSessionId.
+   * Order creation pipeline (see file header). Steps 1-7 are unchanged from the
+   * Cashfree implementation; steps 8-13 are provider-specific to Razorpay.
    */
   async createPaymentOrder(
     input: ValidatedPaymentOrderInput,
@@ -295,13 +309,13 @@ export class ConsultationPaymentService {
     }
 
     // --------------------------------------------------------------------------
-    // Step 8: Inspect Existing Payment Orders (Concurrency & Idempotency)
+    // Step 8: Inspect the consultation's live order (idempotency, recovery, retry)
+    // A Razorpay order accepts several payment attempts, so a failed attempt is
+    // retried on the SAME order: no new consultation, no new order.
     // --------------------------------------------------------------------------
-    const deterministicOrderId = buildDeterministicGatewayOrderId(consultation.id);
-
-    let existingOrder: PaymentOrderRecord | null = null;
+    let order: PaymentOrderRecord | null = null;
     try {
-      existingOrder = await this.paymentOrderRepo.getLatestOrderByConsultationId(consultation.id);
+      order = await this.paymentOrderRepo.getLatestOrderByConsultationId(consultation.id);
     } catch (err) {
       logger.error("Failed to inspect existing payment orders", err, {
         requestId,
@@ -314,256 +328,160 @@ export class ConsultationPaymentService {
       };
     }
 
-    if (existingOrder) {
-      if (existingOrder.status === "paid") {
-        return {
-          success: false,
-          error: "PAYMENT_ALREADY_COMPLETED",
-          message: "Payment for this consultation has already been completed.",
-        };
-      }
-
-      if (existingOrder.status === "created" || existingOrder.status === "attempted") {
-        logger.info("Existing active payment order found; recovering provider order session", {
-          requestId,
-          consultationId: consultation.id,
-          orderId: deterministicOrderId,
-          localStatus: existingOrder.status,
-        });
-
-        let recoveredOrder: GatewayOrderResult | null = null;
-        try {
-          recoveredOrder = await this.gatewayAdapter.getOrder(deterministicOrderId);
-        } catch (gwErr) {
-          logger.error("Failed to query Cashfree for existing order recovery", gwErr, {
-            requestId,
-            orderId: deterministicOrderId,
-          });
-          return {
-            success: false,
-            error: "GATEWAY_ERROR",
-            message: "Unable to retrieve payment session from payment gateway. Please try again.",
-          };
-        }
-
-        if (!recoveredOrder) {
-          logger.warn("Local payment order exists but Cashfree returned 404", {
-            requestId,
-            orderId: deterministicOrderId,
-          });
-          return {
-            success: false,
-            error: "GATEWAY_ERROR",
-            message: "Existing payment session could not be recovered. Please try again.",
-          };
-        }
-
-        if (recoveredOrder.orderStatus === "PAID") {
-          try {
-            await this.paymentOrderRepo.updateOrderStatus(existingOrder.id, "paid", {
-              paidAt: new Date().toISOString(),
-            });
-          } catch (syncErr) {
-            logger.warn("Failed to synchronize local order to paid status during recovery", {
-              error: syncErr,
-            });
-          }
-          return {
-            success: false,
-            error: "PAYMENT_ALREADY_COMPLETED",
-            message: "Payment for this consultation has already been completed.",
-          };
-        }
-
-        if (recoveredOrder.orderStatus === "EXPIRED" || recoveredOrder.orderStatus === "TERMINATED") {
-          return {
-            success: false,
-            error: "PAYMENT_ORDER_EXPIRED",
-            message: "The payment session has expired. Please choose a fresh consultation slot.",
-          };
-        }
-
-        // Self-healing: if consultation is still 'slot_held', transition to 'awaiting_payment'
-        if (consultation.status === "slot_held") {
-          try {
-            await this.consultationRepo.updateConsultationStatus(consultation.id, "awaiting_payment");
-          } catch (transErr) {
-            logger.warn("Warning updating consultation to awaiting_payment during recovery", {
-              error: transErr,
-            });
-          }
-        }
-
-        return {
-          success: true,
-          data: {
-            paymentSessionId: recoveredOrder.paymentSessionId,
-            orderId: deterministicOrderId,
-            amountInPaise: existingOrder.amountInPaise,
-            currency: existingOrder.currency,
-            environment: this.gatewayAdapter.getEnvironment
-              ? this.gatewayAdapter.getEnvironment()
-              : "sandbox",
-          },
-        };
-      }
-
-      if (existingOrder.status === "failed" || existingOrder.status === "expired") {
-        return {
-          success: false,
-          error: "PAYMENT_ORDER_EXPIRED",
-          message: "The previous payment session failed or expired. Please select an available slot.",
-        };
-      }
-    }
-
-    // --------------------------------------------------------------------------
-    // Step 9: Gateway-First Cashfree Order Creation / Auto-Recovery
-    // --------------------------------------------------------------------------
-    let gatewayResult: GatewayOrderResult;
-    try {
-      gatewayResult = await this.gatewayAdapter.createOrder({
-        orderId: deterministicOrderId,
-        amountInPaise: DEFAULT_CONSULTATION_PRICE_PAISE,
-        currency: "INR",
-        customer: {
-          id: `cust_${consultation.id.replace(/-/g, "").slice(0, 16)}`,
-          name: `${consultation.customerFirstName} ${consultation.customerLastName}`.trim() || null,
-          email: consultation.customerEmail,
-          phone: consultation.customerPhone,
-        },
-        orderExpiryTime: slot.reservedUntil,
-        orderNote: "Eventsika Consultation Booking",
-      });
-    } catch (gwErr) {
-      if (gwErr instanceof GatewayError) {
-        if (gwErr.code === "GATEWAY_TIMEOUT") {
-          logger.error("Cashfree gateway request timed out during order creation", gwErr, {
-            requestId,
-            orderId: deterministicOrderId,
-          });
-          return {
-            success: false,
-            error: "GATEWAY_TIMEOUT",
-            message: "Payment provider timed out. Please try again.",
-          };
-        }
-
-        logger.error("Cashfree gateway error during order creation", gwErr, {
-          requestId,
-          orderId: deterministicOrderId,
-          code: gwErr.code,
-        });
-        return {
-          success: false,
-          error: "GATEWAY_ERROR",
-          message: "Payment provider rejected order creation. Please try again.",
-        };
-      }
-
-      logger.error("Unexpected error calling payment gateway", gwErr, {
-        requestId,
-        orderId: deterministicOrderId,
-      });
+    if (order?.status === "paid") {
       return {
         success: false,
-        error: "GATEWAY_ERROR",
-        message: "Failed to communicate with payment provider. Please try again.",
+        error: "PAYMENT_ALREADY_COMPLETED",
+        message: "Payment for this consultation has already been completed.",
       };
     }
 
-    // --------------------------------------------------------------------------
-    // Step 10: Post-Gateway Expiry Verification
-    // If the reservation expired while waiting for Cashfree, abort exposure.
-    // --------------------------------------------------------------------------
-    const postCheckNow = context?.serverNow || new Date();
-    const postCheckRemaining = Math.floor(
-      (new Date(slot.reservedUntil).getTime() - postCheckNow.getTime()) / 1000
-    );
+    const isLiveOrder = order && (order.status === "created" || order.status === "attempted");
 
-    if (postCheckRemaining <= 0) {
-      logger.warn("Reservation expired during Cashfree order creation roundtrip", {
-        requestId,
-        consultationId: consultation.id,
-        orderId: deterministicOrderId,
-      });
+    if (isLiveOrder && order!.provider !== "razorpay") {
+      // Legacy Cashfree attempt still in flight: never open a second payment path.
       return {
         success: false,
-        error: "RESERVATION_EXPIRED",
-        message: "Your reservation hold expired during payment order preparation. Please select an available slot to reserve a fresh booking window.",
+        error: "PAYMENT_VERIFICATION_PENDING",
+        message: "Your earlier payment is still being verified. Please do not pay again.",
       };
     }
 
-    // --------------------------------------------------------------------------
-    // Step 11: Local payment_orders Row Persistence (Handling Concurrency 23505)
-    // --------------------------------------------------------------------------
-    let savedOrder: PaymentOrderRecord | null = null;
-    try {
-      savedOrder = await this.paymentOrderRepo.createOrder({
-        consultationId: consultation.id,
-        gatewayOrderId: gatewayResult.merchantOrderId,
-        amountInPaise: DEFAULT_CONSULTATION_PRICE_PAISE,
-        currency: "INR",
-        expiresAt: slot.reservedUntil,
-        reservationToken: slot.reservationToken!,
-        requestId: requestId || null,
-      });
-    } catch (dbErr) {
-      const errorMessage = dbErr instanceof Error ? dbErr.message : String(dbErr);
-      const isUniqueConflict =
-        (dbErr as { code?: string })?.code === "23505" ||
-        errorMessage.includes("duplicate key") ||
-        errorMessage.includes("23505");
-
-      if (isUniqueConflict) {
-        logger.info("Concurrent payment_orders insert collision detected; fetching winning record", {
-          requestId,
-          orderId: gatewayResult.merchantOrderId,
-        });
-
-        try {
-          savedOrder = await this.paymentOrderRepo.getOrderByGatewayId(gatewayResult.merchantOrderId);
-        } catch (fetchErr) {
-          logger.error("Failed to fetch winning payment order after unique conflict", fetchErr, {
-            requestId,
-            orderId: gatewayResult.merchantOrderId,
-          });
+    if (isLiveOrder) {
+      try {
+        const txns = await this.transactionRepo.getTransactionsByOrderId(order!.id);
+        if (txns.some((t) => t.status === "pending" || t.status === "success")) {
+          return {
+            success: false,
+            error: "PAYMENT_VERIFICATION_PENDING",
+            message: "Your payment is being verified. Please do not pay again.",
+          };
         }
-      }
-
-      if (!savedOrder) {
-        logger.error("Failed to persist payment_orders record locally", dbErr, {
-          requestId,
-          consultationId: consultation.id,
-          orderId: gatewayResult.merchantOrderId,
-        });
+      } catch (err) {
+        logger.error("Failed to inspect payment attempts", err, { requestId, orderId: order!.id });
         return {
           success: false,
           error: "DATABASE_ERROR",
-          message: "Unable to record payment order locally. Please try again.",
+          message: "Unable to verify payment order history. Please try again.",
+        };
+      }
+    } else {
+      // ------------------------------------------------------------------------
+      // Step 9: Persist the local order BEFORE contacting Razorpay. The receipt is
+      // deterministic per consultation, so concurrent requests collide on a unique
+      // index and an unknown creation outcome can be recovered by receipt.
+      // ------------------------------------------------------------------------
+      const receipt = buildRazorpayReceipt(consultation.id);
+      try {
+        order = await this.paymentOrderRepo.createOrder({
+          consultationId: consultation.id,
+          provider: "razorpay",
+          receipt,
+          amountInPaise: DEFAULT_CONSULTATION_PRICE_PAISE,
+          currency: "INR",
+          expiresAt: slot.reservedUntil,
+          reservationToken: slot.reservationToken!,
+          requestId: requestId || null,
+        });
+      } catch (dbErr) {
+        const isUniqueConflict =
+          (dbErr as { code?: string })?.code === "23505" || String(dbErr).includes("duplicate key");
+        order = isUniqueConflict
+          ? await this.paymentOrderRepo.getOrderByReceipt(receipt).catch(() => null)
+          : null;
+        if (!order || order.provider !== "razorpay" || (order.status !== "created" && order.status !== "attempted")) {
+          logger.error("Failed to persist payment order locally", dbErr, {
+            requestId,
+            consultationId: consultation.id,
+          });
+          return {
+            success: false,
+            error: "DATABASE_ERROR",
+            message: "Unable to record payment order. Please try again.",
+          };
+        }
+      }
+    }
+
+    // --------------------------------------------------------------------------
+    // Step 10: Ensure the order exists at Razorpay exactly once.
+    // --------------------------------------------------------------------------
+    if (!order!.gatewayOrderId) {
+      try {
+        const remote =
+          (await this.gateway.findOrderByReceipt(order!.receipt!)) ??
+          (await this.gateway.createOrder({
+            receipt: order!.receipt!,
+            amountInPaise: order!.amountInPaise,
+            currency: "INR",
+            notes: { payment_order_id: order!.id, consultation_id: consultation.id },
+          }));
+        if (remote.amountInPaise !== order!.amountInPaise || remote.currency !== order!.currency) {
+          logger.error("Razorpay order amount/currency differs from local order", undefined, {
+            requestId,
+            orderId: order!.id,
+          });
+          await this.ledger
+            .recordIssue({
+              provider: "razorpay",
+              kind: "amount_mismatch",
+              paymentOrderId: order!.id,
+              consultationId: consultation.id,
+              gatewayReference: remote.id,
+              detail: "Razorpay order amount/currency differs from the local order",
+            })
+            .catch(() => undefined);
+          return {
+            success: false,
+            error: "GATEWAY_ERROR",
+            message: "Payment provider returned an inconsistent order. Please contact support.",
+          };
+        }
+        order = await this.paymentOrderRepo.attachGatewayOrderId(order!.id, remote.id);
+      } catch (gwErr) {
+        const timedOut =
+          gwErr instanceof GatewayError &&
+          (gwErr.code === "GATEWAY_TIMEOUT" || gwErr.code === "NETWORK_ERROR");
+        logger.error("Razorpay order creation did not complete", gwErr, {
+          requestId,
+          orderId: order!.id,
+          code: gwErr instanceof GatewayError ? gwErr.code : "UNKNOWN",
+        });
+        // The local row keeps its receipt; the next attempt (or reconciliation)
+        // recovers the remote order by receipt instead of creating a duplicate.
+        return {
+          success: false,
+          error: timedOut ? "GATEWAY_TIMEOUT" : "GATEWAY_ERROR",
+          message: "Payment provider did not respond. Please try again in a moment.",
         };
       }
     }
 
     // --------------------------------------------------------------------------
-    // Step 12: Consultation State Transition ('slot_held' -> 'awaiting_payment')
+    // Step 11: Post-gateway expiry verification
+    // --------------------------------------------------------------------------
+    const postCheckNow = context?.serverNow || new Date();
+    if (new Date(slot.reservedUntil).getTime() - postCheckNow.getTime() <= 0) {
+      return {
+        success: false,
+        error: "RESERVATION_EXPIRED",
+        message:
+          "Your reservation hold expired during payment order preparation. Please select an available slot to reserve a fresh booking window.",
+      };
+    }
+
+    // --------------------------------------------------------------------------
+    // Step 12: Consultation 'slot_held' -> 'awaiting_payment'
     // --------------------------------------------------------------------------
     if (consultation.status === "slot_held") {
       try {
-        await this.consultationRepo.updateConsultationStatus(
-          consultation.id,
-          "awaiting_payment"
-        );
+        await this.consultationRepo.updateConsultationStatus(consultation.id, "awaiting_payment");
       } catch (statusErr) {
-        logger.error(
-          "Failed to transition consultation status to awaiting_payment after local order persistence",
-          statusErr,
-          {
-            requestId,
-            consultationId: consultation.id,
-            orderId: savedOrder.id,
-          }
-        );
+        logger.error("Failed to transition consultation to awaiting_payment", statusErr, {
+          requestId,
+          consultationId: consultation.id,
+          orderId: order!.id,
+        });
         return {
           success: false,
           error: "DATABASE_ERROR",
@@ -573,18 +491,25 @@ export class ConsultationPaymentService {
     }
 
     // --------------------------------------------------------------------------
-    // Step 13: Safely Return Checkout Session
+    // Step 13: Checkout parameters. Only the public Key ID leaves the server.
     // --------------------------------------------------------------------------
     return {
       success: true,
       data: {
-        paymentSessionId: gatewayResult.paymentSessionId,
-        orderId: gatewayResult.merchantOrderId,
-        amountInPaise: DEFAULT_CONSULTATION_PRICE_PAISE,
+        keyId: this.keyIdResolver(),
+        gatewayOrderId: order!.gatewayOrderId!,
+        amountInPaise: order!.amountInPaise,
         currency: "INR",
-        environment: this.gatewayAdapter.getEnvironment
-          ? this.gatewayAdapter.getEnvironment()
-          : "sandbox",
+        reservationExpiresInSeconds: Math.max(
+          0,
+          Math.floor((new Date(slot.reservedUntil).getTime() - postCheckNow.getTime()) / 1000)
+        ),
+        reference: order!.receipt!,
+        prefill: {
+          name: `${consultation.customerFirstName} ${consultation.customerLastName}`.trim(),
+          email: consultation.customerEmail,
+          contact: consultation.customerPhone,
+        },
       },
     };
   }

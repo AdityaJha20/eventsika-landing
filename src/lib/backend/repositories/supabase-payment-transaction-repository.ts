@@ -27,6 +27,7 @@ export class SupabasePaymentTransactionRepository implements IPaymentTransaction
     return {
       id: String(row.id),
       paymentOrderId: String(row.payment_order_id),
+      provider: (row.provider as PaymentTransactionRecord["provider"]) || "cashfree",
       gatewayPaymentId: typeof row.gateway_payment_id === "string" ? row.gateway_payment_id : null,
       amountInPaise: Number(row.amount_in_paise),
       feeInPaise: row.fee_in_paise !== null && row.fee_in_paise !== undefined ? Number(row.fee_in_paise) : null,
@@ -51,6 +52,7 @@ export class SupabasePaymentTransactionRepository implements IPaymentTransaction
       .from("payment_transactions")
       .insert({
         payment_order_id: transaction.paymentOrderId,
+        provider: transaction.provider,
         gateway_payment_id: transaction.gatewayPaymentId || null,
         amount_in_paise: transaction.amountInPaise,
         fee_in_paise: transaction.feeInPaise || null,

@@ -17,6 +17,11 @@ describe("Server Environment Validation (src/lib/backend/config/env.ts)", () => 
     CASHFREE_APP_ID: "cf_app_prod_123456",
     CASHFREE_SECRET_KEY: "cf_sec_prod_abcdef123456",
     CASHFREE_ENVIRONMENT: "production",
+    // Fake, test-only Razorpay values.
+    RAZORPAY_KEY_ID: "rzp_live_UnitTestKey000",
+    RAZORPAY_KEY_SECRET: "unit-test-live-key-secret",
+    RAZORPAY_WEBHOOK_SECRET: "unit-test-live-webhook-secret",
+    RAZORPAY_MODE: "live",
   };
 
   it("validates successfully when all required production variables are present", () => {
@@ -30,7 +35,7 @@ describe("Server Environment Validation (src/lib/backend/config/env.ts)", () => 
       NODE_ENV: "production",
       SUPABASE_URL: "https://example-project.supabase.co",
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_pub_test_valid_key_12345",
-      // Missing SUPABASE_SERVICE_ROLE_KEY, UPSTASH_REDIS, and CASHFREE production invariants
+      // Missing SUPABASE_SERVICE_ROLE_KEY, UPSTASH_REDIS, and Razorpay production invariants
     };
 
     const result = validateServerEnv(incompleteEnv);
@@ -38,40 +43,46 @@ describe("Server Environment Validation (src/lib/backend/config/env.ts)", () => 
     expect(result.missing).toContain("SUPABASE_SERVICE_ROLE_KEY");
     expect(result.missing).toContain("UPSTASH_REDIS_REST_URL");
     expect(result.missing).toContain("UPSTASH_REDIS_REST_TOKEN");
-    expect(result.missing).toContain("CASHFREE_APP_ID");
-    expect(result.missing).toContain("CASHFREE_SECRET_KEY");
-    expect(result.missing.some((m) => m.includes("CASHFREE_ENVIRONMENT"))).toBe(true);
+    expect(result.missing).toContain("RAZORPAY_KEY_ID");
+    expect(result.missing).toContain("RAZORPAY_KEY_SECRET");
+    expect(result.missing).toContain("RAZORPAY_WEBHOOK_SECRET");
+    expect(result.missing.some((m) => m.includes("RAZORPAY_MODE"))).toBe(true);
   });
 
-  it("rejects when CASHFREE_APP_ID or CASHFREE_SECRET_KEY is missing in production", () => {
-    const missingAppId: NodeJS.ProcessEnv = {
-      ...validProductionEnv,
-      CASHFREE_APP_ID: undefined,
-    };
-    const res1 = validateServerEnv(missingAppId);
-    expect(res1.isValid).toBe(false);
-    expect(res1.missing).toContain("CASHFREE_APP_ID");
-
-    const missingSecret: NodeJS.ProcessEnv = {
-      ...validProductionEnv,
-      CASHFREE_SECRET_KEY: "   ",
-    };
-    const res2 = validateServerEnv(missingSecret);
-    expect(res2.isValid).toBe(false);
-    expect(res2.missing).toContain("CASHFREE_SECRET_KEY");
+  it("treats legacy Cashfree credentials as optional in production but warns when they are absent", () => {
+    const res = validateServerEnv({ ...validProductionEnv, CASHFREE_APP_ID: undefined, CASHFREE_SECRET_KEY: "   " });
+    expect(res.isValid).toBe(true);
+    expect(res.warnings.some((w) => w.includes("CASHFREE_SECRET_KEY"))).toBe(true);
   });
 
-  it("rejects when CASHFREE_ENVIRONMENT is missing or invalid in production", () => {
-    // Missing CASHFREE_ENVIRONMENT in production
+  it("rejects inconsistent Razorpay configuration in production", () => {
+    const testKeyInLive = validateServerEnv({ ...validProductionEnv, RAZORPAY_KEY_ID: "rzp_test_UnitTestKey000" });
+    expect(testKeyInLive.isValid).toBe(false);
+    expect(testKeyInLive.missing.some((m) => m.includes("does not match RAZORPAY_MODE"))).toBe(true);
+
+    const sameSecrets = validateServerEnv({
+      ...validProductionEnv,
+      RAZORPAY_WEBHOOK_SECRET: validProductionEnv.RAZORPAY_KEY_SECRET,
+    });
+    expect(sameSecrets.missing.some((m) => m.includes("must differ"))).toBe(true);
+
+    const badMode = validateServerEnv({ ...validProductionEnv, RAZORPAY_MODE: "production" });
+    expect(badMode.missing.some((m) => m.includes("RAZORPAY_MODE"))).toBe(true);
+
+    const otherProvider = validateServerEnv({ ...validProductionEnv, PAYMENT_PROVIDER: "cashfree" });
+    expect(otherProvider.missing.some((m) => m.includes("PAYMENT_PROVIDER"))).toBe(true);
+
+    const leaked = JSON.stringify([...sameSecrets.missing, ...sameSecrets.warnings]);
+    expect(leaked).not.toContain("unit-test-live-key-secret");
+  });
+
+  it("allows CASHFREE_ENVIRONMENT to be unset in production but rejects invalid values", () => {
     const missingEnv: NodeJS.ProcessEnv = {
       ...validProductionEnv,
       CASHFREE_ENVIRONMENT: undefined,
     };
     const resMissing = validateServerEnv(missingEnv);
-    expect(resMissing.isValid).toBe(false);
-    expect(
-      resMissing.missing.some((m) => m.includes("CASHFREE_ENVIRONMENT (must be 'production' in production)"))
-    ).toBe(true);
+    expect(resMissing.isValid).toBe(true);
 
     // Sandbox in production must fail validation
     const sandboxInProd: NodeJS.ProcessEnv = {

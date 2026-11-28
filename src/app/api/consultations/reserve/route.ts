@@ -5,6 +5,7 @@ import { consultationBookingService } from "@/lib/backend/services/consultation-
 import { logger } from "@/lib/backend/logger/logger";
 import { getOrCreateRequestId } from "@/lib/backend/utils/request-id";
 import { isAllowedOrigin } from "@/lib/backend/http/origin";
+import { getServerConfig } from "@/lib/backend/config/env";
 import { BookingServiceErrorCode } from "@/lib/backend/types/payment-and-consultation";
 
 export const dynamic = "force-dynamic";
@@ -127,6 +128,14 @@ export async function POST(request: NextRequest) {
         }
       );
     }
+  }
+
+  // Payments kill switch: no new holds while new payments are paused.
+  if (getServerConfig().payments.killSwitchActive) {
+    return NextResponse.json(
+      { success: false, message: "Bookings are temporarily paused. Please try again later." },
+      { status: 503, headers: responseHeaders }
+    );
   }
 
   try {

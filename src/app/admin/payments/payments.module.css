@@ -1,0 +1,157 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px 16px;
+  color: var(--foreground, #2b211d);
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.title {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 28px;
+  margin: 0;
+}
+
+.subtitle,
+.muted {
+  color: #6b5d55;
+  font-size: 13px;
+  margin: 4px 0 0;
+}
+
+.sectionTitle {
+  font-size: 18px;
+  margin: 0 0 12px;
+}
+
+.notice {
+  background: var(--cream-light, #fffaf4);
+  border: 1px solid var(--gold, #b99a67);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 0;
+}
+
+.primary {
+  background: var(--primary, #7f1010);
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primary:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.link {
+  background: none;
+  border: 0;
+  color: var(--primary, #7f1010);
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}
+
+.issueList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.issue {
+  border: 1px solid var(--border, #dfd2c3);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--border, #dfd2c3);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid #eee4d8;
+  vertical-align: top;
+}
+
+.badge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 12px;
+  background: #eee4d8;
+}
+
+.badge[data-status="paid"] {
+  background: #dcfce7;
+  color: #14532d;
+}
+
+.badge[data-status="failed"],
+.badge[data-status="expired"] {
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+
+.refundForm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.refundForm select,
+.refundForm input {
+  border: 1px solid var(--border, #dfd2c3);
+  border-radius: 6px;
+  padding: 8px;
+  font: inherit;
+  min-width: 0;
+}
+
+.refundForm button {
+  background: var(--primary, #7f1010);
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.refundForm button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}

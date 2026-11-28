@@ -219,6 +219,7 @@ export function ConsultationBookingModal({
             <PaymentProcessingView
               session={reservationSession}
               onClose={onClose}
+              onRetryPayment={() => setCurrentStep("payment")}
             />
           )}
         </div>

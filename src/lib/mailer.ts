@@ -259,3 +259,101 @@ export async function sendNotificationEmail(
   // Return success so user submission is acknowledged gracefully
   return { success: true, delivered: false, channel: "fallback" };
 }
+
+export interface TransactionalEmail {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+  attachments?: Array<{ filename: string; contentType: string; contentBase64: string }>;
+}
+
+export interface TransactionalEmailResult {
+  delivered: boolean;
+  channel: "resend" | "sendgrid" | "unconfigured";
+  providerMessageId?: string;
+  error?: string;
+}
+
+/**
+ * Customer-facing transactional email (payment receipts, booking confirmations,
+ * refund updates). Reuses the same zero-dependency providers as lead alerts.
+ * Unlike sendNotificationEmail it never reports success without real delivery,
+ * so the payment notification ledger can retry honestly.
+ */
+export async function sendTransactionalEmail(email: TransactionalEmail): Promise<TransactionalEmailResult> {
+  const fromEmail = process.env.EMAIL_FROM || "Eventsika <care@eventsika.in>";
+  const replyTo = process.env.NOTIFICATION_EMAIL || "care@eventsika.in";
+
+  if (process.env.RESEND_API_KEY) {
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: fromEmail,
+          to: [email.to],
+          reply_to: replyTo,
+          subject: email.subject,
+          html: email.html,
+          text: email.text,
+          attachments: email.attachments?.map((a) => ({
+            filename: a.filename,
+            content: a.contentBase64,
+            content_type: a.contentType,
+          })),
+        }),
+      });
+      if (!res.ok) {
+        return { delivered: false, channel: "resend", error: `Resend HTTP ${res.status}` };
+      }
+      const json = (await res.json().catch(() => null)) as { id?: string } | null;
+      return { delivered: true, channel: "resend", providerMessageId: json?.id };
+    } catch {
+      return { delivered: false, channel: "resend", error: "Resend network error" };
+    }
+  }
+
+  if (process.env.SENDGRID_API_KEY) {
+    try {
+      const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          personalizations: [{ to: [{ email: email.to }] }],
+          from: { email: fromEmail.replace(/.*<(.+)>/, "$1") },
+          reply_to: { email: replyTo },
+          subject: email.subject,
+          content: [
+            { type: "text/plain", value: email.text },
+            { type: "text/html", value: email.html },
+          ],
+          attachments: email.attachments?.map((a) => ({
+            content: a.contentBase64,
+            filename: a.filename,
+            type: a.contentType,
+            disposition: "attachment",
+          })),
+        }),
+      });
+      if (!res.ok) {
+        return { delivered: false, channel: "sendgrid", error: `SendGrid HTTP ${res.status}` };
+      }
+      return {
+        delivered: true,
+        channel: "sendgrid",
+        providerMessageId: res.headers.get("x-message-id") ?? undefined,
+      };
+    } catch {
+      return { delivered: false, channel: "sendgrid", error: "SendGrid network error" };
+    }
+  }
+
+  return { delivered: false, channel: "unconfigured", error: "No transactional email provider configured" };
+}

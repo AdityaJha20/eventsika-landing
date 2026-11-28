@@ -2,10 +2,16 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { ActiveReservationSession } from "./utils/booking-types";
+import { ActiveReservationSession, PaymentOrderResponseData } from "./utils/booking-types";
 import { formatIstDate, formatIstSlotRange } from "./utils/countdown-utils";
 import { mapBookingError } from "./utils/error-mapping";
-import { launchCashfreeCheckout } from "./utils/cashfree-loader";
+import { openRazorpayCheckout } from "./utils/razorpay-loader";
+import {
+  decideAfterCheckoutClosed,
+  fetchPaymentStatus,
+  saveRecoveryHandle,
+  submitCheckoutForVerification,
+} from "./utils/payment-status-client";
 import { ReservationCountdownTimer } from "./ReservationCountdownTimer";
 import styles from "./consultation.module.css";
 
@@ -59,26 +65,56 @@ export function ConsultationCheckoutView({
         return;
       }
 
-      const { paymentSessionId, environment } = result.data;
+      const receivedAtMs = Date.now();
+      const order = result.data as PaymentOrderResponseData;
+      const handle = { consultationId: session.consultationId, reservationToken: session.reservationToken };
+      saveRecoveryHandle(handle);
 
-      // 2. Open official Cashfree Web SDK modal checkout
-      const checkoutResult = await launchCashfreeCheckout({
-        paymentSessionId,
-        environment,
-      });
+      // 2. Official Razorpay Standard Checkout with the SERVER-created order, bounded by
+      // the server-reported remaining reservation time.
+      const outcome = await openRazorpayCheckout(
+        order,
+        "1-on-1 consultation (60 min) with preliminary event plan & budget",
+        undefined,
+        { receivedAtMs }
+      );
 
-      if (checkoutResult.completedOrPending) {
-        // Control returned from Cashfree: transition to Eventsika processing state
+      if (outcome.type === "success") {
+        // The browser's success is only a claim: the server verifies the signature
+        // against its own order record and fetches the payment from Razorpay.
+        await submitCheckoutForVerification(handle, outcome.response);
         onPaymentInitiatedOrCompleted();
-      } else if (checkoutResult.dismissedOrError) {
-        // Modal closed without completing or payment failed: allow safe retry
-        setPaymentError(
-          checkoutResult.errorMessage ||
-            "Checkout window closed. You can resume and retry your payment below."
-        );
+        return;
       }
+
+      if (outcome.type === "expired") {
+        setIsExpiredHold(true);
+        setPaymentError("Your reservation window has nearly ended, so checkout was not opened. Please choose a slot again to get a fresh 15-minute window.");
+        return;
+      }
+
+      // Closing the window (or its timeout) never proves the payment failed: UPI apps
+      // can complete later. Ask the server before offering another attempt.
+      const decision = decideAfterCheckoutClosed(outcome.type, await fetchPaymentStatus(handle));
+      if (decision === "proceed" || decision === "unverified") {
+        // The status view polls the server; no new payment is offered meanwhile.
+        onPaymentInitiatedOrCompleted();
+        return;
+      }
+      if (decision === "reservation_ended") {
+        setIsExpiredHold(true);
+        setPaymentError(
+          "Your reservation window ended before a payment was received. If money left your account, do not pay again — it will be matched to your booking automatically. Otherwise please choose a slot again."
+        );
+        return;
+      }
+      setPaymentError(
+        outcome.type === "failed"
+          ? `${outcome.message} No money was taken for this attempt. You can try again below.`
+          : "Checkout was closed before the payment finished. If money left your account, do not pay again — it will appear here shortly. Otherwise you can retry below."
+      );
     } catch {
-      setPaymentError("Unable to initiate secure checkout. Please try again.");
+      setPaymentError("Unable to open secure checkout. Please check your connection and try again.");
     } finally {
       setLoadingPayment(false);
     }
@@ -96,7 +132,7 @@ export function ConsultationCheckoutView({
             <div className={styles.summaryHeader}>
               <div>
                 <span style={{ fontSize: "0.72rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "#7f1010", fontWeight: 700 }}>
-                  DIWALI CONSULTATION
+                  EVENTSIKA CONSULTATION
                 </span>
                 <h3 className={styles.summaryTitle}>
                   1-on-1 Celebration Planning
@@ -307,7 +343,7 @@ export function ConsultationCheckoutView({
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
-            <span>256-Bit SSL Encryption • RBI Regulated Gateway • No Hidden Charges</span>
+            <span>Secure checkout by Razorpay • Eventsika never asks for your card number, CVV, UPI PIN or OTP</span>
           </div>
         </div>
       </div>
