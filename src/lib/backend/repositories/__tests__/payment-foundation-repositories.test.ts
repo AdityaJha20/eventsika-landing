@@ -412,6 +412,7 @@ describe("Payment Foundation Repositories Suite (Step 1)", () => {
       await expect(
         repo.createOrder({
           consultationId: "c-1",
+          provider: "razorpay",
           amountInPaise: 0,
           reservationToken: "tok-test-1",
         })
@@ -420,6 +421,7 @@ describe("Payment Foundation Repositories Suite (Step 1)", () => {
       await expect(
         repo.createOrder({
           consultationId: "c-1",
+          provider: "razorpay",
           amountInPaise: 2999.5, // floating-point money forbidden!
           reservationToken: "tok-test-1",
         })
@@ -457,6 +459,7 @@ describe("Payment Foundation Repositories Suite (Step 1)", () => {
       const repo = new SupabasePaymentOrderRepository(mockClient);
       const order = await repo.createOrder({
         consultationId: "c-uuid-1",
+        provider: "razorpay",
         amountInPaise: 299900,
         reservationToken: "tok_orig_reservation_123",
         requestId: "req_order_123",
@@ -471,6 +474,7 @@ describe("Payment Foundation Repositories Suite (Step 1)", () => {
       expect(insertMock).toHaveBeenCalledWith(
         expect.objectContaining({
           reservation_token: "tok_orig_reservation_123",
+          provider: "razorpay",
         })
       );
     });
@@ -527,6 +531,7 @@ describe("Payment Foundation Repositories Suite (Step 1)", () => {
       await expect(
         repo.recordTransaction({
           paymentOrderId: "order-1",
+          provider: "razorpay",
           amountInPaise: -100,
         })
       ).rejects.toThrow("strictly positive integer");
@@ -561,6 +566,7 @@ describe("Payment Foundation Repositories Suite (Step 1)", () => {
       const repo = new SupabasePaymentTransactionRepository(mockClient);
       const trans = await repo.recordTransaction({
         paymentOrderId: "order-uuid-1",
+        provider: "cashfree",
         gatewayPaymentId: "cf_pay_12345",
         amountInPaise: 299900,
         feeInPaise: 5998,
@@ -611,6 +617,7 @@ describe("Payment Foundation Repositories Suite (Step 1)", () => {
       const repo = new SupabasePaymentRefundRepository(mockClient);
       const refund = await repo.createRefund({
         paymentOrderId: "order-uuid-1",
+        provider: "razorpay",
         paymentTransactionId: "trans-uuid-1",
         consultationId: "c-uuid-1",
         amountInPaise: 299900,

@@ -101,6 +101,13 @@ export interface CreateConsultationInput {
 // 3. Payment Order Domain
 // ==============================================================================
 
+/**
+ * Payment provider discriminator. 'razorpay' is the only provider for NEW orders;
+ * 'cashfree' identifies historical/legacy records that must remain processable.
+ */
+export const PAYMENT_PROVIDERS = ["cashfree", "razorpay"] as const;
+export type PaymentProvider = (typeof PAYMENT_PROVIDERS)[number];
+
 export const PAYMENT_ORDER_STATUSES = [
   "created",
   "attempted",
@@ -114,7 +121,9 @@ export type PaymentOrderStatus = (typeof PAYMENT_ORDER_STATUSES)[number];
 export interface PaymentOrderRecord {
   id: string;
   consultationId: string;
+  provider: PaymentProvider;
   gatewayOrderId: string | null;
+  receipt: string | null;
   amountInPaise: number;
   currency: "INR";
   status: PaymentOrderStatus;
@@ -128,6 +137,8 @@ export interface PaymentOrderRecord {
 
 export interface CreatePaymentOrderInput {
   consultationId: string;
+  provider: PaymentProvider;
+  receipt?: string | null;
   amountInPaise: number;
   currency?: "INR";
   gatewayOrderId?: string | null;
@@ -161,6 +172,7 @@ export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 export interface PaymentTransactionRecord {
   id: string;
   paymentOrderId: string;
+  provider: PaymentProvider;
   gatewayPaymentId: string | null;
   amountInPaise: number;
   feeInPaise: number | null;
@@ -175,6 +187,7 @@ export interface PaymentTransactionRecord {
 
 export interface CreatePaymentTransactionInput {
   paymentOrderId: string;
+  provider: PaymentProvider;
   amountInPaise: number;
   gatewayPaymentId?: string | null;
   feeInPaise?: number | null;
@@ -212,7 +225,12 @@ export interface PaymentRefundRecord {
   paymentOrderId: string;
   paymentTransactionId: string | null;
   consultationId: string;
+  provider: PaymentProvider;
   gatewayRefundId: string | null;
+  idempotencyKey: string | null;
+  lastError: string | null;
+  requestedBy: string | null;
+  requestId: string | null;
   amountInPaise: number;
   status: PaymentRefundStatus;
   reason: string;
@@ -228,6 +246,7 @@ export interface CreatePaymentRefundInput {
   amountInPaise: number;
   reason: string;
   initiatedBy: RefundInitiator;
+  provider: PaymentProvider;
   paymentTransactionId?: string | null;
   gatewayRefundId?: string | null;
 }
@@ -241,6 +260,7 @@ export const WEBHOOK_EVENT_STATUSES = [
   "processed",
   "ignored",
   "failed",
+  "rejected", // terminal: verified event that can never be applied (e.g. amount mismatch)
 ] as const;
 
 export type WebhookEventStatus = (typeof WEBHOOK_EVENT_STATUSES)[number];
@@ -255,6 +275,8 @@ export interface WebhookEventRecord {
   status: WebhookEventStatus;
   processingError: string | null;
   processedAt: string | null;
+  attempts: number;
+  lockedUntil: string | null;
   createdAt: string;
 }
 
@@ -265,6 +287,82 @@ export interface CreateWebhookEventInput {
   payload: Record<string, unknown>;
   signature: string;
   status?: WebhookEventStatus;
+}
+
+// ==============================================================================
+// 6b. Payment Issues (administrator action queue)
+// ==============================================================================
+
+export const PAYMENT_ISSUE_KINDS = [
+  "slot_conflict",
+  "amount_mismatch",
+  "currency_mismatch",
+  "duplicate_payment",
+  "authorized_not_captured",
+  "paid_inactive_consultation",
+  "unknown_gateway_order",
+  "order_creation_unknown",
+  "refund_failed",
+  "refund_manual_review",
+  "untracked_refund",
+  "webhook_retries_exhausted",
+  "notification_failed",
+  "reconciliation_error",
+] as const;
+
+export type PaymentIssueKind = (typeof PAYMENT_ISSUE_KINDS)[number];
+
+export interface PaymentIssueRecord {
+  id: string;
+  provider: PaymentProvider;
+  paymentOrderId: string | null;
+  consultationId: string | null;
+  kind: PaymentIssueKind;
+  gatewayReference: string | null;
+  detail: string | null;
+  resolvedAt: string | null;
+  resolvedBy: string | null;
+  resolutionNote: string | null;
+  createdAt: string;
+}
+
+export interface CreatePaymentIssueInput {
+  provider: PaymentProvider;
+  kind: PaymentIssueKind;
+  paymentOrderId?: string | null;
+  consultationId?: string | null;
+  gatewayReference?: string | null;
+  detail?: string | null;
+}
+
+// ==============================================================================
+// 6c. Notification ledger and financial audit log
+// ==============================================================================
+
+export const PAYMENT_NOTIFICATION_KINDS = [
+  "payment_receipt",
+  "booking_confirmed",
+  "slot_conflict_action_required",
+  "rescheduled",
+  "refund_processing",
+  "refund_processed",
+] as const;
+
+export type PaymentNotificationKind = (typeof PAYMENT_NOTIFICATION_KINDS)[number];
+
+export type AuditActorType = "admin" | "system" | "customer" | "provider";
+
+export interface CreateAuditLogInput {
+  actorType: AuditActorType;
+  actorId?: string | null;
+  action: string;
+  entityType: "order" | "transaction" | "refund" | "consultation" | "issue" | "reconciliation" | "webhook";
+  entityId?: string | null;
+  oldState?: string | null;
+  newState?: string | null;
+  reason?: string | null;
+  requestId?: string | null;
+  metadata?: Record<string, unknown> | null;
 }
 
 // ==============================================================================

@@ -29,7 +29,12 @@ export class SupabasePaymentRefundRepository implements IPaymentRefundRepository
       paymentOrderId: String(row.payment_order_id),
       paymentTransactionId: typeof row.payment_transaction_id === "string" ? row.payment_transaction_id : null,
       consultationId: String(row.consultation_id),
+      provider: (row.provider as PaymentRefundRecord["provider"]) || "cashfree",
       gatewayRefundId: typeof row.gateway_refund_id === "string" ? row.gateway_refund_id : null,
+      idempotencyKey: typeof row.idempotency_key === "string" ? row.idempotency_key : null,
+      lastError: typeof row.last_error === "string" ? row.last_error : null,
+      requestedBy: typeof row.requested_by === "string" ? row.requested_by : null,
+      requestId: typeof row.request_id === "string" ? row.request_id : null,
       amountInPaise: Number(row.amount_in_paise),
       status: row.status as PaymentRefundStatus,
       reason: String(row.reason ?? ""),
@@ -53,6 +58,7 @@ export class SupabasePaymentRefundRepository implements IPaymentRefundRepository
         payment_order_id: refund.paymentOrderId,
         payment_transaction_id: refund.paymentTransactionId || null,
         consultation_id: refund.consultationId,
+        provider: refund.provider,
         gateway_refund_id: refund.gatewayRefundId || null,
         amount_in_paise: refund.amountInPaise,
         status: "pending",
@@ -105,6 +111,7 @@ export class SupabasePaymentRefundRepository implements IPaymentRefundRepository
     details?: {
       gatewayRefundId?: string | null;
       processedAt?: string | null;
+      lastError?: string | null;
     }
   ): Promise<PaymentRefundRecord> {
     const client = this.getClient();
@@ -114,6 +121,9 @@ export class SupabasePaymentRefundRepository implements IPaymentRefundRepository
     }
     if (details?.processedAt !== undefined) {
       updates.processed_at = details.processedAt;
+    }
+    if (details?.lastError !== undefined) {
+      updates.last_error = details.lastError ? details.lastError.slice(0, 500) : null;
     }
 
     const { data, error } = await client
@@ -128,5 +138,31 @@ export class SupabasePaymentRefundRepository implements IPaymentRefundRepository
     }
 
     return this.mapRowToRecord(data);
+  }
+
+  async getRefundByGatewayId(gatewayRefundId: string): Promise<PaymentRefundRecord | null> {
+    const { data, error } = await this.getClient()
+      .from("payment_refunds")
+      .select("*")
+      .eq("gateway_refund_id", gatewayRefundId)
+      .maybeSingle();
+    if (error) {
+      throw new Error(`Database error fetching refund by gateway ID: ${error.message}`);
+    }
+    return data ? this.mapRowToRecord(data) : null;
+  }
+
+  async listOpenRefunds(provider: PaymentRefundRecord["provider"], limit: number): Promise<PaymentRefundRecord[]> {
+    const { data, error } = await this.getClient()
+      .from("payment_refunds")
+      .select("*")
+      .eq("provider", provider)
+      .in("status", ["pending", "initiated"])
+      .order("created_at", { ascending: true })
+      .limit(limit);
+    if (error) {
+      throw new Error(`Database error listing open refunds: ${error.message}`);
+    }
+    return (data || []).map((row) => this.mapRowToRecord(row));
   }
 }

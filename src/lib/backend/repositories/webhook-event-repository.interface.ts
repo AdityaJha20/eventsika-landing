@@ -26,4 +26,14 @@ export interface IWebhookEventRepository {
       processedAt?: string | null;
     }
   ): Promise<WebhookEventRecord>;
+
+  /**
+   * Leases an event for processing; null when terminal, leased elsewhere or exhausted.
+   */
+  claimWebhookEvent(id: string, leaseSeconds?: number, maxAttempts?: number): Promise<WebhookEventRecord | null>;
+
+  /**
+   * Non-terminal events whose lease has expired, oldest first.
+   */
+  listRetryableEvents(provider: string, createdBefore: string, limit: number): Promise<WebhookEventRecord[]>;
 }

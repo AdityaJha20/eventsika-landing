@@ -400,30 +400,24 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // CASE D: Event already received (in-flight duplicate)
-  if (existingEvent && existingEvent.status === "received") {
-    logger.warn("Duplicate webhook event currently in-flight", {
-      requestId,
-      eventId,
-      orderId: normalizedEvent.orderId,
-    });
-    return NextResponse.json(
-      { received: true, status: "duplicate_in_flight", orderId: normalizedEvent.orderId },
-      { status: 200, headers: baseHeaders }
-    );
-  }
-
-  // CASE A or CASE E: New event or retry of previously failed event
+  // CASE D/E: Event already received or failed earlier. It is reprocessed under a
+  // lease below; a 'received' event whose worker crashed is no longer acknowledged
+  // forever without processing (legacy bug fixed by the lease columns).
   let activeEventRecordId: string;
 
-  if (existingEvent && existingEvent.status === "failed") {
-    // CASE E: Retry of previously failed event
-    logger.info("Retrying processing for previously failed webhook event", {
+  if (existingEvent && (existingEvent.status === "failed" || existingEvent.status === "received")) {
+    logger.info("Reprocessing previously received/failed webhook event", {
       requestId,
       eventId,
       orderId: normalizedEvent.orderId,
+      previousStatus: existingEvent.status,
     });
     activeEventRecordId = existingEvent.id;
+  } else if (existingEvent && existingEvent.status === "rejected") {
+    return NextResponse.json(
+      { received: true, status: "already_rejected" },
+      { status: 200, headers: baseHeaders }
+    );
   } else {
     // CASE A: New event -> record with status 'received'
     try {
@@ -458,6 +452,39 @@ export async function POST(request: NextRequest) {
         { status: 500, headers: baseHeaders }
       );
     }
+  }
+
+  // Lease the event so concurrent deliveries cannot both apply it.
+  let claimed: WebhookEventRecord | null = null;
+  try {
+    claimed = await webhookEventRepo.claimWebhookEvent(activeEventRecordId, 60, 10);
+  } catch (claimErr) {
+    logger.error("Database error leasing webhook event", claimErr, { requestId, eventId });
+    return NextResponse.json(
+      { success: false, error: "Internal processing error." },
+      { status: 500, headers: baseHeaders }
+    );
+  }
+  if (!claimed) {
+    const current = await webhookEventRepo.getWebhookEvent("cashfree", eventId).catch(() => null);
+    if (current && (current.status === "processed" || current.status === "ignored" || current.status === "rejected")) {
+      return NextResponse.json(
+        { received: true, status: `already_${current.status}` },
+        { status: 200, headers: baseHeaders }
+      );
+    }
+    if (current && current.attempts >= 10) {
+      logger.error("Cashfree webhook event exhausted its processing attempts", undefined, { requestId, eventId });
+      return NextResponse.json(
+        { received: true, status: "needs_attention" },
+        { status: 200, headers: baseHeaders }
+      );
+    }
+    // Live lease held by another worker: ask the provider to retry later.
+    return NextResponse.json(
+      { received: true, status: "duplicate_in_flight", orderId: normalizedEvent.orderId },
+      { status: 503, headers: baseHeaders }
+    );
   }
 
   // 11. Execute Payment Confirmation Domain Service
@@ -516,7 +543,9 @@ export async function POST(request: NextRequest) {
     const isTransient = confirmationResult.error === "DATABASE_ERROR";
 
     try {
-      await webhookEventRepo.updateWebhookEventStatus(activeEventRecordId, "failed", {
+      // Business rejections (unknown order, amount mismatch) are terminal and already
+      // recorded as payment issues; only transient failures stay retryable.
+      await webhookEventRepo.updateWebhookEventStatus(activeEventRecordId, isTransient ? "failed" : "rejected", {
         processingError: confirmationResult.message,
       });
     } catch (statusUpdateErr) {
@@ -550,7 +579,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           received: true,
-          status: "failed",
+          status: "rejected",
           error: confirmationResult.error,
           orderId: confirmationResult.orderId,
         },

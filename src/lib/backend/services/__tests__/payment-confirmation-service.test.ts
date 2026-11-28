@@ -1,775 +1,384 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   PaymentConfirmationService,
+  isTransientConfirmationError,
+  normalizePaymentMethod,
+  NormalizedPaymentEvent,
 } from "../payment-confirmation-service";
 import { IPaymentOrderRepository } from "../../repositories/payment-order-repository.interface";
-import { IPaymentTransactionRepository } from "../../repositories/payment-transaction-repository.interface";
-import { IConsultationRepository } from "../../repositories/consultation-repository.interface";
-import { IConsultationSlotRepository } from "../../repositories/consultation-slot-repository.interface";
-import {
-  ConsultationRecord,
-  ConsultationSlotRecord,
-  PaymentOrderRecord,
-  PaymentTransactionRecord,
-} from "../../types/payment-and-consultation";
+import { ApplyPaymentEventResult, IPaymentLedgerRepository } from "../../repositories/payment-ledger-repository";
+import { GatewayError, IOrderPaymentGateway, ProviderPayment } from "../../integrations/payment-gateway.interface";
+import { computeRazorpayCheckoutSignature } from "../../security/razorpay-signature";
 import { NormalizedCashfreePaymentWebhook } from "../../domain/webhook-types";
+import { PaymentOrderRecord } from "../../types/payment-and-consultation";
 
-describe("PaymentConfirmationService Suite (Step 6B.1)", () => {
-  const mockOrderId = "ord_c7c88b90d4614fa3a75df152d113ba4c";
-  const mockLocalOrderId = "order-local-uuid-1";
-  const mockConsultationId = "c7c88b90-d461-4fa3-a75d-f152d113ba4c";
-  const mockSlotId = "slot-uuid-999";
-  const mockReservationToken = "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90";
-  const mockGatewayPaymentId = "cf_pay_12345678";
+const KEY_SECRET = "unit-test-key-secret";
+const WEBHOOK_SECRET = "unit-test-webhook-secret";
+const TOKEN = "a".repeat(64);
 
-  const mockPaymentOrder: PaymentOrderRecord = {
-    id: mockLocalOrderId,
-    consultationId: mockConsultationId,
-    gatewayOrderId: mockOrderId,
-    amountInPaise: 299900,
-    currency: "INR",
-    status: "created",
-    expiresAt: "2026-10-01T10:15:00.000Z",
-    paidAt: null,
-    reservationToken: mockReservationToken,
-    requestId: "req_test_123",
-    createdAt: "2026-10-01T10:00:00.000Z",
-    updatedAt: "2026-10-01T10:00:00.000Z",
-  };
+const order: PaymentOrderRecord = {
+  id: "11111111-1111-4111-8111-111111111111",
+  consultationId: "22222222-2222-4222-8222-222222222222",
+  provider: "razorpay",
+  gatewayOrderId: "order_TestOrder0001",
+  receipt: "rcpt_22222222222242228222222222222222",
+  amountInPaise: 299900,
+  currency: "INR",
+  status: "created",
+  expiresAt: null,
+  paidAt: null,
+  reservationToken: TOKEN,
+  requestId: null,
+  createdAt: "2026-10-01T10:00:00.000Z",
+  updatedAt: "2026-10-01T10:00:00.000Z",
+};
 
-  const mockConsultation: ConsultationRecord = {
-    id: mockConsultationId,
-    slotId: mockSlotId,
-    customerFirstName: "Ananya",
-    customerLastName: "Roy",
-    customerPhone: "9876543210",
-    customerEmail: "ananya.roy@example.com",
-    customerCity: "Kolkata",
-    eventType: "Diwali Special",
-    eventTypeOther: null,
-    guestCount: "20",
-    eventDateApprox: "November 2026",
-    meetingChannel: "video",
-    status: "awaiting_payment",
-    cancellationReason: null,
-    rescheduledFromId: null,
-    rescheduleCount: 0,
-    requestId: "req_test_123",
-    createdAt: "2026-10-01T10:00:00.000Z",
-    updatedAt: "2026-10-01T10:00:00.000Z",
-  };
+const payment = (overrides: Partial<ProviderPayment> = {}): ProviderPayment => ({
+  id: "pay_TestPayment01",
+  orderId: "order_TestOrder0001",
+  amountInPaise: 299900,
+  currency: "INR",
+  status: "captured",
+  method: "upi",
+  bankReference: "123456789012",
+  errorCode: null,
+  errorDescription: null,
+  createdAt: "2026-10-01T10:02:00.000Z",
+  ...overrides,
+});
 
-  const mockSlot: ConsultationSlotRecord = {
-    id: mockSlotId,
-    startTime: "2026-10-02T10:00:00.000Z",
-    endTime: "2026-10-02T11:00:00.000Z",
-    status: "reserved",
-    reservedUntil: "2026-10-01T10:15:00.000Z",
-    reservationToken: mockReservationToken,
-    createdAt: "2026-10-01T10:00:00.000Z",
-    updatedAt: "2026-10-01T10:00:00.000Z",
-  };
+const applied = (outcome: ApplyPaymentEventResult["outcome"]): ApplyPaymentEventResult => ({
+  outcome,
+  paymentOrderId: order.id,
+  consultationId: order.consultationId,
+  transactionId: "33333333-3333-4333-8333-333333333333",
+  orderStatus: outcome === "confirmed" ? "paid" : "attempted",
+});
 
-  const mockSuccessWebhook: NormalizedCashfreePaymentWebhook = {
-    eventType: "PAYMENT_SUCCESS_WEBHOOK",
-    orderId: mockOrderId,
-    gatewayPaymentId: mockGatewayPaymentId,
-    paymentStatus: "SUCCESS",
-    amountInPaise: 299900,
-    currency: "INR",
-    paymentMethod: "upi",
-    bankReference: "UTR1234567890",
-    errorCode: null,
-    errorDescription: null,
-    eventTime: "2026-10-01T10:05:00.000Z",
-    rawPayload: { event: "PAYMENT_SUCCESS_WEBHOOK" },
-  };
-
-  const mockTransactionRecord: PaymentTransactionRecord = {
-    id: "tx-uuid-001",
-    paymentOrderId: mockLocalOrderId,
-    gatewayPaymentId: mockGatewayPaymentId,
-    amountInPaise: 299900,
-    feeInPaise: null,
-    taxInPaise: null,
-    status: "success",
-    paymentMethod: "upi",
-    bankReference: "UTR1234567890",
-    errorCode: null,
-    errorDescription: null,
-    createdAt: "2026-10-01T10:05:01.000Z",
-  };
-
-  let mockPaymentOrderRepo: IPaymentOrderRepository;
-  let mockPaymentTransactionRepo: IPaymentTransactionRepository;
-  let mockConsultationRepo: IConsultationRepository;
-  let mockSlotRepo: IConsultationSlotRepository;
+describe("PaymentConfirmationService (provider-neutral, RPC-backed)", () => {
+  let orders: IPaymentOrderRepository;
+  let ledger: IPaymentLedgerRepository;
+  let gateway: IOrderPaymentGateway;
   let service: PaymentConfirmationService;
 
+  const event = (overrides: Partial<NormalizedPaymentEvent> = {}): NormalizedPaymentEvent => ({
+    provider: "razorpay",
+    gatewayOrderId: "order_TestOrder0001",
+    gatewayPaymentId: "pay_TestPayment01",
+    status: "captured",
+    amountInPaise: 299900,
+    currency: "INR",
+    paymentMethod: "upi",
+    ...overrides,
+  });
+
   beforeEach(() => {
-    vi.restoreAllMocks();
-
-    mockPaymentOrderRepo = {
-      getOrderById: vi.fn().mockResolvedValue(mockPaymentOrder),
-      getOrderByGatewayId: vi.fn().mockResolvedValue(mockPaymentOrder),
+    orders = {
       createOrder: vi.fn(),
-      updateOrderStatus: vi.fn().mockImplementation(async (_id, status, details) => {
-        const order = (await mockPaymentOrderRepo.getOrderByGatewayId(mockOrderId)) || mockPaymentOrder;
-        return {
-          ...order,
-          status,
-          paidAt: details?.paidAt || "2026-10-01T10:05:00.000Z",
-        };
-      }),
-      getLatestOrderByConsultationId: vi.fn(),
+      getOrderById: vi.fn().mockResolvedValue(order),
+      getOrderByGatewayId: vi.fn(),
+      getOrderByProviderGatewayId: vi.fn().mockResolvedValue(order),
+      getOrderByReceipt: vi.fn().mockResolvedValue(order),
+      attachGatewayOrderId: vi.fn().mockImplementation(async (id: string, gid: string) => ({ ...order, id, gatewayOrderId: gid })),
+      updateOrderStatus: vi.fn(),
+      getLatestOrderByConsultationId: vi.fn().mockResolvedValue(order),
+      listOpenOrders: vi.fn(),
     };
-
-    mockPaymentTransactionRepo = {
-      recordTransaction: vi.fn().mockResolvedValue(mockTransactionRecord),
-      getTransactionById: vi.fn(),
-      getTransactionByGatewayId: vi.fn().mockResolvedValue(null),
-      getTransactionsByOrderId: vi.fn().mockResolvedValue([]),
+    ledger = {
+      applyPaymentEvent: vi.fn().mockResolvedValue(applied("confirmed")),
+      createRefundIntent: vi.fn(),
+      rebookConflictedConsultation: vi.fn(),
+      claimNotification: vi.fn(),
+      completeNotification: vi.fn(),
+      listRetryableNotifications: vi.fn(),
+      recordIssue: vi.fn().mockResolvedValue(undefined),
+      resolveIssue: vi.fn(),
+      listOpenIssues: vi.fn(),
+      appendAudit: vi.fn(),
     };
-
-    mockConsultationRepo = {
-      getConsultationById: vi.fn().mockResolvedValue(mockConsultation),
-      createConsultation: vi.fn(),
-      updateConsultationStatus: vi.fn().mockResolvedValue({
-        ...mockConsultation,
-        status: "confirmed",
-      }),
-      detachStaleSlotHold: vi.fn(),
+    gateway = {
+      provider: "razorpay",
+      createOrder: vi.fn(),
+      fetchOrder: vi.fn(),
+      findOrderByReceipt: vi.fn(),
+      fetchOrderPayments: vi.fn().mockResolvedValue([]),
+      fetchPayment: vi.fn().mockResolvedValue(payment()),
+      createRefund: vi.fn(),
+      fetchRefund: vi.fn(),
+      fetchPaymentRefunds: vi.fn(),
     };
+    service = new PaymentConfirmationService({
+      paymentOrderRepo: orders,
+      ledger,
+      gateway,
+      keySecretResolver: () => KEY_SECRET,
+    });
+  });
 
-    mockSlotRepo = {
-      getSlotById: vi.fn().mockResolvedValue(mockSlot),
-      createSlot: vi.fn(),
-      getSlotsByTimeRange: vi.fn(),
-      updateSlotStatus: vi.fn(),
-      getAvailableSlots: vi.fn(),
-      bulkCreateSlots: vi.fn(),
-      reserveSlot: vi.fn(),
-      releaseSlot: vi.fn(),
-      confirmSlot: vi.fn().mockResolvedValue({
-        ...mockSlot,
-        status: "booked",
-        reservationToken: null,
-        reservedUntil: null,
-      }),
-    };
+  describe("applyPaymentEvent", () => {
+    it("resolves the order by provider-scoped id and applies the event atomically via the ledger RPC", async () => {
+      const result = await service.applyPaymentEvent(event({ paymentMethod: "credit_card", eventTime: "2026-10-01T10:02:00.000Z" }));
 
-    service = new PaymentConfirmationService(
-      mockPaymentOrderRepo,
-      mockPaymentTransactionRepo,
-      mockConsultationRepo,
-      mockSlotRepo
+      expect(orders.getOrderByProviderGatewayId).toHaveBeenCalledWith("razorpay", "order_TestOrder0001");
+      expect(ledger.applyPaymentEvent).toHaveBeenCalledWith({
+        paymentOrderId: order.id,
+        gatewayPaymentId: "pay_TestPayment01",
+        status: "captured",
+        amountInPaise: 299900,
+        currency: "INR",
+        paymentMethod: "card",
+        bankReference: null,
+        errorCode: null,
+        errorDescription: null,
+        eventTime: "2026-10-01T10:02:00.000Z",
+      });
+      expect(result).toEqual({
+        success: true,
+        outcome: "confirmed",
+        orderId: order.id,
+        consultationId: order.consultationId,
+        transactionId: "33333333-3333-4333-8333-333333333333",
+      });
+    });
+
+    it.each(["slot_conflict", "already_confirmed", "duplicate_payment", "payment_failed", "payment_pending", "user_dropped", "paid_inactive_consultation"] as const)(
+      "passes the '%s' ledger outcome through unchanged",
+      async (outcome) => {
+        vi.mocked(ledger.applyPaymentEvent).mockResolvedValueOnce(applied(outcome));
+        const result = await service.applyPaymentEvent(event());
+        expect(result.success && result.outcome).toBe(outcome);
+      }
     );
-  });
 
-  // ============================================================================
-  // A. SUCCESS PATH
-  // ============================================================================
-  describe("A. Success Path", () => {
-    it("1. records payment transaction on success", async () => {
-      const result = await service.processPaymentWebhook(mockSuccessWebhook);
+    it("maps ledger amount/currency mismatches to terminal failures (issue recorded inside the RPC)", async () => {
+      vi.mocked(ledger.applyPaymentEvent).mockResolvedValueOnce(applied("amount_mismatch"));
+      const amount = await service.applyPaymentEvent(event({ amountInPaise: 100 }));
+      expect(amount).toMatchObject({ success: false, error: "AMOUNT_MISMATCH" });
 
-      expect(result.success).toBe(true);
-      expect(mockPaymentTransactionRepo.recordTransaction).toHaveBeenCalledWith(
-        expect.objectContaining({
-          paymentOrderId: mockLocalOrderId,
-          gatewayPaymentId: mockGatewayPaymentId,
-          amountInPaise: 299900,
-          status: "success",
-          paymentMethod: "upi",
-          bankReference: "UTR1234567890",
-        })
-      );
+      vi.mocked(ledger.applyPaymentEvent).mockResolvedValueOnce(applied("currency_mismatch"));
+      const currency = await service.applyPaymentEvent(event({ currency: "USD" }));
+      expect(currency).toMatchObject({ success: false, error: "CURRENCY_MISMATCH" });
+      expect(isTransientConfirmationError("AMOUNT_MISMATCH")).toBe(false);
     });
 
-    it("2. marks payment order as paid with timestamp", async () => {
-      const result = await service.processPaymentWebhook(mockSuccessWebhook);
-
-      expect(result.success).toBe(true);
-      expect(mockPaymentOrderRepo.updateOrderStatus).toHaveBeenCalledWith(
-        mockLocalOrderId,
-        "paid",
-        expect.objectContaining({
-          paidAt: "2026-10-01T10:05:00.000Z",
-        })
-      );
+    it("records an unknown_gateway_order issue and applies nothing when the order is unknown", async () => {
+      vi.mocked(orders.getOrderByProviderGatewayId).mockResolvedValueOnce(null);
+      vi.mocked(gateway.fetchOrder).mockResolvedValueOnce(null);
+      const result = await service.applyPaymentEvent(event());
+      expect(result).toMatchObject({ success: false, error: "ORDER_NOT_FOUND" });
+      expect(ledger.applyPaymentEvent).not.toHaveBeenCalled();
+      expect(ledger.recordIssue).toHaveBeenCalledWith(expect.objectContaining({ kind: "unknown_gateway_order", provider: "razorpay" }));
     });
 
-    it("3. books slot via confirmSlot RPC wrapper", async () => {
-      const result = await service.processPaymentWebhook(mockSuccessWebhook);
+    it("recovers an order whose creation response was lost by matching the Razorpay receipt (link set once)", async () => {
+      vi.mocked(orders.getOrderByProviderGatewayId).mockResolvedValueOnce(null);
+      vi.mocked(gateway.fetchOrder).mockResolvedValueOnce({ id: "order_TestOrder0001", amountInPaise: 299900, currency: "INR", receipt: order.receipt, status: "paid" });
+      vi.mocked(orders.getOrderByReceipt).mockResolvedValueOnce({ ...order, gatewayOrderId: null });
 
+      const result = await service.applyPaymentEvent(event());
+      expect(orders.attachGatewayOrderId).toHaveBeenCalledWith(order.id, "order_TestOrder0001");
       expect(result.success).toBe(true);
-      expect(mockSlotRepo.confirmSlot).toHaveBeenCalledWith(
-        mockSlotId,
-        mockReservationToken
-      );
     });
 
-    it("4. transitions consultation to confirmed", async () => {
-      const result = await service.processPaymentWebhook(mockSuccessWebhook);
+    it("never re-links a local order that is already linked to a different Razorpay order", async () => {
+      vi.mocked(orders.getOrderByProviderGatewayId).mockResolvedValueOnce(null);
+      vi.mocked(gateway.fetchOrder).mockResolvedValueOnce({ id: "order_Other000001", amountInPaise: 299900, currency: "INR", receipt: order.receipt, status: "paid" });
+      vi.mocked(orders.getOrderByReceipt).mockResolvedValueOnce({ ...order, gatewayOrderId: "order_TestOrder0001" });
 
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.outcome).toBe("confirmed");
-        expect(result.orderId).toBe(mockLocalOrderId);
-        expect(result.consultationId).toBe(mockConsultationId);
-      }
-      expect(mockConsultationRepo.updateConsultationStatus).toHaveBeenCalledWith(
-        mockConsultationId,
-        "confirmed"
-      );
+      const result = await service.applyPaymentEvent(event({ gatewayOrderId: "order_Other000001" }));
+      expect(result).toMatchObject({ success: false, error: "ORDER_NOT_FOUND" });
+      expect(orders.attachGatewayOrderId).not.toHaveBeenCalled();
+    });
+
+    it("returns a transient DATABASE_ERROR when the ledger RPC fails (provider retries)", async () => {
+      vi.mocked(ledger.applyPaymentEvent).mockRejectedValueOnce(new Error("connection reset"));
+      const result = await service.applyPaymentEvent(event());
+      expect(result).toMatchObject({ success: false, error: "DATABASE_ERROR" });
+      expect(isTransientConfirmationError("DATABASE_ERROR")).toBe(true);
+    });
+
+    it("truncates provider error text before persisting", async () => {
+      await service.applyPaymentEvent(event({ status: "failed", errorCode: "X".repeat(80), errorDescription: "y".repeat(900) }));
+      const params = vi.mocked(ledger.applyPaymentEvent).mock.calls[0][0];
+      expect(params.errorCode).toHaveLength(50);
+      expect(params.errorDescription).toHaveLength(500);
     });
   });
 
-  // ============================================================================
-  // B. VALIDATION
-  // ============================================================================
-  describe("B. Validation & Security Guards", () => {
-    it("5. rejects unknown order without modifying database state", async () => {
-      (mockPaymentOrderRepo.getOrderByGatewayId as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-
-      const result = await service.processPaymentWebhook(mockSuccessWebhook);
-
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toBe("ORDER_NOT_FOUND");
-      }
-      expect(mockPaymentTransactionRepo.recordTransaction).not.toHaveBeenCalled();
-      expect(mockPaymentOrderRepo.updateOrderStatus).not.toHaveBeenCalled();
-      expect(mockSlotRepo.confirmSlot).not.toHaveBeenCalled();
+  describe("applyProviderPayment (status mapping)", () => {
+    it.each([
+      ["captured", "captured"],
+      ["refunded", "captured"],
+      ["authorized", "authorized"],
+      ["failed", "failed"],
+    ] as const)("maps Razorpay '%s' to ledger '%s'", async (providerStatus, ledgerStatus) => {
+      await service.applyProviderPayment(payment({ status: providerStatus }));
+      expect(vi.mocked(ledger.applyPaymentEvent).mock.calls[0][0].status).toBe(ledgerStatus);
     });
 
-    it("6. rejects amount mismatch and does not mark order paid or confirm slot", async () => {
-      const tamperedWebhook: NormalizedCashfreePaymentWebhook = {
-        ...mockSuccessWebhook,
-        amountInPaise: 100000, // ₹1,000 instead of ₹2,999
-      };
-
-      const result = await service.processPaymentWebhook(tamperedWebhook);
-
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toBe("AMOUNT_MISMATCH");
-      }
-      expect(mockPaymentTransactionRepo.recordTransaction).not.toHaveBeenCalled();
-      expect(mockPaymentOrderRepo.updateOrderStatus).not.toHaveBeenCalled();
-      expect(mockSlotRepo.confirmSlot).not.toHaveBeenCalled();
-    });
-
-    it("7. rejects currency mismatch safely", async () => {
-      const tamperedWebhook: NormalizedCashfreePaymentWebhook = {
-        ...mockSuccessWebhook,
-        currency: "USD",
-      };
-
-      const result = await service.processPaymentWebhook(tamperedWebhook);
-
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toBe("CURRENCY_MISMATCH");
-      }
-      expect(mockSlotRepo.confirmSlot).not.toHaveBeenCalled();
-    });
-
-    it("8. rejects when consultation record is missing", async () => {
-      (mockConsultationRepo.getConsultationById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-
-      const result = await service.processPaymentWebhook(mockSuccessWebhook);
-
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toBe("CONSULTATION_NOT_FOUND");
-      }
-      expect(mockSlotRepo.confirmSlot).not.toHaveBeenCalled();
-    });
-
-    it("9. rejects when consultation has no slotId", async () => {
-      (mockConsultationRepo.getConsultationById as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ...mockConsultation,
-        slotId: null,
-      });
-
-      const result = await service.processPaymentWebhook(mockSuccessWebhook);
-
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toBe("CONSULTATION_HAS_NO_SLOT");
-      }
-      expect(mockSlotRepo.confirmSlot).not.toHaveBeenCalled();
-    });
-
-    it("10. rejects when payment order is missing reservationToken", async () => {
-      (mockPaymentOrderRepo.getOrderByGatewayId as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ...mockPaymentOrder,
-        reservationToken: null,
-      });
-
-      const result = await service.processPaymentWebhook(mockSuccessWebhook);
-
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toBe("MISSING_RESERVATION_TOKEN");
-      }
-      expect(mockSlotRepo.confirmSlot).not.toHaveBeenCalled();
+    it("does nothing for a payment that has only been created", async () => {
+      expect(await service.applyProviderPayment(payment({ status: "created" }))).toBeNull();
+      expect(ledger.applyPaymentEvent).not.toHaveBeenCalled();
     });
   });
 
-  // ============================================================================
-  // C. SLOT / SECURITY & RESERVATION TOKEN PROVENANCE
-  // ============================================================================
-  describe("C. Slot & Security Guarantees", () => {
-    it("11. passes EXACTLY paymentOrder.reservationToken to confirmSlot", async () => {
-      const customToken = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-      (mockPaymentOrderRepo.getOrderByGatewayId as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ...mockPaymentOrder,
-        reservationToken: customToken,
-      });
+  describe("syncOrderWithProvider (reconciliation / status recovery)", () => {
+    it("applies failed attempts before the capture so the final result is the capture", async () => {
+      vi.mocked(gateway.fetchOrderPayments).mockResolvedValueOnce([
+        payment({ id: "pay_Captured0001", status: "captured" }),
+        payment({ id: "pay_Failed00001", status: "failed" }),
+      ]);
+      vi.mocked(ledger.applyPaymentEvent)
+        .mockResolvedValueOnce(applied("payment_failed"))
+        .mockResolvedValueOnce(applied("confirmed"));
 
-      await service.processPaymentWebhook(mockSuccessWebhook);
-
-      expect(mockSlotRepo.confirmSlot).toHaveBeenCalledWith(mockSlotId, customToken);
+      const result = await service.syncOrderWithProvider(order);
+      const appliedIds = vi.mocked(ledger.applyPaymentEvent).mock.calls.map((c) => c[0].gatewayPaymentId);
+      expect(appliedIds).toEqual(["pay_Failed00001", "pay_Captured0001"]);
+      expect(result).toMatchObject({ success: true, outcome: "confirmed" });
     });
 
-    it("12. does NOT trust slot's current token as substitute for paymentOrder.reservationToken", async () => {
-      // Suppose slot currently has a different token in DB
-      (mockSlotRepo.getSlotById as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ...mockSlot,
-        reservationToken: "different_current_slot_token_99999999999999999999999999999999",
-      });
-
-      await service.processPaymentWebhook(mockSuccessWebhook);
-
-      // Must strictly use mockPaymentOrder.reservationToken, NOT the slot's token
-      expect(mockSlotRepo.confirmSlot).toHaveBeenCalledWith(mockSlotId, mockReservationToken);
+    it("ignores payments that belong to a different order", async () => {
+      vi.mocked(gateway.fetchOrderPayments).mockResolvedValueOnce([payment({ orderId: "order_Other000001" })]);
+      expect(await service.syncOrderWithProvider(order)).toBeNull();
+      expect(ledger.applyPaymentEvent).not.toHaveBeenCalled();
     });
 
-    it("13. succeeds on valid late webhook after hold expired when slot was uncontested", async () => {
-      // Slot hold expired (e.g. reservedUntil in past), but confirmSlot succeeds due to relaxed DB-001 RPC
-      (mockSlotRepo.confirmSlot as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ...mockSlot,
-        status: "booked",
-        reservationToken: null,
-        reservedUntil: null,
-      });
-
-      const result = await service.processPaymentWebhook(mockSuccessWebhook);
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.outcome).toBe("confirmed");
-      }
-      expect(mockConsultationRepo.updateConsultationStatus).toHaveBeenCalledWith(
-        mockConsultationId,
-        "confirmed"
-      );
+    it("recovers the provider order by receipt when the local link is missing", async () => {
+      vi.mocked(gateway.findOrderByReceipt).mockResolvedValueOnce({ id: "order_TestOrder0001", amountInPaise: 299900, currency: "INR", receipt: order.receipt, status: "created" });
+      await service.syncOrderWithProvider({ ...order, gatewayOrderId: null });
+      expect(orders.attachGatewayOrderId).toHaveBeenCalledWith(order.id, "order_TestOrder0001");
+      expect(gateway.fetchOrderPayments).toHaveBeenCalledWith("order_TestOrder0001");
     });
 
-    it("14. routes to slot conflict when token mismatch occurs in confirmSlot", async () => {
-      // confirmSlot returns null due to token mismatch (e.g. RPC matched 0 rows)
-      (mockSlotRepo.confirmSlot as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-
-      const result = await service.processPaymentWebhook(mockSuccessWebhook);
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.outcome).toBe("slot_conflict");
-      }
-      expect(mockConsultationRepo.updateConsultationStatus).toHaveBeenCalledWith(
-        mockConsultationId,
-        "slot_conflict_pending_reschedule"
-      );
-      // Order must still be marked paid because payment succeeded
-      expect(mockPaymentOrderRepo.updateOrderStatus).toHaveBeenCalledWith(
-        mockLocalOrderId,
-        "paid",
-        expect.any(Object)
-      );
+    it("returns null without side effects when Razorpay has no order for the receipt", async () => {
+      vi.mocked(gateway.findOrderByReceipt).mockResolvedValueOnce(null);
+      expect(await service.syncOrderWithProvider({ ...order, gatewayOrderId: null })).toBeNull();
+      expect(orders.attachGatewayOrderId).not.toHaveBeenCalled();
     });
 
-    it("15. Customer A / Customer B race: preserves Customer B's reservation and routes Customer A to conflict", async () => {
-      // Customer B reserved slot with their own token, so confirmSlot with Customer A's token fails
-      (mockSlotRepo.confirmSlot as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-      // Slot is currently reserved by Customer B
-      (mockSlotRepo.getSlotById as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ...mockSlot,
-        reservationToken: "customer_b_token_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        status: "reserved",
-      });
-
-      const result = await service.processPaymentWebhook(mockSuccessWebhook);
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.outcome).toBe("slot_conflict");
-      }
-      // Customer B's slot is NOT altered or released
-      expect(mockSlotRepo.updateSlotStatus).not.toHaveBeenCalled();
-      expect(mockSlotRepo.releaseSlot).not.toHaveBeenCalled();
-      // Customer A is routed to slot_conflict_pending_reschedule
-      expect(mockConsultationRepo.updateConsultationStatus).toHaveBeenCalledWith(
-        mockConsultationId,
-        "slot_conflict_pending_reschedule"
-      );
+    it("never syncs legacy Cashfree orders through the Razorpay API", async () => {
+      expect(await service.syncOrderWithProvider({ ...order, provider: "cashfree" })).toBeNull();
+      expect(gateway.fetchOrderPayments).not.toHaveBeenCalled();
     });
   });
 
-  // ============================================================================
-  // D. IDEMPOTENCY
-  // ============================================================================
-  describe("D. Idempotency & Replay Handling", () => {
-    it("16. reuses existing transaction when gatewayPaymentId already exists", async () => {
-      (mockPaymentTransactionRepo.getTransactionByGatewayId as ReturnType<typeof vi.fn>).mockResolvedValue(
-        mockTransactionRecord
-      );
-
-      const result = await service.processPaymentWebhook(mockSuccessWebhook);
-
-      expect(result.success).toBe(true);
-      expect(mockPaymentTransactionRepo.recordTransaction).not.toHaveBeenCalled();
+  describe("verifyCheckoutCallback (browser callback is never trusted)", () => {
+    const callback = (overrides: Record<string, string> = {}) => ({
+      consultationId: order.consultationId,
+      reservationToken: TOKEN,
+      razorpayOrderId: "order_TestOrder0001",
+      razorpayPaymentId: "pay_TestPayment01",
+      razorpaySignature: computeRazorpayCheckoutSignature("order_TestOrder0001", "pay_TestPayment01", KEY_SECRET),
+      ...overrides,
     });
 
-    it("17. returns duplicate outcome when order is already paid and consultation is already confirmed", async () => {
-      (mockPaymentOrderRepo.getOrderByGatewayId as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ...mockPaymentOrder,
-        status: "paid",
-        paidAt: "2026-10-01T10:05:00.000Z",
-      });
-      (mockConsultationRepo.getConsultationById as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ...mockConsultation,
-        status: "confirmed",
-      });
-
-      const result = await service.processPaymentWebhook(mockSuccessWebhook);
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.outcome).toBe("duplicate");
-      }
-      expect(mockSlotRepo.confirmSlot).not.toHaveBeenCalled();
-      expect(mockConsultationRepo.updateConsultationStatus).not.toHaveBeenCalled();
+    it("verifies the signature against the DB order id, fetches the payment and applies the capture", async () => {
+      const result = await service.verifyCheckoutCallback(callback());
+      expect(gateway.fetchPayment).toHaveBeenCalledWith("pay_TestPayment01");
+      expect(result).toMatchObject({ success: true, outcome: "confirmed" });
     });
 
-    it("18. returns slot_conflict when consultation is already in slot_conflict_pending_reschedule", async () => {
-      (mockPaymentOrderRepo.getOrderByGatewayId as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ...mockPaymentOrder,
-        status: "paid",
-        paidAt: "2026-10-01T10:05:00.000Z",
-      });
-      (mockConsultationRepo.getConsultationById as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ...mockConsultation,
-        status: "slot_conflict_pending_reschedule",
-      });
-
-      const result = await service.processPaymentWebhook(mockSuccessWebhook);
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.outcome).toBe("slot_conflict");
-      }
-      expect(mockSlotRepo.confirmSlot).not.toHaveBeenCalled();
+    it("rejects a forged signature without contacting Razorpay or touching the ledger", async () => {
+      const result = await service.verifyCheckoutCallback(callback({ razorpaySignature: "0".repeat(64) }));
+      expect(result).toMatchObject({ success: false, error: "SIGNATURE_INVALID" });
+      expect(gateway.fetchPayment).not.toHaveBeenCalled();
+      expect(ledger.applyPaymentEvent).not.toHaveBeenCalled();
     });
 
-    it("19. recovers when order is already paid but consultation not yet finalized", async () => {
-      (mockPaymentOrderRepo.getOrderByGatewayId as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ...mockPaymentOrder,
-        status: "paid",
-        paidAt: "2026-10-01T10:05:00.000Z",
-      });
-      (mockConsultationRepo.getConsultationById as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ...mockConsultation,
-        status: "awaiting_payment",
-      });
-
-      const result = await service.processPaymentWebhook(mockSuccessWebhook);
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.outcome).toBe("confirmed");
-      }
-      expect(mockConsultationRepo.updateConsultationStatus).toHaveBeenCalledWith(
-        mockConsultationId,
-        "confirmed"
-      );
+    it("rejects a signature computed for a browser-supplied order id that differs from the DB order", async () => {
+      const forged = computeRazorpayCheckoutSignature("order_Attacker0001", "pay_TestPayment01", KEY_SECRET);
+      const result = await service.verifyCheckoutCallback(callback({ razorpayOrderId: "order_Attacker0001", razorpaySignature: forged }));
+      expect(result).toMatchObject({ success: false, error: "SIGNATURE_INVALID" });
     });
 
-    it("20. recovers on retry when slot was already booked in prior partial attempt", async () => {
-      (mockPaymentOrderRepo.getOrderByGatewayId as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ...mockPaymentOrder,
-        status: "paid",
-        paidAt: "2026-10-01T10:05:00.000Z",
-      });
-      (mockConsultationRepo.getConsultationById as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ...mockConsultation,
-        status: "awaiting_payment",
-      });
-      // confirmSlot returns null because slot is already 'booked'
-      (mockSlotRepo.confirmSlot as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-      // getSlotById shows slot is indeed booked
-      (mockSlotRepo.getSlotById as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ...mockSlot,
-        status: "booked",
-        reservationToken: null,
-      });
+    it("rejects a signature made with the webhook secret instead of the key secret", async () => {
+      const wrongSecret = computeRazorpayCheckoutSignature("order_TestOrder0001", "pay_TestPayment01", WEBHOOK_SECRET);
+      const result = await service.verifyCheckoutCallback(callback({ razorpaySignature: wrongSecret }));
+      expect(result).toMatchObject({ success: false, error: "SIGNATURE_INVALID" });
+    });
 
-      const result = await service.processPaymentWebhook(mockSuccessWebhook);
+    it("rejects a wrong payment id for a valid order signature", async () => {
+      const result = await service.verifyCheckoutCallback(callback({ razorpayPaymentId: "pay_OtherPayment1" }));
+      expect(result).toMatchObject({ success: false, error: "SIGNATURE_INVALID" });
+    });
 
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.outcome).toBe("confirmed");
-      }
-      expect(mockConsultationRepo.updateConsultationStatus).toHaveBeenCalledWith(
-        mockConsultationId,
-        "confirmed"
-      );
+    it("refuses another customer's booking (reservation token mismatch)", async () => {
+      const result = await service.verifyCheckoutCallback(callback({ reservationToken: "b".repeat(64) }));
+      expect(result).toMatchObject({ success: false, error: "INVALID_RESERVATION_TOKEN" });
+      expect(gateway.fetchPayment).not.toHaveBeenCalled();
+    });
+
+    it("rejects a payment that Razorpay reports for a different order", async () => {
+      vi.mocked(gateway.fetchPayment).mockResolvedValueOnce(payment({ orderId: "order_Other000001" }));
+      const result = await service.verifyCheckoutCallback(callback());
+      expect(result).toMatchObject({ success: false, error: "PAYMENT_ORDER_MISMATCH" });
+      expect(ledger.applyPaymentEvent).not.toHaveBeenCalled();
+    });
+
+    it("keeps an authorized (not captured) payment pending instead of confirming it", async () => {
+      vi.mocked(gateway.fetchPayment).mockResolvedValueOnce(payment({ status: "authorized" }));
+      vi.mocked(ledger.applyPaymentEvent).mockResolvedValueOnce(applied("payment_pending"));
+      const result = await service.verifyCheckoutCallback(callback());
+      expect(vi.mocked(ledger.applyPaymentEvent).mock.calls[0][0].status).toBe("authorized");
+      expect(result).toMatchObject({ success: true, outcome: "payment_pending" });
+    });
+
+    it("treats a Razorpay outage as 'still verifying', never as failure", async () => {
+      vi.mocked(gateway.fetchPayment).mockRejectedValueOnce(new GatewayError("timeout", { code: "GATEWAY_TIMEOUT" }));
+      const result = await service.verifyCheckoutCallback(callback());
+      expect(result).toMatchObject({ success: false, error: "GATEWAY_ERROR" });
+      if (!result.success) expect(result.message).toContain("do not pay again");
+    });
+
+    it("fails closed when the key secret is not configured", async () => {
+      const unconfigured = new PaymentConfirmationService({ paymentOrderRepo: orders, ledger, gateway, keySecretResolver: () => undefined });
+      const result = await unconfigured.verifyCheckoutCallback(callback());
+      expect(result).toMatchObject({ success: false, error: "NOT_CONFIGURED" });
+    });
+
+    it("refuses verification for legacy Cashfree orders", async () => {
+      vi.mocked(orders.getLatestOrderByConsultationId).mockResolvedValueOnce({ ...order, provider: "cashfree" });
+      const result = await service.verifyCheckoutCallback(callback());
+      expect(result).toMatchObject({ success: false, error: "ORDER_NOT_FOUND" });
     });
   });
 
-  // ============================================================================
-  // E. FAILURES & USER DROPPED
-  // ============================================================================
-  describe("E. Payment Failures & Dropped Flow", () => {
-    it("21. records failed transaction and transitions order to failed", async () => {
-      const failedWebhook: NormalizedCashfreePaymentWebhook = {
-        ...mockSuccessWebhook,
-        eventType: "PAYMENT_FAILED_WEBHOOK",
-        paymentStatus: "FAILED",
-        errorCode: "INSUFFICIENT_FUNDS",
-        errorDescription: "Customer bank reported insufficient funds.",
-      };
-
-      const result = await service.processPaymentWebhook(failedWebhook);
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.outcome).toBe("payment_failed");
-      }
-      expect(mockPaymentTransactionRepo.recordTransaction).toHaveBeenCalledWith(
-        expect.objectContaining({
-          status: "failed",
-          errorCode: "INSUFFICIENT_FUNDS",
-          errorDescription: "Customer bank reported insufficient funds.",
-        })
-      );
-      expect(mockPaymentOrderRepo.updateOrderStatus).toHaveBeenCalledWith(
-        mockLocalOrderId,
-        "failed"
-      );
-      expect(mockSlotRepo.confirmSlot).not.toHaveBeenCalled();
-      expect(mockConsultationRepo.updateConsultationStatus).not.toHaveBeenCalled();
+  describe("Legacy Cashfree webhook mapping", () => {
+    const cashfree = (eventType: NormalizedCashfreePaymentWebhook["eventType"]): NormalizedCashfreePaymentWebhook => ({
+      eventType,
+      orderId: "ord_22222222222242228222222222222222",
+      gatewayPaymentId: "12345678",
+      paymentStatus: "SUCCESS",
+      amountInPaise: 299900,
+      currency: "INR",
+      paymentMethod: "upi",
+      bankReference: null,
+      errorCode: null,
+      errorDescription: null,
+      eventTime: "2026-10-01T10:02:00.000Z",
+      rawPayload: {},
     });
 
-    it("22. records user_dropped transaction and transitions order to attempted", async () => {
-      const droppedWebhook: NormalizedCashfreePaymentWebhook = {
-        ...mockSuccessWebhook,
-        eventType: "PAYMENT_USER_DROPPED_WEBHOOK",
-        paymentStatus: "USER_DROPPED",
-      };
-
-      const result = await service.processPaymentWebhook(droppedWebhook);
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.outcome).toBe("user_dropped");
-      }
-      expect(mockPaymentTransactionRepo.recordTransaction).toHaveBeenCalledWith(
-        expect.objectContaining({
-          status: "user_dropped",
-        })
-      );
-      expect(mockPaymentOrderRepo.updateOrderStatus).toHaveBeenCalledWith(
-        mockLocalOrderId,
-        "attempted"
-      );
-      expect(mockSlotRepo.confirmSlot).not.toHaveBeenCalled();
-      expect(mockConsultationRepo.updateConsultationStatus).not.toHaveBeenCalled();
-    });
-
-    it("23. does not revert already paid order on subsequent failed webhook", async () => {
-      (mockPaymentOrderRepo.getOrderByGatewayId as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ...mockPaymentOrder,
-        status: "paid",
-        paidAt: "2026-10-01T10:05:00.000Z",
-      });
-
-      const failedWebhook: NormalizedCashfreePaymentWebhook = {
-        ...mockSuccessWebhook,
-        eventType: "PAYMENT_FAILED_WEBHOOK",
-        paymentStatus: "FAILED",
-      };
-
-      const result = await service.processPaymentWebhook(failedWebhook);
-
-      expect(result.success).toBe(true);
-      expect(mockPaymentOrderRepo.updateOrderStatus).not.toHaveBeenCalledWith(
-        mockLocalOrderId,
-        "failed"
-      );
-    });
-
-    it("24. does not revert already paid order on subsequent dropped webhook", async () => {
-      (mockPaymentOrderRepo.getOrderByGatewayId as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ...mockPaymentOrder,
-        status: "paid",
-        paidAt: "2026-10-01T10:05:00.000Z",
-      });
-
-      const droppedWebhook: NormalizedCashfreePaymentWebhook = {
-        ...mockSuccessWebhook,
-        eventType: "PAYMENT_USER_DROPPED_WEBHOOK",
-        paymentStatus: "USER_DROPPED",
-      };
-
-      const result = await service.processPaymentWebhook(droppedWebhook);
-
-      expect(result.success).toBe(true);
-      expect(mockPaymentOrderRepo.updateOrderStatus).not.toHaveBeenCalledWith(
-        mockLocalOrderId,
-        "attempted"
-      );
+    it.each([
+      ["PAYMENT_SUCCESS_WEBHOOK", "captured"],
+      ["PAYMENT_FAILED_WEBHOOK", "failed"],
+      ["PAYMENT_USER_DROPPED_WEBHOOK", "user_dropped"],
+    ] as const)("maps %s to ledger status %s under provider 'cashfree'", async (type, status) => {
+      vi.mocked(orders.getOrderByProviderGatewayId).mockResolvedValueOnce({ ...order, provider: "cashfree", receipt: null });
+      await service.processPaymentWebhook(cashfree(type));
+      expect(orders.getOrderByProviderGatewayId).toHaveBeenCalledWith("cashfree", "ord_22222222222242228222222222222222");
+      expect(vi.mocked(ledger.applyPaymentEvent).mock.calls[0][0].status).toBe(status);
+      expect(gateway.fetchOrder).not.toHaveBeenCalled();
     });
   });
 
-  // ============================================================================
-  // F. PARTIAL FAILURE RECOVERY
-  // ============================================================================
-  describe("F. Partial Failure Recovery", () => {
-    it("25. recovers when transaction was already recorded but order was not yet paid", async () => {
-      (mockPaymentTransactionRepo.getTransactionByGatewayId as ReturnType<typeof vi.fn>).mockResolvedValue(
-        mockTransactionRecord
-      );
-      // order status is still 'created'
-      (mockPaymentOrderRepo.getOrderByGatewayId as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ...mockPaymentOrder,
-        status: "created",
-      });
-
-      const result = await service.processPaymentWebhook(mockSuccessWebhook);
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.outcome).toBe("confirmed");
-      }
-      expect(mockPaymentOrderRepo.updateOrderStatus).toHaveBeenCalledWith(
-        mockLocalOrderId,
-        "paid",
-        expect.any(Object)
-      );
-      expect(mockSlotRepo.confirmSlot).toHaveBeenCalledWith(mockSlotId, mockReservationToken);
-      expect(mockConsultationRepo.updateConsultationStatus).toHaveBeenCalledWith(
-        mockConsultationId,
-        "confirmed"
-      );
-    });
-
-    it("26. handles unique constraint 23505 collision when recording transaction concurrently", async () => {
-      const conflictError = new Error("duplicate key value violates unique constraint idx_trans_gateway_payment_id");
-      (conflictError as unknown as { code: string }).code = "23505";
-
-      (mockPaymentTransactionRepo.recordTransaction as ReturnType<typeof vi.fn>)
-        .mockRejectedValueOnce(conflictError);
-      (mockPaymentTransactionRepo.getTransactionByGatewayId as ReturnType<typeof vi.fn>)
-        .mockResolvedValueOnce(null) // first check
-        .mockResolvedValueOnce(mockTransactionRecord); // second check after conflict
-
-      const result = await service.processPaymentWebhook(mockSuccessWebhook);
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.outcome).toBe("confirmed");
-      }
-    });
-
-    it("27. safely aborts when confirmSlot RPC throws unexpected database error", async () => {
-      (mockSlotRepo.confirmSlot as ReturnType<typeof vi.fn>).mockRejectedValue(
-        new Error("Connection reset by peer")
-      );
-
-      const result = await service.processPaymentWebhook(mockSuccessWebhook);
-
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toBe("DATABASE_ERROR");
-      }
-      expect(mockConsultationRepo.updateConsultationStatus).not.toHaveBeenCalled();
-    });
-
-    it("28. handles conflict when updating consultation to confirmed fails due to unique confirmed slot constraint", async () => {
-      (mockPaymentOrderRepo.getOrderByGatewayId as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ...mockPaymentOrder,
-        status: "paid",
-      });
-      (mockSlotRepo.confirmSlot as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-      (mockSlotRepo.getSlotById as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ...mockSlot,
-        status: "booked",
-      });
-
-      // Another consultation already claimed confirmed status on this slot!
-      const uniqueConstraintError = new Error("duplicate key value violates unique constraint idx_consultations_confirmed_slot");
-      (uniqueConstraintError as unknown as { code: string }).code = "23505";
-
-      (mockConsultationRepo.updateConsultationStatus as ReturnType<typeof vi.fn>)
-        .mockRejectedValueOnce(uniqueConstraintError) // attempt to confirm fails
-        .mockResolvedValueOnce({
-          ...mockConsultation,
-          status: "slot_conflict_pending_reschedule",
-        }); // fallback to conflict succeeds
-
-      const result = await service.processPaymentWebhook(mockSuccessWebhook);
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.outcome).toBe("slot_conflict");
-      }
-      expect(mockConsultationRepo.updateConsultationStatus).toHaveBeenCalledWith(
-        mockConsultationId,
-        "slot_conflict_pending_reschedule"
-      );
-    });
-  });
-
-  // ============================================================================
-  // G. METADATA & DATA FIDELITY
-  // ============================================================================
-  describe("G. Metadata & Data Fidelity", () => {
-    it("29. correctly persists gatewayPaymentId from webhook", async () => {
-      await service.processPaymentWebhook(mockSuccessWebhook);
-
-      expect(mockPaymentTransactionRepo.recordTransaction).toHaveBeenCalledWith(
-        expect.objectContaining({
-          gatewayPaymentId: mockGatewayPaymentId,
-        })
-      );
-    });
-
-    it("30. correctly persists integer paise amount in transaction", async () => {
-      await service.processPaymentWebhook(mockSuccessWebhook);
-
-      expect(mockPaymentTransactionRepo.recordTransaction).toHaveBeenCalledWith(
-        expect.objectContaining({
-          amountInPaise: 299900,
-        })
-      );
-    });
-
-    it("31. normalizes card, netbanking, and wallet payment methods correctly", async () => {
-      const cardWebhook: NormalizedCashfreePaymentWebhook = {
-        ...mockSuccessWebhook,
-        gatewayPaymentId: "cf_pay_card_123",
-        paymentMethod: "credit_card",
-      };
-
-      await service.processPaymentWebhook(cardWebhook);
-
-      expect(mockPaymentTransactionRepo.recordTransaction).toHaveBeenCalledWith(
-        expect.objectContaining({
-          paymentMethod: "card",
-        })
-      );
-    });
+  it("normalizes provider payment methods", () => {
+    expect(normalizePaymentMethod("UPI")).toBe("upi");
+    expect(normalizePaymentMethod("emi")).toBe("card");
+    expect(normalizePaymentMethod("netbanking")).toBe("netbanking");
+    expect(normalizePaymentMethod("wallet")).toBe("wallet");
+    expect(normalizePaymentMethod("cardless_emi_x")).toBe("card");
+    expect(normalizePaymentMethod(null)).toBeNull();
   });
 });

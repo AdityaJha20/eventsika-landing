@@ -29,6 +29,17 @@ export interface IPaymentRefundRepository {
     details?: {
       gatewayRefundId?: string | null;
       processedAt?: string | null;
+      lastError?: string | null;
     }
   ): Promise<PaymentRefundRecord>;
+
+  /**
+   * Retrieves a refund by provider refund ID.
+   */
+  getRefundByGatewayId(gatewayRefundId: string): Promise<PaymentRefundRecord | null>;
+
+  /**
+   * Pending / initiated refunds for a provider, oldest first.
+   */
+  listOpenRefunds(provider: PaymentRefundRecord["provider"], limit: number): Promise<PaymentRefundRecord[]>;
 }

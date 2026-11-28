@@ -7,18 +7,21 @@ function getCspDirectives(): string {
     // unsafe-inline is required for Next.js hydration bootstrap scripts and static JSON-LD.
     // wasm-unsafe-eval is required for DotLottie WebAssembly player in production and development.
     // unsafe-eval is restricted strictly to local development for Next.js Fast Refresh tooling.
-    // https://sdk.cashfree.com is required for Cashfree Web Checkout SDK v3.
-    `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://sdk.cashfree.com${isDev ? " 'unsafe-eval'" : ""}`,
+    // https://checkout.razorpay.com serves Razorpay Standard Checkout (checkout.js).
+    `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://checkout.razorpay.com${isDev ? " 'unsafe-eval'" : ""}`,
     // unsafe-inline is required for Next.js CSS variable injection and CSS module styles.
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data:",
     "font-src 'self' data:",
     "media-src 'self'",
-    "connect-src 'self' https://api.cashfree.com https://sandbox.cashfree.com",
-    "frame-src 'self' https://sdk.cashfree.com https://api.cashfree.com https://sandbox.cashfree.com https://payments.cashfree.com https://payments-test.cashfree.com",
+    // Razorpay checkout.js talks to its API and its client telemetry endpoint.
+    // Verify in the browser with test keys; tighten or extend only from observed CSP reports.
+    "connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com",
+    // The Razorpay payment modal renders in a Razorpay-hosted iframe.
+    "frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com",
     "object-src 'none'",
     "base-uri 'self'",
-    "form-action 'self' https://api.cashfree.com https://sandbox.cashfree.com",
+    "form-action 'self'",
     "frame-ancestors 'self'",
   ];
 

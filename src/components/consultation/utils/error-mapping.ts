@@ -58,6 +58,12 @@ export function mapBookingError(
     case "GATEWAY_ERROR":
       return "The payment gateway is momentarily experiencing high traffic. Please retry in a few seconds.";
 
+    case "PAYMENT_VERIFICATION_PENDING":
+      return "Your earlier payment is still being verified. Please do not pay again — we will update this page automatically.";
+
+    case "PAYMENTS_UNAVAILABLE":
+      return "Bookings are temporarily paused. Your card or UPI account has not been charged. Please try again a little later.";
+
     case "VALIDATION_ERROR":
       return "Please review your contact details and ensure all required fields are accurately filled.";
 
