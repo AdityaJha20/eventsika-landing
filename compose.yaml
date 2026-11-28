@@ -1,0 +1,73 @@
+# Eventsika local Docker environment.
+#
+#   Development (hot reload):  docker compose --profile dev up --build
+#   Production-style image:    docker compose --profile prod up --build
+#
+# Supabase, Upstash, the payment provider and email are MANAGED external
+# services; no database/Redis containers are defined on purpose.
+# Runtime configuration comes from `.env.docker` (create from .env.docker.example).
+
+name: eventsika
+
+x-hardening: &hardening
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+services:
+  dev:
+    profiles: ["dev"]
+    build:
+      context: .
+      target: dev
+    image: eventsika:dev
+    <<: *hardening
+    env_file:
+      - path: .env.docker
+        required: false
+    environment:
+      NODE_ENV: development
+      # Docker Desktop's Windows->Linux file share does not reliably deliver
+      # inotify events, so webpack dev + polling is used (see README).
+      WATCHPACK_POLLING: "true"
+      WATCHPACK_POLLING_INTERVAL: "1000"
+    command: ["npx", "next", "dev", "--webpack", "--hostname", "0.0.0.0", "--port", "3000"]
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - .:/app
+      # Linux node_modules / build cache stay in named volumes so the Windows
+      # host directories never shadow them.
+      - dev_node_modules:/app/node_modules
+      - dev_next:/app/.next
+
+  app:
+    profiles: ["prod"]
+    build:
+      context: .
+      target: runner
+      args:
+        # PUBLIC values only — never pass private credentials as build args.
+        # Value-less entries are taken from the shell environment that runs
+        # `docker compose` and are omitted entirely when unset (never "").
+        # .env.docker is NOT used for build args; it is runtime-only.
+        - NEXT_PUBLIC_SITE_URL
+        - NEXT_PUBLIC_SUPABASE_URL
+        - NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+    image: eventsika:prod
+    <<: *hardening
+    read_only: true
+    tmpfs:
+      # Next.js writes its runtime cache here; everything else is read-only.
+      - /app/.next/cache:uid=1000,gid=1000,mode=0755
+      - /tmp
+    env_file:
+      - path: .env.docker
+        required: false
+    ports:
+      - "127.0.0.1:3001:3000"
+
+volumes:
+  dev_node_modules:
+  dev_next:

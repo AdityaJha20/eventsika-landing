@@ -1,0 +1,42 @@
+# --- Secrets: never enter the build context ---
+.env
+.env.*
+!.env.example
+!.env.docker.example
+*.pem
+*.key
+
+# --- VCS / tooling / nested worktrees ---
+.git
+.gitignore
+.github
+.claude
+.agents
+.vscode
+.idea
+
+# --- Dependencies & build output (rebuilt inside the image) ---
+node_modules
+.next
+out
+build
+coverage
+*.tsbuildinfo
+next-env.d.ts
+
+# --- Local artefacts unrelated to the app ---
+brag-output-*
+deliverables
+graphify-out
+supabase/.temp
+flagged_errors.txt
+npm-debug.log*
+*.log
+.DS_Store
+
+# --- Docker files themselves ---
+Dockerfile
+.dockerignore
+compose.yaml
+compose.*.yaml
+docker-compose*.yml
