@@ -30,6 +30,8 @@ function getCspDirectives(): string {
 }
 
 const nextConfig: NextConfig = {
+  // Self-contained server bundle for the Docker runner stage (.next/standalone).
+  output: "standalone",
   reactCompiler: true,
   poweredByHeader: false,
   async headers() {
